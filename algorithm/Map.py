@@ -1,6 +1,10 @@
 import logging
-logging.basicConfig(filename=__file__+".log" ,level=logging.DEBUG)
+
 import utils
+
+if __name__ == "__main__":
+    logging.basicConfig(filename=__file__+".log" ,level=logging.DEBUG)
+    
 class Map():
     # already have a internal map
     def __init__ (self, map, row=20, col=15):
