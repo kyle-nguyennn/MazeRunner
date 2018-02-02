@@ -7,8 +7,17 @@ def readInput():
     input2 = input()
     return Map(input1, input2) # TODO: implement constructor for merging 2 inputs in Map.py
 
+def getDirection(map, x, y, robotsize=(3,3)):
+    map.print()
+    instruction = ""
+
+    return instruction
+
+def dijkstra():
+    
 if __name__ == "__main__":
     #map = readInput()
     map = utils.createMapTest()
     map = Map(map)
-    map.get(6,2)
+    instruction = getDirection(map, 5, 6)
+    print(instruction)
