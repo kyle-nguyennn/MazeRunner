@@ -1,4 +1,4 @@
-from Map import Map
+from algorithm.Map import Map
 from flask import Flask, session, request, flash, jsonify, url_for, redirect, render_template, g, stream_with_context
 from werkzeug.datastructures import Headers
 from werkzeug.wrappers import Response
