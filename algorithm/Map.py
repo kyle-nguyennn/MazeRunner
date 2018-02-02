@@ -66,8 +66,8 @@ class Map():
                     bitStr += "1"
 
         if withPadding:
-            toPad = len(bitStr) % 8
-            for i in range(8-toPad):
+            toPad = 8 - len(bitStr) % 8
+            for i in range(toPad):
                 bitStr += "0"
 
         return '{:0{}X}'.format(int(bitStr, 2), len(bitStr) // 4)
