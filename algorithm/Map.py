@@ -1,83 +1,100 @@
 import logging
-logging.basicConfig(filename=__file__+".log" ,level=logging.DEBUG)
-import utils
+from enum import Enum
+import algorithm.utils
+
+if __name__ == "__main__":
+    logging.basicConfig(filename=__file__+".log", level=logging.DEBUG)
+
+
 class Map():
     # already have a internal map
-    def __init__ (self, map, row=20, col=15):
-        self._row = row
-        self._col = col
-        self._map = map
+    def __init__(self, height=20, width=15):
+        self._map = [[-1 for y in range(width)] for x in range(height)]
 
-    @classmethod
-    def constructMap(cls, part1, part2, row=20, col=15):
-        self._row = row
-        self._col = col
-        bitStr1 = str(bin(int(part1, 16)))[2:] # exlcude the "0b" in front of the bit strings
-        bitStr2 = str(bin(int(part2, 16)))[2:]
-        # TODO: construct an integer representation of map from bitStr1 and bitStr2
-        map = 0
-        return cls(map)
+    def fromMDFStrings(self, part1, part2):
 
+        b1Size = len(part1) * 4
+        bitStr1 = (bin(int(part1, 16))[4:b1Size]).zfill(b1Size-4)
 
-    def toHexString(self, withPadding=True):
+        b2Size = len(part2) * 4
+        bitStr2 = (bin(int(part2, 16))[2:b2Size]).zfill(b2Size)
+
+        for x in range(len(self._map)):
+            for y in range(len(self._map[x])):
+                if bitStr1[(x*len(self._map[x]))+y] == "0":
+                    self._map[x][y] = -1
+                else:
+                    self._map[x][y] = 0
+
+        bitCount = 0
+
+        for x in range(len(self._map)):
+            for y in range(len(self._map[x])):
+                if self._map[x][y] == 0:
+                    self._map[x][y] = int(bitStr2[bitCount])
+                    bitCount += 1
+
+        return
+
+    def toMDFPart1(self, withPadding=True):
         map = self._map
+
+        bitStr = ""
+
+        for x in range(len(map)):
+            for y in range(len(map[x])):
+                if map[x][y] == -1:
+                    bitStr += "0"
+                else:
+                    bitStr += "1"
+
         if withPadding:
-            binStr = str(bin(self._map))[2:]
-            binStr = "11"+binStr+"11"
-            map = int(binStr, 2)
-        return str(hex(map))[2:].upper() # exclude the "0x" in front of the hex string
+            bitStr = "11" + bitStr + "11"
+
+        return '{:0{}X}'.format(int(bitStr, 2), len(bitStr) // 4)
+
+    def toMDFPart2(self, withPadding=True):
+        map = self._map
+
+        bitStr = ""
+
+        for x in range(len(map)):
+            for y in range(len(map[x])):
+                if map[x][y] == 0:
+                    bitStr += "0"
+                elif map[x][y] == 1:
+                    bitStr += "1"
+
+        if withPadding:
+            toPad = 8 - len(bitStr) % 8
+            for i in range(toPad):
+                bitStr += "0"
+
+        return '{:0{}X}'.format(int(bitStr, 2), len(bitStr) // 4)
+
+    def get2dArr(self):
+        return self._map
 
     def print(self):
-        binstring = str(bin(self._map))[2:]
-        while len(binstring) < self._row*self._col:
-            binstring = '0'+binstring
-        for i in range (self._row):
-            row = binstring[i*self._col:(i+1)*self._col]
-            for j in range (self._col):
-                print(row[j], end=" ")
+        for x in range(len(self._map)):
+            for y in range(len(self._map[x])):
+                print(self._map[x][y], end=" ")
             print()
 
-    # read the content in position (x, y). map is the integer representation of the 300-bit string (20x15)
     def get(self, x, y):
-        if x < 1 | x > self._row | y < 1 | y < self._col:
-            print("ERROR: index out of range.")
-            return -1
-        offset = self._row*self._col-(self._col*(x-1)+y)
-        val = utils.getBit(self._map, offset)
-        print("Bin array representation of map:")
-        self.print()
-        print("Value at ({},{}): ".format(x,y) + str(val))
-        return val
+        return self._map[x][y]
 
-    def set(self, x, y):
-        if x < 1 | x > self._row | y < 1 | y < self._col:
-            print("ERROR: index out of range.")
-            return -1
-        print("Before set:")
-        self.print()
-        offset = self._row*self._col-(self._col*(x-1)+y)
-        self._map = utils.setBit(self._map, offset)
-        print("After set:")
-        self.print()
+    def set(self, x, y, value):
+        self._map[x][y] = value
 
-    def unset(self, x, y):
-        if x < 1 | x > self._row | y < 1 | y < self._col:
-            print("ERROR: index out of range.")
-            return -1
-        print("Before unset:")
-        self.print()
-        offset = self._row*self._col-(self._col*(x-1)+y)
-        self._map = utils.unsetBit(self._map, offset)
-        print("After unset:")
-        self.print()
 
-#test program with 3x4 map
+# test program with 3x4 map
 if __name__ == "__main__":
     map = Map("BCF", 3, 4, False)
-    map.get(2,3)
+    map.get(2, 3)
     map.print()
-    map.set(2,3)
-    map.unset(2,3)
-    newMap = Map("EF3F", 3, 4) # with padding as default
-    newMap.get(2,3)
+    map.set(2, 3)
+    map.unset(2, 3)
+    newMap = Map("EF3F", 3, 4)  # with padding as default
+    newMap.get(2, 3)
     print(newMap.toHexString())
