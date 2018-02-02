@@ -1,6 +1,6 @@
 import logging
 
-import utils
+import algorithm.utils
 
 if __name__ == "__main__":
     logging.basicConfig(filename=__file__+".log" ,level=logging.DEBUG)
