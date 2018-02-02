@@ -20,7 +20,7 @@ def desc_to_array():
 
     map_obj = Map()
     map_obj.fromMDFStrings(part1, part2)
-    map_2d = [[0 for y in range(15)] for x in range(20)]
+    map_2d = [[-1 for y in range(15)] for x in range(20)]
 
     for x in range(20):
         for y in range(15):

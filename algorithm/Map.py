@@ -9,27 +9,27 @@ if __name__ == "__main__":
 class Map():
     # already have a internal map
     def __init__(self, height=20, width=15):
-        self._map = [[0 for y in range(width)] for x in range(height)]
+        self._map = [[-1 for y in range(width)] for x in range(height)]
 
-    def fromMDFStrings(self, part1, part2, height=20, width=15):
+    def fromMDFStrings(self, part1, part2):
 
         b1Size = len(part1) * 4
-        bitStr1 = (bin(int(part1, 16))[4:]).zfill(b1Size)
+        bitStr1 = (bin(int(part1, 16))[4:b1Size]).zfill(b1Size-4)
 
         b2Size = len(part2) * 4
-        bitStr2 = (bin(int(part2, 16))[2:]).zfill(b2Size)
+        bitStr2 = (bin(int(part2, 16))[2:b2Size]).zfill(b2Size)
 
-        for x in range(height):
-            for y in range(width):
-                if bitStr1[(x*width)+y] == 0:
+        for x in range(len(self._map)):
+            for y in range(len(self._map[x])):
+                if bitStr1[(x*len(self._map[x]))+y] == "0":
                     self._map[x][y] = -1
                 else:
                     self._map[x][y] = 0
 
         bitCount = 0
 
-        for x in range(height):
-            for y in range(width):
+        for x in range(len(self._map)):
+            for y in range(len(self._map[x])):
                 if self._map[x][y] == 0:
                     self._map[x][y] = int(bitStr2[bitCount])
                     bitCount += 1
@@ -67,10 +67,13 @@ class Map():
 
         if withPadding:
             toPad = len(bitStr) % 8
-            for i in range(toPad):
+            for i in range(8-toPad):
                 bitStr += "0"
 
         return '{:0{}X}'.format(int(bitStr, 2), len(bitStr) // 4)
+
+    def get2dArr(self):
+        return self._map
 
     def print(self):
         for x in range(len(self._map)):
@@ -82,11 +85,7 @@ class Map():
         return self._map[x][y]
 
     def set(self, x, y, value):
-        print("Before set:")
-        self.print()
         self._map[x][y] = value
-        print("After set:")
-        self.print()
 
 
 # test program with 3x4 map
