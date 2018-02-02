@@ -125,11 +125,16 @@
             return null;
         }
 
-        function drawCanvas(arena, robotPos) {
+        function drawCanvas(arena) {
             if (table != null) {
                 for (var x = 0; x < table.rows.length; x++) {
                     for (var y = 0; y < table.rows[x].cells.length; y++) {
-                        table.rows[x].cells[y].className = arena[x][y];
+                        if (arena[x][y] == -1)
+                            table.rows[x].cells[y].className = "unknown";
+                        else if (arena[x][y] == 0)
+                            table.rows[x].cells[y].className = "empty";
+                        else if (arena[x][y] == 1)
+                            table.rows[x].cells[y].className = "obstacle"
                     }
                 }
             }
@@ -141,7 +146,7 @@
                     part1: $("#txtPart1").val(),
                     part2: $("#txtPart2").val()
                 }, function (data, status) {
-                    alert("Data: " + data + "\nStatus: " + status);
+                    drawCanvas(JSON.parse(data));
                 });
             });
 
@@ -152,7 +157,9 @@
                     contentType: 'application/json',
                     url: '/array_to_desc',
                     success: function (data) {
-                        document.getElementById("txtPart1").value = data;
+                        var obj = jQuery.parseJSON(data);
+                        document.getElementById("txtPart1").value = obj.part1;
+                        document.getElementById("txtPart2").value = obj.part2;
                     }
                 });
             });
