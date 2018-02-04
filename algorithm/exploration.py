@@ -1,5 +1,5 @@
-import Map
-import Robot
+from Map import Map
+from Robot import Robot
 
 exploredArea = 0    	# 0 out of 300 initially
 timeLimit = 360    		# total time allowed for explration is 360 seconds
@@ -40,7 +40,7 @@ def checkRight(robot,realMap):
 def main(self,robotCenterW,robotCenterH,robotHead):
     robot = Robot(1,1,1) #head,w,h all set to 1 (i.e. Starting position facing East)
     # to ask, assuming already have an internal map
-    realTimeMap = Map(map)
+    realTimeMap = Map()
     # check exploration time first
     
     # start counting explorationTime
