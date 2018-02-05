@@ -58,13 +58,13 @@ def neighbors(mymap, cur, dir):
     offsets_w = [(0,-1), (1,0), (0,1), (-1,0)]
     offsets = []
     if dir == 0:
-        off_sets = offsets_n
+        offsets = offsets_n
     if dir == 1:
-        off_sets = offsets_e
+        offsets = offsets_e
     if dir == 2:
-        off_sets = offsets_s
+        offsets = offsets_s
     if dir == 3:
-        off_sets = offsets_w
+        offsets = offsets_w
 
     neighbors = []
     for offset in offsets:
@@ -86,11 +86,11 @@ def dijkstra(mymap, start, end, direction):
     if direction[0] == "w":
         dir = 3
     print(neighbors(mymap, start, dir))
-    for i in len(mymap):
+    for i in range(len(mymap)):
         r = mymap[i]
         z = []
         p = []
-        for j in len(r):
+        for j in range(len(r)):
             c = r[j]
             p.append(((i,j), ""))
             z.append(1000)

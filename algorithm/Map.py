@@ -1,6 +1,5 @@
 import logging
 from enum import Enum
-import algorithm.utils
 
 if __name__ == "__main__":
     logging.basicConfig(filename=__file__+".log", level=logging.DEBUG)
@@ -86,15 +85,3 @@ class Map():
 
     def set(self, x, y, value):
         self._map[x][y] = value
-
-
-# test program with 3x4 map
-if __name__ == "__main__":
-    map = Map("BCF", 3, 4, False)
-    map.get(2, 3)
-    map.print()
-    map.set(2, 3)
-    map.unset(2, 3)
-    newMap = Map("EF3F", 3, 4)  # with padding as default
-    newMap.get(2, 3)
-    print(newMap.toHexString())
