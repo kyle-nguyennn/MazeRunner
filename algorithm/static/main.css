@@ -1,6 +1,6 @@
 body {
     padding-top: 5rem;
-  }
+}
 
 .vcenter {
     display: inline-block;
@@ -29,13 +29,38 @@ td.empty {
     background-color: #8BC34A;
 }
 
-td.robot {
-    border: 1px solid #3F51B5;
-    height: 32px;
-    width: 32px;
-    background-color: #3F51B5;
+#arena, #robot-fop {
+    width: 496px;
+    height: 661px;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
-#selMode{
-    width:300px;   
-   }
+#robot-fop {
+    z-index: 10;
+}
+
+#robot {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    background-color: #3F51B5;
+    border: 1px solid #FFFFFF;
+    z-index: 20;
+    -moz-border-radius: 50px;
+    -webkit-border-radius: 50px;
+    border-radius: 50px;
+}
+
+#robot-heading {
+    display: block;
+    border-left: solid 20px transparent;
+    border-bottom: solid 40px #FFF;
+    border-right: solid 20px transparent;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -20px 0 0 -20px;
+    z-index: 21;
+}

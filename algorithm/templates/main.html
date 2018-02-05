@@ -33,30 +33,44 @@
     <main role="main" class="container">
         <div class="row">
             <div class="col-6">
-                <h4>Edit mode:</h4>
-                <div class="form-check form-check-inline">
-                    <label class="form-check-label">
-                        <input class="form-check-input" type="radio" name="optMode" id="optObstacle">Obstacle</label>
+                <div class="row">
+                    <div class="col-12">
+                        <h4>Edit mode:</h4>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="optMode" id="optObstacle">Obstacle</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="optMode" id="optEmpty">Empty</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="optMode" id="optUnknown">Unknown</label>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-check form-check-inline">
-                    <label class="form-check-label">
-                        <input class="form-check-input" type="radio" name="optMode" id="optEmpty">Empty</label>
+                <div class="row">
+                    <div class="col-12">
+                        <table id="arena">
+                            <tbody>
+                                {% for x in range(0, 20) %}
+                                <tr>
+                                    {% for y in range(0, 15) %}
+                                    <td class="empty">&nbsp;</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div id="robot-fop">
+                            <div id="robot">
+                                <div id="robot-heading">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-check form-check-inline">
-                    <label class="form-check-label">
-                        <input class="form-check-input" type="radio" name="optMode" id="optUnknown">Unknown</label>
-                </div>
-                <table class="arena" id="arena">
-                    <tbody>
-                        {% for x in range(0, 20) %}
-                        <tr>
-                            {% for y in range(0, 15) %}
-                            <td class="empty">&nbsp;</td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
             <div class="col-2">
                 <br>
@@ -65,7 +79,9 @@
                 <br>
                 <br>
                 <button type="button" id="btnExportArena" class="btn btn-primary">Export Arena &gt;&gt;</button>
-                <br><br><br>
+                <br>
+                <br>
+                <br>
                 <button type="button" id="btnFastesPath" class="btn btn-primary">Get fastest path</button>
             </div>
             <div class="col-4">
@@ -149,6 +165,67 @@
             }
         }
 
+
+        function moveRobot(actions) {
+            var currentH = 661 - 100;
+            var currentW = 0;
+            var currentD = 0;
+            var step = 0;
+
+            setRobotPosition(currentH, currentW, currentD);
+
+            var id = setInterval(displayRobot, 1000);
+
+            function displayRobot() {
+                if (step == actions.length) {
+                    clearInterval(id);
+                }
+                else {
+                    var posH = currentH;
+                    var posW = currentW;
+                    var posD = currentD;
+
+                    var action = actions.charAt(step);
+                    if (action == 'F') {
+                        if (currentD == 0)
+                            posH = currentH - 33;
+                        else if (currentD == 90)
+                            posW = currentW + 33;
+                        else if (currentD == 180)
+                            posW = currentW - 33;
+                        else if (currentD == 270)
+                            posH = currentH + 33;
+                    }
+                    if (action == 'R')
+                        posD = currentD + 90;
+
+                    if (action == 'L')
+                        posD = currentD - 90;
+
+                    if (posD < 0)
+                        posD += 360;
+                    if (posD > 270)
+                        posD -= 360;
+
+                    setRobotPosition(posH, posW, posD);
+
+                    currentH = posH;
+                    currentW = posW;
+                    currentD = posD;
+
+                    step++;
+                }
+            }
+
+            function setRobotPosition(H, W, D) {
+                var elem = document.getElementById("robot");
+                elem.style.top = H + 'px';
+                elem.style.left = W + 'px';
+                elem.style.transform = 'rotate(' + D + 'deg)';
+            }
+        }
+
+
         $(document).ready(function () {
             $("#btnLoadArena").click(function () {
                 $.post("/desc_to_array", {
@@ -177,7 +254,6 @@
                 x = $("#waypointRow").val()
                 y = $("#waypointCol").val()
                 data = [tableToArray(), x, y];
-                console.log(data)
                 $.ajax({
                     type: 'POST',
                     data: JSON.stringify(data),
@@ -185,7 +261,7 @@
                     url: '/fastest_path',
                     success: function (data) {
                         var obj = jQuery.parseJSON(data);
-                        console.log(obj)
+                        moveRobot(obj.instructions);
                     }
                 });
             });
