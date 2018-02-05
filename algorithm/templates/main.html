@@ -65,6 +65,8 @@
                 <br>
                 <br>
                 <button type="button" id="btnExportArena" class="btn btn-primary">Export Arena &gt;&gt;</button>
+                <br><br><br>
+                <button type="button" id="btnFastesPath" class="btn btn-primary">Get fastest path</button>
             </div>
             <div class="col-4">
                 <div class="form-group">
@@ -75,7 +77,14 @@
                     <label for="txtPart2">Map Descriptor Part 2:</label>
                     <input type="text" class="form-control" id="txtPart2" name="txtPart2">
                 </div>
-
+                <div class="form-group">
+                    <label for="waypointRow">Waypoint row:</label>
+                    <input type="number" class="form-control" id="waypointRow" name="waypointRow">
+                </div>
+                <div class="form-group">
+                    <label for="waypointCol">Waypoint column:</label>
+                    <input type="number" class="form-control" id="waypointCol" name="waypointCol">
+                </div>
             </div>
         </div>
     </main>
@@ -160,6 +169,23 @@
                         var obj = jQuery.parseJSON(data);
                         document.getElementById("txtPart1").value = obj.part1;
                         document.getElementById("txtPart2").value = obj.part2;
+                    }
+                });
+            });
+
+            $("#btnFastesPath").click(function () {
+                x = $("#waypointRow").val()
+                y = $("#waypointCol").val()
+                data = [tableToArray(), x, y];
+                console.log(data)
+                $.ajax({
+                    type: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    url: '/fastest_path',
+                    success: function (data) {
+                        var obj = jQuery.parseJSON(data);
+                        console.log(obj)
                     }
                 });
             });

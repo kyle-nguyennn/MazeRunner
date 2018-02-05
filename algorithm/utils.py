@@ -8,6 +8,7 @@ def setBit(x, i):
 def unsetBit(x, i):
     return x & ~(1 << i)
 
+# test map constructed according to example map in "Map descriptor format.pdf" page 2
 def createMapTest():
     file = open("C:\\Users\\nghia\\OneDrive\\CS\\Year 3 sem 2\\CZ3004 MDP\\MazeRunner\\MazeRunner\\algorithm\\mapTest.txt").read()
     file = file.split()

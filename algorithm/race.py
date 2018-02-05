@@ -118,6 +118,6 @@ def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
 
 if __name__ == "__main__":
     #map = readInput()
-    map = utils.createMapTest()
+    map = utils.createMapTest() # map is a Map object
     instruction = getInstructions(map, (5,6))
     print(instruction)
