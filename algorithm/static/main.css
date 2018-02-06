@@ -39,6 +39,7 @@ td.empty {
 
 #robot-fop {
     z-index: 10;
+    visibility: hidden;
 }
 
 #robot {

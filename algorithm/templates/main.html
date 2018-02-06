@@ -167,6 +167,10 @@
 
 
         function moveRobot(actions) {
+
+            var fop = document.getElementById("robot-fop");
+            fop.style.visibility = 'visible';
+
             var currentH = 661 - 100;
             var currentW = 0;
             var currentD = 0;
@@ -174,7 +178,7 @@
 
             setRobotPosition(currentH, currentW, currentD);
 
-            var id = setInterval(displayRobot, 1000);
+            var id = setInterval(displayRobot, 250);
 
             function displayRobot() {
                 if (step == actions.length) {
@@ -192,9 +196,9 @@
                         else if (currentD == 90)
                             posW = currentW + 33;
                         else if (currentD == 180)
-                            posW = currentW - 33;
-                        else if (currentD == 270)
                             posH = currentH + 33;
+                        else if (currentD == 270)
+                            posW = currentW - 33;
                     }
                     if (action == 'R')
                         posD = currentD + 90;
