@@ -8,7 +8,7 @@
     <title>MazeRunner Simulation</title>
 
     <!-- Bootstrap core CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb"
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
         crossorigin="anonymous">
 
     <!-- Custom styles for this template -->
@@ -38,7 +38,7 @@
                         <h4>Edit mode:</h4>
                         <div class="form-check form-check-inline">
                             <label class="form-check-label">
-                                <input class="form-check-input" type="radio" name="optMode" id="optObstacle">Obstacle</label>
+                                <input class="form-check-input" type="radio" name="optMode" id="optObstacle" checked="checked">Obstacle</label>
                         </div>
                         <div class="form-check form-check-inline">
                             <label class="form-check-label">
@@ -72,212 +72,52 @@
                     </div>
                 </div>
             </div>
-            <div class="col-2">
-                <br>
-                <br>
-                <button type="button" id="btnLoadArena" class="btn btn-primary">&lt;&lt; Load Arena</button>
-                <br>
-                <br>
-                <button type="button" id="btnExportArena" class="btn btn-primary">Export Arena &gt;&gt;</button>
-                <br>
-                <br>
-                <br>
-                <button type="button" id="btnFastesPath" class="btn btn-primary">Get fastest path</button>
-            </div>
-            <div class="col-4">
-                <div class="form-group">
-                    <label for="txtPart1">Map Descriptor Part 1:</label>
-                    <input type="text" class="form-control" id="txtPart1" name="txtPart1">
+            <div class="col-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Load / Export Arena</h5>
+                        <div class="form-group">
+                            <label for="mdfPart1">Map Descriptor Part 1:</label>
+                            <input type="text" class="form-control" id="mdfPart1" name="mdfPart1">
+                        </div>
+                        <div class="form-group">
+                            <label for="mdfPart2">Map Descriptor Part 2:</label>
+                            <input type="text" class="form-control" id="mdfPart2" name="mdfPart2">
+                        </div>
+                        <button type="button" id="btnLoadArena" class="btn btn-primary">Load Arena</button>
+                        <button type="button" id="btnExportArena" class="btn btn-secondary">Export Arena</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="txtPart2">Map Descriptor Part 2:</label>
-                    <input type="text" class="form-control" id="txtPart2" name="txtPart2">
-                </div>
-                <div class="form-group">
-                    <label for="waypointRow">Waypoint row:</label>
-                    <input type="number" class="form-control" id="waypointRow" name="waypointRow">
-                </div>
-                <div class="form-group">
-                    <label for="waypointCol">Waypoint column:</label>
-                    <input type="number" class="form-control" id="waypointCol" name="waypointCol">
+                <br/>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Fastest Path Simulation</h5>
+                        <div class="form-group row">
+                            <label for="waypointRow" class="col-sm-4 col-form-label">Waypoint Row:</label>
+                            <div class="col-sm-8">
+                                <input type="number" class="form-control" id="waypointRow" name="waypointRow">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label for="waypointCol" class="col-sm-4 col-form-label">Waypoint Column:</label>
+                            <div class="col-sm-8">
+                                <input type="number" class="form-control" id="waypointCol" name="waypointCol">
+                            </div>
+                        </div>
+                        <button type="button" id="btnFastesPath" class="btn btn-primary">Run Simulation</button>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-
-    <script>
-
-        var table = document.getElementById("arena");
-
-        if (table != null) {
-            for (var x = 0; x < table.rows.length; x++) {
-                for (var y = 0; y < table.rows[x].cells.length; y++) {
-                    table.rows[x].cells[y].onclick = function () {
-                        updateCanvas(this);
-                    };
-                }
-            }
-        }
-
-        function updateCanvas(cell) {
-            if (document.getElementById("optObstacle").checked) {
-                cell.className = "obstacle";
-            } else if (document.getElementById("optEmpty").checked) {
-                cell.className = "empty";
-            } else if (document.getElementById("optUnknown").checked) {
-                cell.className = "unknown";
-            }
-        }
-
-        function tableToArray() {
-            if (table != null) {
-                var mapArr = new Array(table.rows.length);
-                for (var x = 0; x < table.rows.length; x++) {
-                    mapArr[x] = new Array(table.rows[x].cells.length);
-                    for (var y = 0; y < table.rows[x].cells.length; y++) {
-                        if (table.rows[x].cells[y].className == "empty") {
-                            mapArr[x][y] = 0;
-                        } else if (table.rows[x].cells[y].className == "obstacle") {
-                            mapArr[x][y] = 1;
-                        } else if (table.rows[x].cells[y].className == "unknown") {
-                            mapArr[x][y] = -1;
-                        }
-                    }
-                }
-                return mapArr;
-            }
-            return null;
-        }
-
-        function drawCanvas(arena) {
-            if (table != null) {
-                for (var x = 0; x < table.rows.length; x++) {
-                    for (var y = 0; y < table.rows[x].cells.length; y++) {
-                        if (arena[x][y] == -1)
-                            table.rows[x].cells[y].className = "unknown";
-                        else if (arena[x][y] == 0)
-                            table.rows[x].cells[y].className = "empty";
-                        else if (arena[x][y] == 1)
-                            table.rows[x].cells[y].className = "obstacle"
-                    }
-                }
-            }
-        }
-
-
-        function moveRobot(actions) {
-
-            var fop = document.getElementById("robot-fop");
-            fop.style.visibility = 'visible';
-
-            var currentH = 661 - 100;
-            var currentW = 0;
-            var currentD = 0;
-            var step = 0;
-
-            setRobotPosition(currentH, currentW, currentD);
-
-            var id = setInterval(displayRobot, 250);
-
-            function displayRobot() {
-                if (step == actions.length) {
-                    clearInterval(id);
-                }
-                else {
-                    var posH = currentH;
-                    var posW = currentW;
-                    var posD = currentD;
-
-                    var action = actions.charAt(step);
-                    if (action == 'F') {
-                        if (currentD == 0)
-                            posH = currentH - 33;
-                        else if (currentD == 90)
-                            posW = currentW + 33;
-                        else if (currentD == 180)
-                            posH = currentH + 33;
-                        else if (currentD == 270)
-                            posW = currentW - 33;
-                    }
-                    if (action == 'R')
-                        posD = currentD + 90;
-
-                    if (action == 'L')
-                        posD = currentD - 90;
-
-                    if (posD < 0)
-                        posD += 360;
-                    if (posD > 270)
-                        posD -= 360;
-
-                    setRobotPosition(posH, posW, posD);
-
-                    currentH = posH;
-                    currentW = posW;
-                    currentD = posD;
-
-                    step++;
-                }
-            }
-
-            function setRobotPosition(H, W, D) {
-                var elem = document.getElementById("robot");
-                elem.style.top = H + 'px';
-                elem.style.left = W + 'px';
-                elem.style.transform = 'rotate(' + D + 'deg)';
-            }
-        }
-
-
-        $(document).ready(function () {
-            $("#btnLoadArena").click(function () {
-                $.post("/desc_to_array", {
-                    part1: $("#txtPart1").val(),
-                    part2: $("#txtPart2").val()
-                }, function (data, status) {
-                    drawCanvas(JSON.parse(data));
-                });
-            });
-
-            $("#btnExportArena").click(function () {
-                $.ajax({
-                    type: 'POST',
-                    data: JSON.stringify(tableToArray()),
-                    contentType: 'application/json',
-                    url: '/array_to_desc',
-                    success: function (data) {
-                        var obj = jQuery.parseJSON(data);
-                        document.getElementById("txtPart1").value = obj.part1;
-                        document.getElementById("txtPart2").value = obj.part2;
-                    }
-                });
-            });
-
-            $("#btnFastesPath").click(function () {
-                x = $("#waypointRow").val()
-                y = $("#waypointCol").val()
-                data = [tableToArray(), x, y];
-                $.ajax({
-                    type: 'POST',
-                    data: JSON.stringify(data),
-                    contentType: 'application/json',
-                    url: '/fastest_path',
-                    success: function (data) {
-                        var obj = jQuery.parseJSON(data);
-                        moveRobot(obj.instructions);
-                    }
-                });
-            });
-        });
-    </script>
-
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh"
+    <script src="/static/main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
         crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ"
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
         crossorigin="anonymous"></script>
 </body>
 
