@@ -84,6 +84,14 @@
                     <div class="card-body">
                         <h5 class="card-title">Load / Save Arena</h5>
                         <div class="form-group">
+                            <label for="mdfList">Load Arena:</label>
+                            <select class="form-control" id="mdfList">
+                                {% for mdf_string in mdf_strings %}
+                                <option>{{ mdf_string.part1 + "|" + mdf_string.part2 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label for="mdfPart1">Map Descriptor Part 1:</label>
                             <input type="text" class="form-control" id="mdfPart1" name="mdfPart1">
                         </div>
@@ -91,6 +99,7 @@
                             <label for="mdfPart2">Map Descriptor Part 2:</label>
                             <input type="text" class="form-control" id="mdfPart2" name="mdfPart2">
                         </div>
+                        <button type="button" id="btnSaveArena" class="btn btn-primary">Save Arena</button>
                         <!-- <button type="button" id="btnLoadArena" class="btn btn-primary">Load Arena</button>
                         <button type="button" id="btnExportArena" class="btn btn-secondary">Export Arena</button> -->
                     </div>

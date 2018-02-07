@@ -1,6 +1,7 @@
 var table = document.getElementById("arena");
 var mdfPart1 = document.getElementById("mdfPart1");
 var mdfPart2 = document.getElementById("mdfPart2");
+var mdfList = document.getElementById("mdfList");
 var cellMovt;
 var cellAni;
 
@@ -16,6 +17,16 @@ if (table != null) {
 
 mdfPart1.oninput = function () { descToArray(); };
 mdfPart2.oninput = function () { descToArray(); };
+mdfList.oninput = function () { loadFromList(); };
+
+function loadFromList() {
+    var str = mdfList.options[mdfList.selectedIndex].text;
+    var mdfParts = str.split("|");
+    mdfPart1.value = mdfParts[0];
+    mdfPart2.value = mdfParts[1];
+    descToArray();
+}
+
 
 function updateCanvas(cell) {
     if (document.getElementById("optObstacle").checked) {
@@ -160,6 +171,14 @@ function normalizeDirection(deg) {
     return deg;
 }
 
+function saveArena() {
+    $.post("/save_arena", {
+        part1: $("#mdfPart1").val(),
+        part2: $("#mdfPart2").val()
+    }, function (data, status) {
+        window.location.replace("/");
+    });
+}
 
 function arrayToDesc() {
     $.ajax({
@@ -174,6 +193,7 @@ function arrayToDesc() {
         }
     });
 }
+
 
 function descToArray() {
     $.post("/desc_to_array", {
@@ -191,6 +211,10 @@ $(document).ready(function () {
 
     $("#btnExportArena").click(function () {
         arrayToDesc();
+    });
+
+    $("#btnSaveArena").click(function () {
+        saveArena();
     });
 
     $("#btnFastestPath").click(function () {
