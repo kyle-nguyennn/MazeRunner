@@ -1,4 +1,4 @@
-from Map import Map
+from Map import Map, CellType
 import utils
 import heapq
 
@@ -12,7 +12,7 @@ def detectCollision(mymap, pos, robotsize=(3,3)): #take care of robot size in he
         if p[0] < 0 or p[0] >= len(mymap) or p[1] < 0 or p[1] >= len(mymap[0]):
             return True
         # there is obstacle at p
-        if mymap[p[0]][p[1]] == 1: 
+        if mymap[p[0]][p[1]] == CellType.OBSTACLE: 
             return True
     return False
 

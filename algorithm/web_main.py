@@ -1,4 +1,4 @@
-from Map import Map
+from Map import Map, CellType
 from flask import Flask, session, request, flash, jsonify, url_for, redirect, render_template, g, stream_with_context
 from werkzeug.datastructures import Headers
 from werkzeug.wrappers import Response
@@ -25,7 +25,7 @@ def desc_to_array():
 
     for x in range(20):
         for y in range(15):
-            map_2d[19-x][y] = map_obj.get(x, y)
+            map_2d[19-x][y] = map_obj.get(x, y).value
 
     return json.dumps(map_2d)
 
@@ -36,7 +36,7 @@ def array_to_desc():
     map_obj = Map()
     for x in range(20):
         for y in range(15):
-            map_obj.set(19-x, y, map_2d[x][y])
+            map_obj.set(19-x, y, CellType(map_2d[x][y]))
     return json.dumps({"part1": map_obj.toMDFPart1(), "part2": map_obj.toMDFPart2()})
 
 
@@ -51,7 +51,7 @@ def fastest_path():
     map = Map()
     for x in range(20):
         for y in range(15):
-            map.set(19-x, y, map_2d[x][y])
+            map.set(19-x, y, CellType(map_2d[x][y]))
     instructions = getInstructions(map, waypoint)
     return json.dumps({"instructions": instructions})
 
