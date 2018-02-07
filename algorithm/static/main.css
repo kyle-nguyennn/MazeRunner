@@ -29,16 +29,23 @@ td.empty {
     background-color: #8BC34A;
 }
 
+td.marker {
+    border: 1px solid #FFFFFF;
+    height: 32px;
+    width: 32px;
+    background-color: #FFFFFF;
+    text-align: center;
+}
+
 #arena, #robot-fop {
-    width: 496px;
-    height: 661px;
+    width: 529px;
+    height: 694px;
     position: absolute;
     top: 0;
     left: 0;
 }
 
 #robot-fop {
-    z-index: 10;
     visibility: hidden;
 }
 
@@ -48,7 +55,6 @@ td.empty {
     position: absolute;
     background-color: #3F51B5;
     border: 1px solid #FFFFFF;
-    z-index: 20;
     -moz-border-radius: 50px;
     -webkit-border-radius: 50px;
     border-radius: 50px;
@@ -63,5 +69,4 @@ td.empty {
     top: 50%;
     left: 50%;
     margin: -25px 0 0 -20px;
-    z-index: 21;
 }
