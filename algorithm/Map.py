@@ -1,6 +1,5 @@
 import logging
 from enum import Enum
-import algorithm.utils
 
 if __name__ == "__main__":
     logging.basicConfig(filename=__file__+".log", level=logging.DEBUG)
@@ -9,7 +8,9 @@ if __name__ == "__main__":
 class Map():
     # already have a internal map
     def __init__(self, height=20, width=15):
-        self._map = [[-1 for y in range(width)] for x in range(height)]
+        self._map = [[CellType.UNKNOWN
+                      for y in range(width)]
+                     for x in range(height)]
 
     def fromMDFStrings(self, part1, part2):
 
@@ -22,16 +23,16 @@ class Map():
         for x in range(len(self._map)):
             for y in range(len(self._map[x])):
                 if bitStr1[(x*len(self._map[x]))+y] == "0":
-                    self._map[x][y] = -1
+                    self._map[x][y] = CellType.UNKNOWN
                 else:
-                    self._map[x][y] = 0
+                    self._map[x][y] = CellType.EMPTY
 
         bitCount = 0
 
         for x in range(len(self._map)):
             for y in range(len(self._map[x])):
-                if self._map[x][y] == 0:
-                    self._map[x][y] = int(bitStr2[bitCount])
+                if self._map[x][y] == CellType.EMPTY:
+                    self._map[x][y] = CellType(int(bitStr2[bitCount]))
                     bitCount += 1
 
         return
@@ -43,7 +44,7 @@ class Map():
 
         for x in range(len(map)):
             for y in range(len(map[x])):
-                if map[x][y] == -1:
+                if map[x][y] == CellType.UNKNOWN:
                     bitStr += "0"
                 else:
                     bitStr += "1"
@@ -60,9 +61,9 @@ class Map():
 
         for x in range(len(map)):
             for y in range(len(map[x])):
-                if map[x][y] == 0:
+                if map[x][y] == CellType.EMPTY:
                     bitStr += "0"
-                elif map[x][y] == 1:
+                elif map[x][y] == CellType.OBSTACLE:
                     bitStr += "1"
 
         if withPadding:
@@ -78,7 +79,7 @@ class Map():
     def print(self):
         for x in range(len(self._map)):
             for y in range(len(self._map[x])):
-                print(self._map[x][y], end=" ")
+                print(self._map[x][y].value, end=" ")
             print()
 
     def get(self, x, y):
@@ -88,13 +89,7 @@ class Map():
         self._map[x][y] = value
 
 
-# test program with 3x4 map
-if __name__ == "__main__":
-    map = Map("BCF", 3, 4, False)
-    map.get(2, 3)
-    map.print()
-    map.set(2, 3)
-    map.unset(2, 3)
-    newMap = Map("EF3F", 3, 4)  # with padding as default
-    newMap.get(2, 3)
-    print(newMap.toHexString())
+class CellType(Enum):
+    UNKNOWN = -1
+    EMPTY = 0
+    OBSTACLE = 1
