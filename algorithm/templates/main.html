@@ -56,11 +56,18 @@
                             <tbody>
                                 {% for x in range(0, 20) %}
                                 <tr>
+                                    <td class="marker">{{ 19-x }}</td>
                                     {% for y in range(0, 15) %}
                                     <td class="empty">&nbsp;</td>
                                     {% endfor %}
                                 </tr>
                                 {% endfor %}
+                                <tr>
+                                    <td class="marker">&nbsp;</td>
+                                    {% for y in range(0, 15) %}
+                                    <td class="marker">{{ y }}</td>
+                                    {% endfor %}
+                                </tr>
                             </tbody>
                         </table>
                         <div id="robot-fop">
@@ -75,7 +82,7 @@
             <div class="col-6">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Load / Export Arena</h5>
+                        <h5 class="card-title">Load / Save Arena</h5>
                         <div class="form-group">
                             <label for="mdfPart1">Map Descriptor Part 1:</label>
                             <input type="text" class="form-control" id="mdfPart1" name="mdfPart1">
@@ -84,8 +91,8 @@
                             <label for="mdfPart2">Map Descriptor Part 2:</label>
                             <input type="text" class="form-control" id="mdfPart2" name="mdfPart2">
                         </div>
-                        <button type="button" id="btnLoadArena" class="btn btn-primary">Load Arena</button>
-                        <button type="button" id="btnExportArena" class="btn btn-secondary">Export Arena</button>
+                        <!-- <button type="button" id="btnLoadArena" class="btn btn-primary">Load Arena</button>
+                        <button type="button" id="btnExportArena" class="btn btn-secondary">Export Arena</button> -->
                     </div>
                 </div>
                 <br/>
@@ -104,7 +111,7 @@
                                 <input type="number" class="form-control" id="waypointCol" name="waypointCol">
                             </div>
                         </div>
-                        <button type="button" id="btnFastesPath" class="btn btn-primary">Run Simulation</button>
+                        <button type="button" id="btnFastestPath" class="btn btn-primary">Run Simulation</button>
                     </div>
                 </div>
             </div>
