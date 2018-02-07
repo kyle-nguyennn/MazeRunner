@@ -26,7 +26,7 @@ def desc_to_array():
     for x in range(20):
         for y in range(15):
             map_2d[19-x][y] = map_obj.get(x, y)
-            
+
     return json.dumps(map_2d)
 
 
@@ -38,6 +38,7 @@ def array_to_desc():
         for y in range(15):
             map_obj.set(19-x, y, map_2d[x][y])
     return json.dumps({"part1": map_obj.toMDFPart1(), "part2": map_obj.toMDFPart2()})
+
 
 @app.route('/fastest_path', methods=['POST'])
 def fastest_path():
