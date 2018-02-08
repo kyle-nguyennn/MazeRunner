@@ -1,4 +1,7 @@
 var table = document.getElementById("arena");
+var mdfPart1 = document.getElementById("mdfPart1");
+var mdfPart2 = document.getElementById("mdfPart2");
+var mdfList = document.getElementById("mdfList");
 var cellMovt;
 var cellAni;
 
@@ -12,6 +15,19 @@ if (table != null) {
     }
 }
 
+mdfPart1.oninput = function () { descToArray(); };
+mdfPart2.oninput = function () { descToArray(); };
+mdfList.oninput = function () { loadFromList(); };
+
+function loadFromList() {
+    var str = mdfList.options[mdfList.selectedIndex].text;
+    var mdfParts = str.split("|");
+    mdfPart1.value = mdfParts[0];
+    mdfPart2.value = mdfParts[1];
+    descToArray();
+}
+
+
 function updateCanvas(cell) {
     if (document.getElementById("optObstacle").checked) {
         cell.className = "obstacle";
@@ -20,20 +36,21 @@ function updateCanvas(cell) {
     } else if (document.getElementById("optUnknown").checked) {
         cell.className = "unknown";
     }
+    arrayToDesc();
 }
 
 function tableToArray() {
     if (table != null) {
         var mapArr = new Array(table.rows.length);
-        for (var x = 0; x < table.rows.length; x++) {
+        for (var x = 0; x < table.rows.length - 1; x++) {
             mapArr[x] = new Array(table.rows[x].cells.length);
-            for (var y = 0; y < table.rows[x].cells.length; y++) {
+            for (var y = 1; y < table.rows[x].cells.length; y++) {
                 if (table.rows[x].cells[y].className == "empty") {
-                    mapArr[x][y] = 0;
+                    mapArr[x][y - 1] = 0;
                 } else if (table.rows[x].cells[y].className == "obstacle") {
-                    mapArr[x][y] = 1;
+                    mapArr[x][y - 1] = 1;
                 } else if (table.rows[x].cells[y].className == "unknown") {
-                    mapArr[x][y] = -1;
+                    mapArr[x][y - 1] = -1;
                 }
             }
         }
@@ -44,13 +61,13 @@ function tableToArray() {
 
 function drawCanvas(arena) {
     if (table != null) {
-        for (var x = 0; x < table.rows.length; x++) {
-            for (var y = 0; y < table.rows[x].cells.length; y++) {
-                if (arena[x][y] == -1)
+        for (var x = 0; x < table.rows.length - 1; x++) {
+            for (var y = 1; y < table.rows[x].cells.length; y++) {
+                if (arena[x][y - 1] == -1)
                     table.rows[x].cells[y].className = "unknown";
-                else if (arena[x][y] == 0)
+                else if (arena[x][y - 1] == 0)
                     table.rows[x].cells[y].className = "empty";
-                else if (arena[x][y] == 1)
+                else if (arena[x][y - 1] == 1)
                     table.rows[x].cells[y].className = "obstacle"
             }
         }
@@ -71,8 +88,8 @@ function moveRobot(actions) {
 
     setFopVisible(true);
 
-    var currentH = 661 - 100;
-    var currentW = 0;
+    var currentH = 694 - 33 - 100;
+    var currentW = 33;
     var currentD = 0;
     var step = 0;
 
@@ -154,32 +171,53 @@ function normalizeDirection(deg) {
     return deg;
 }
 
+function saveArena() {
+    $.post("/save_arena", {
+        part1: $("#mdfPart1").val(),
+        part2: $("#mdfPart2").val()
+    }, function (data, status) {
+        window.location.replace("/");
+    });
+}
+
+function arrayToDesc() {
+    $.ajax({
+        type: 'POST',
+        data: JSON.stringify(tableToArray()),
+        contentType: 'application/json',
+        url: '/array_to_desc',
+        success: function (data) {
+            var obj = jQuery.parseJSON(data);
+            mdfPart1.value = obj.part1;
+            mdfPart2.value = obj.part2;
+        }
+    });
+}
+
+
+function descToArray() {
+    $.post("/desc_to_array", {
+        part1: $("#mdfPart1").val(),
+        part2: $("#mdfPart2").val()
+    }, function (data, status) {
+        drawCanvas(JSON.parse(data));
+    });
+}
 
 $(document).ready(function () {
     $("#btnLoadArena").click(function () {
-        $.post("/desc_to_array", {
-            part1: $("#mdfPart1").val(),
-            part2: $("#mdfPart2").val()
-        }, function (data, status) {
-            drawCanvas(JSON.parse(data));
-        });
+        descToArray();
     });
 
     $("#btnExportArena").click(function () {
-        $.ajax({
-            type: 'POST',
-            data: JSON.stringify(tableToArray()),
-            contentType: 'application/json',
-            url: '/array_to_desc',
-            success: function (data) {
-                var obj = jQuery.parseJSON(data);
-                document.getElementById("mdfPart1").value = obj.part1;
-                document.getElementById("mdfPart2").value = obj.part2;
-            }
-        });
+        arrayToDesc();
     });
 
-    $("#btnFastesPath").click(function () {
+    $("#btnSaveArena").click(function () {
+        saveArena();
+    });
+
+    $("#btnFastestPath").click(function () {
         x = $("#waypointRow").val()
         y = $("#waypointCol").val()
         data = [tableToArray(), x, y];
