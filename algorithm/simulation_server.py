@@ -165,13 +165,13 @@ class Sensor():
             if self.getDirection() == 0:
                 blockH = self.getH()+x+1
                 blockW = self.getW()
-            if self.getDirection() == 90:
+            elif self.getDirection() == 90:
                 blockH = self.getH()
                 blockW = self.getW()+x+1
-            if self.getDirection() == 180:
+            elif self.getDirection() == 180:
                 blockH = self.getH()-x-1
                 blockW = self.getW()
-            if self.getDirection() == 270:
+            elif self.getDirection() == 270:
                 blockH = self.getH()
                 blockW = self.getW()-x-1
 
