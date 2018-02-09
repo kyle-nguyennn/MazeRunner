@@ -1,5 +1,6 @@
 from socket_server import TCPServer, TCPServerChild
 from Map import Map, CellType
+import time
 
 
 class SimulatorServer(TCPServerChild):
@@ -21,6 +22,7 @@ class SimulatorServer(TCPServerChild):
         while started == False:
             data = self.recv()
             if data.decode('utf-8') == "startExplore":
+                started = True
                 self.startExplore()
 
     def setMap(self, map):
@@ -32,7 +34,10 @@ class SimulatorServer(TCPServerChild):
         while end == False:
             self.socket.send(self.getReadings().encode('utf-8'))
             data = self.recv()
-            self.moveRobot(data.decode('utf-8'))
+            command = data.decode('utf-8')
+            for char in command:
+                self.moveRobot(char)
+            time.sleep(0.5)
 
     def moveRobot(self, action):
 
@@ -46,6 +51,16 @@ class SimulatorServer(TCPServerChild):
             elif self._robotPos[2] == 270:
                 self._robotPos[1] -= 1
 
+        if action == 'B':
+            if self._robotPos[2] == 0:
+                self._robotPos[0] -= 1
+            elif self._robotPos[2] == 90:
+                self._robotPos[1] -= 1
+            elif self._robotPos[2] == 180:
+                self._robotPos[0] += 1
+            elif self._robotPos[2] == 270:
+                self._robotPos[1] += 1
+
         elif action == 'R':
             self._robotPos[2] += 90
 
@@ -54,6 +69,7 @@ class SimulatorServer(TCPServerChild):
 
         if self._robotPos[2] < 0:
             self._robotPos[2] += 360
+
         self._robotPos[2] = self._robotPos[2] % 360
 
     def getReadings(self):
