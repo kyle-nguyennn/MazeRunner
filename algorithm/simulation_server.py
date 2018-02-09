@@ -18,10 +18,10 @@ class SimulatorServer(TCPServerChild):
                                  "000000000400000001C800000000000700000000800000001F80000700000000020000000000")
         self._map.print()
         started = False
-        # while started == False:
-        data = self.recv()
-        if data.decode('utf-8') == "startExplore":
-            self.startExplore()
+        while started == False:
+            data = self.recv()
+            if data.decode('utf-8') == "startExplore":
+                self.startExplore()
 
     def setMap(self, map):
         map.print()
@@ -35,6 +35,7 @@ class SimulatorServer(TCPServerChild):
             self.moveRobot(data.decode('utf-8'))
 
     def moveRobot(self, action):
+
         if action == 'F':
             if self._robotPos[2] == 0:
                 self._robotPos[0] += 1
@@ -51,10 +52,12 @@ class SimulatorServer(TCPServerChild):
         elif action == 'L':
             self._robotPos[2] -= 90
 
+        if self._robotPos[2] < 0:
+            self._robotPos[2] += 360
+        self._robotPos[2] = self._robotPos[2] % 360
+
     def getReadings(self):
         response = ""
-        print(str(self._robotPos[0]) +
-              str(self._robotPos[1]) + str(self._robotPos[2]))
         for sensor in self._sensor:
             sensor.setRobot(self._robotPos[0],
                             self._robotPos[1], self._robotPos[2])
@@ -141,23 +144,26 @@ class Sensor():
         return direction % 360
 
     def getReading(self, map):
-        print(str(self.getH()) + str(self.getW()) + str(self.getDirection()))
-        if self.getDirection() == 0:
-            for x in range(self._visible_range):
-                if map.get(self.getH()+x+1, self.getW()) == CellType.OBSTACLE:
-                    return x
-        elif self.getDirection() == 90:
-            for x in range(self._visible_range):
-                if map.get(self.getH(), self.getW()+x+1) == CellType.OBSTACLE:
-                    return x
-        elif self.getDirection() == 180:
-            for x in range(self._visible_range):
-                if map.get(self.getH()-x-1, self.getW()) == CellType.OBSTACLE:
-                    return x
-        elif self.getDirection() == 270:
-            for x in range(self._visible_range):
-                if map.get(self.getH(), self.getW()-x-1) == CellType.OBSTACLE:
-                    return x
+
+        for x in range(self._visible_range):
+            if self.getDirection() == 0:
+                blockH = self.getH()+x+1
+                blockW = self.getW()
+            if self.getDirection() == 90:
+                blockH = self.getH()
+                blockW = self.getW()+x+1
+            if self.getDirection() == 180:
+                blockH = self.getH()-x-1
+                blockW = self.getW()
+            if self.getDirection() == 270:
+                blockH = self.getH()
+                blockW = self.getW()-x-1
+
+            if blockH < 0 or blockW < 0 or blockH > 19 or blockW > 14:
+                return x
+            elif map.get(blockH, blockW) == CellType.OBSTACLE:
+                return x
+
         return 'Z'
 
 
