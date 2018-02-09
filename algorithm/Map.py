@@ -79,14 +79,14 @@ class Map():
     def print(self):
         for x in range(len(self._map)):
             for y in range(len(self._map[x])):
-                print(self._map[x][y].value, end=" ")
+                print(self._map[len(self._map)-1-x][y].value, end=" ")
             print()
 
-    def get(self, x, y):
-        return self._map[x][y]
+    def get(self, h, w):
+        return self._map[h][w]
 
-    def set(self, x, y, value):
-        self._map[x][y] = value
+    def set(self, h, w, value):
+        self._map[h][w] = value
 
 
 class CellType(Enum):
