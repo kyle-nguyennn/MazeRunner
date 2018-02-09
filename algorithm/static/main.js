@@ -232,4 +232,18 @@ $(document).ready(function () {
             }
         });
     });
+
+    $("#btnExploration").click(function () {
+        $.ajax({
+            type: 'POST',
+            data: JSON.stringify(tableToArray()),
+            contentType: 'application/json',
+            url: '/exploration',
+            success: function (data) {
+                window.location.replace("/");
+            }
+        });
+    });
+
+
 });

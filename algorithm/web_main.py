@@ -40,16 +40,13 @@ def save_arena():
     new_mdf = MdfStrings(request.form['part1'], request.form['part2'])
     db.session.add(new_mdf)
     db.session.commit()
-    return "Saved"
+    return "Saved."
 
 
 @app.route('/array_to_desc', methods=['POST'])
 def array_to_desc():
     map_2d = json.loads(request.data)
-    map_obj = Map()
-    for x in range(20):
-        for y in range(15):
-            map_obj.set(19-x, y, CellType(map_2d[x][y]))
+    map_obj = array_to_map(map_2d)
     return json.dumps({"part1": map_obj.toMDFPart1(), "part2": map_obj.toMDFPart2()})
 
 
@@ -60,11 +57,7 @@ def desc_to_array():
 
     map_obj = Map()
     map_obj.fromMDFStrings(part1, part2)
-    map_2d = [[-1 for y in range(15)] for x in range(20)]
-
-    for x in range(20):
-        for y in range(15):
-            map_2d[19-x][y] = map_obj.get(x, y).value
+    map_2d = map_to_array(map_obj)
 
     return json.dumps(map_2d)
 
@@ -77,40 +70,49 @@ def fastest_path():
         waypoint = (int(data[1]), int(data[2]))
     except ValueError:
         return json.dumps({"Bad input": "please enter numerical values"})
-    map = Map()
-    for x in range(20):
-        for y in range(15):
-            map.set(19-x, y, CellType(map_2d[x][y]))
-    instructions = getInstructions(map, waypoint)
+    instructions = getInstructions(array_to_map(map_2d), waypoint)
     return json.dumps({"instructions": instructions})
 
 
-@app.route('/exploration', methods=['GET'])
+@app.route('/exploration', methods=['POST'])
 def exploration():
-    thread = Thread(target=startSimulationServer)
+    map_2d = json.loads(request.data)
+    mapObj = array_to_map(map_2d)
+    thread = Thread(target=start_simulation_server, args=[mapObj])
     thread.start()
-    thread = Thread(target=startExplorationAlgo)
+    thread = Thread(target=start_exploration_algo)
     thread.start()
-    return "ok"
+    return "Simulation server started."
 
 
 @app.route('/get_status', methods=['GET'])
 def get_status():
-    map_obj = explore_algo.getMap()
-    map_2d = [[-1 for y in range(15)] for x in range(20)]
-    for x in range(20):
-        for y in range(15):
-            map_2d[19-x][y] = map_obj.get(x, y).value
-
+    map_2d = map_to_array(explore_algo.getMap())
     return json.dumps(map_2d)
 
 
-def startSimulationServer():
+def map_to_array(map):
+    map_2d = [[-1 for y in range(15)] for x in range(20)]
+    for x in range(20):
+        for y in range(15):
+            map_2d[19-x][y] = map.get(x, y).value
+    return map_2d
+
+
+def array_to_map(map_2d):
+    map_obj = Map()
+    for x in range(20):
+        for y in range(15):
+            map_obj.set(19-x, y, CellType(map_2d[x][y]))
+    return map_obj
+
+
+def start_simulation_server(map_obj):
     server = TCPServer(('127.0.0.1', 6666), SimulatorServer)
-    server.serve_forever()
+    server.start_simulation(map_obj)
 
 
-def startExplorationAlgo():
+def start_exploration_algo():
     explore_algo.run()
 
 

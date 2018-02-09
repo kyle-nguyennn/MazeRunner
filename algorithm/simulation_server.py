@@ -5,8 +5,9 @@ import time
 
 class SimulatorServer(TCPServerChild):
 
-    def run(self):
-        self._map = Map()
+    def __init__(self, socket, mapObj):
+        super(SimulatorServer, self).__init__(socket)
+        self._map = mapObj
         self._sensor = []
         self._sensor.append(Sensor(3, 1, 0))
         self._sensor.append(Sensor(3, 2, 0))
@@ -15,8 +16,8 @@ class SimulatorServer(TCPServerChild):
         self._sensor.append(Sensor(3, 5, 90))
         self._sensor.append(Sensor(8, 7, 270))
         self._robotPos = [1, 1, 0]
-        self._map.fromMDFStrings("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
-                                 "000000000400000001C800000000000700000000800000001F80000700000000020000000000")
+
+    def run(self):
         self._map.print()
         started = False
         while started == False:

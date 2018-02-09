@@ -58,13 +58,13 @@ class TCPServerChild(Thread):
         self.socket.close()
 
 
-class TCPEchoServer(TCPServerChild):
-    """ Threaded server example """
+# class TCPEchoServer(TCPServerChild):
+#     """ Threaded server example """
 
-    def run(self):
-        data = self.recv()
-        self.socket.send(data)
-        self.socket.close()
+#     def run(self):
+#         data = self.recv()
+#         self.socket.send(data)
+#         self.socket.close()
 
 
 class TCPServer(object):
@@ -92,6 +92,25 @@ class TCPServer(object):
             readable, writable, errored = select([self.sock, ], [], [], 1)
             if self.sock in readable:
                 self.thread_pool.append(self.callback(self.sock.accept()))
+                self.thread_pool[-1].start()
+
+            # clean up
+            for thread in self.thread_pool[:]:
+                if not thread.is_alive():
+                    self.thread_pool.remove(thread)
+
+            # print len(self.thread_pool)
+
+    def start_simulation(self, mapObj):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.bind(self.bind_socket)
+        self.sock.listen(self.max_connections)
+
+        while True:
+            readable, writable, errored = select([self.sock, ], [], [], 1)
+            if self.sock in readable:
+                self.thread_pool.append(
+                    self.callback(self.sock.accept(), mapObj))
                 self.thread_pool[-1].start()
 
             # clean up
