@@ -35,6 +35,7 @@ class SimulatorServer(TCPServerChild):
             self.socket.send(self.getReadings().encode('utf-8'))
             data = self.recv()
             command = data.decode('utf-8')
+            print(command)
             for char in command:
                 self.moveRobot(char)
             time.sleep(0.5)
@@ -181,8 +182,3 @@ class Sensor():
                 return x
 
         return 'Z'
-
-
-if __name__ == '__main__':
-    server = TCPServer(('127.0.0.1', 6666), SimulatorServer)
-    server.serve_forever()

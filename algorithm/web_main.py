@@ -5,12 +5,17 @@ from werkzeug.datastructures import Headers
 from werkzeug.wrappers import Response
 import json
 from race import getInstructions
+from socket_server import TCPServer, TCPServerChild, TCPClient
+from simulation_server import SimulatorServer
+from exploration_example import ExplorationExample
+from threading import Thread
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "nHDG3Zi4HVtyc1fPBcrUEi0oACzUPRkI"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+explore_algo = ExplorationExample()
 
 
 class MdfStrings(db.Model):
@@ -78,6 +83,35 @@ def fastest_path():
             map.set(19-x, y, CellType(map_2d[x][y]))
     instructions = getInstructions(map, waypoint)
     return json.dumps({"instructions": instructions})
+
+
+@app.route('/exploration', methods=['GET'])
+def exploration():
+    thread = Thread(target=startSimulationServer)
+    thread.start()
+    thread = Thread(target=startExplorationAlgo)
+    thread.start()
+    return "ok"
+
+
+@app.route('/get_status', methods=['GET'])
+def get_status():
+    map_obj = explore_algo.getMap()
+    map_2d = [[-1 for y in range(15)] for x in range(20)]
+    for x in range(20):
+        for y in range(15):
+            map_2d[19-x][y] = map_obj.get(x, y).value
+
+    return json.dumps(map_2d)
+
+
+def startSimulationServer():
+    server = TCPServer(('127.0.0.1', 6666), SimulatorServer)
+    server.serve_forever()
+
+
+def startExplorationAlgo():
+    explore_algo.run()
 
 
 if __name__ == '__main__':
