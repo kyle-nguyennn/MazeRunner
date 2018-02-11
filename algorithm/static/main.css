@@ -2,6 +2,10 @@ body {
     padding-top: 5rem;
 }
 
+.row-m-t {
+    margin-top: 10px
+}
+
 .vcenter {
     display: inline-block;
     vertical-align: middle;

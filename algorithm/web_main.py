@@ -60,7 +60,7 @@ def mdf_to_array():
     return json.dumps(arena_2d)
 
 
-@app.route('/fastest_path', methods=['POST'])
+@app.route('/fastest_path_sim', methods=['POST'])
 def fastest_path():
     data = json.loads(request.data)
     arena_2d = data[0]
@@ -72,7 +72,7 @@ def fastest_path():
     return json.dumps({"instructions": instructions})
 
 
-@app.route('/exploration', methods=['POST'])
+@app.route('/exploration_sim', methods=['POST'])
 def exploration():
     arena_2d = json.loads(request.data)
     arena_obj = array_to_arena(arena_2d)
@@ -83,11 +83,14 @@ def exploration():
     return "Simulation server started."
 
 
-@app.route('/get_status', methods=['GET'])
-def get_status():
+@app.route('/get_explore_status', methods=['GET'])
+def get_explore_status():
     global explore_algo
+    if explore_algo.get_arena() == None:
+        return "END"
     arena_2d = arena_to_array(explore_algo.get_arena())
-    return json.dumps(arena_2d)
+    result = [arena_2d, explore_algo.get_robot()]
+    return json.dumps(result)
 
 
 def arena_to_array(arena):

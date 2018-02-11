@@ -2,8 +2,13 @@ var table = document.getElementById("arena");
 var mdfPart1 = document.getElementById("mdfPart1");
 var mdfPart2 = document.getElementById("mdfPart2");
 var mdfList = document.getElementById("mdfList");
+var tabEditMode = document.getElementById("tabEditMode");
+var tabSimMode = document.getElementById("tabSimMode");
+var editOptions = document.getElementById("editOptions");
 var cellMovt;
 var cellAni;
+var exploreStatusAni;
+var exploring = false;
 
 if (table != null) {
     for (var x = 0; x < table.rows.length; x++) {
@@ -14,6 +19,8 @@ if (table != null) {
         }
     }
 }
+
+moveRobot("");
 
 mdfPart1.oninput = function () { mdfToArray(); };
 mdfPart2.oninput = function () { mdfToArray(); };
@@ -86,8 +93,6 @@ function moveRobot(actions) {
     clearInterval(cellMovt);
     clearInterval(cellAni);
 
-    setFopVisible(true);
-
     var currentH = 694 - 33 - 100;
     var currentW = 33;
     var currentD = 0;
@@ -153,6 +158,26 @@ function moveRobot(actions) {
     }
 }
 
+function updateExploreStatus() {
+    exploring = true;
+    clearInterval(exploreStatusAni);
+    exploreStatusAni = setInterval(getExploreStatus, 100);
+    function getExploreStatus() {
+        if (false) {
+            clearInterval(exploreStatusAni);
+        }
+        $.get("/get_explore_status", function (data, status) {
+            if (data == "END")
+                clearInterval(exploreStatusAni);
+            var obj = jQuery.parseJSON(data);
+            var arena = obj[0];
+            var robot = obj[1];
+            drawCanvas(arena);
+            setRobotPosition(694 - (robot[0] * 33) - 100, 33 * robot[1], robot[2]);
+        });
+    }
+}
+
 function setRobotPosition(h, w, d) {
     d = normalizeDirection(d);
     var elem = document.getElementById("robot");
@@ -194,7 +219,6 @@ function arrayToMdf() {
     });
 }
 
-
 function mdfToArray() {
     $.post("/mdf_to_array", {
         part1: $("#mdfPart1").val(),
@@ -204,7 +228,38 @@ function mdfToArray() {
     });
 }
 
+function switchEditMode() {
+    tabEditMode.className = "nav-link active";
+    tabSimMode.className = "nav-link";
+    editOptions.style.visibility = 'visible';
+    clearInterval(exploreStatusAni);
+    mdfToArray();
+    setFopVisible(false);
+}
+
+function switchSimMode() {
+    tabSimMode.className = "nav-link active";
+    tabEditMode.className = "nav-link";
+    editOptions.style.visibility = 'hidden';
+    if (exploring)
+        updateExploreStatus();
+    setFopVisible(true);
+}
+
 $(document).ready(function () {
+
+    $('#tabEditMode').click(function (e) {
+        e.preventDefault();
+        switchEditMode();
+        return false;
+    });
+
+    $('#tabSimMode').click(function (e) {
+        e.preventDefault();
+        switchSimMode();
+        return false;
+    });
+
     $("#btnLoadArena").click(function () {
         mdfToArray();
     });
@@ -225,9 +280,10 @@ $(document).ready(function () {
             type: 'POST',
             data: JSON.stringify(data),
             contentType: 'application/json',
-            url: '/fastest_path',
+            url: '/fastest_path_sim',
             success: function (data) {
                 var obj = jQuery.parseJSON(data);
+                switchSimMode();
                 moveRobot(obj.instructions);
             }
         });
@@ -238,9 +294,10 @@ $(document).ready(function () {
             type: 'POST',
             data: JSON.stringify(tableToArray()),
             contentType: 'application/json',
-            url: '/exploration',
+            url: '/exploration_sim',
             success: function (data) {
-                window.location.replace("/");
+                switchSimMode();
+                updateExploreStatus();
             }
         });
     });
