@@ -1,7 +1,7 @@
 class Robot():
     
     # attributes
-    #robotMode = "idle"  # modes: idle, exploring, rushing, reExplore
+    #robotMode = "idle"  # modes: idle, exploring, rushing, reExplore, break
     #robotHead = 1       # indicate robot head direction; "N","W","S","E" represented by 0,1,2,3 respectively
     #robotCenterH = 1
     #robotCenterW = 1
@@ -21,16 +21,16 @@ class Robot():
         self.robotCenterH = 1
         self.robotCenterW = 1
 		
-        self.rightCells = {0:[[2,1],[2,0],[2,-1]],
-					       1:[[-1,-2],[0,-2],[1,-2]],
-					       2:[[-2,1],[-2,0],[-2,-1]],
-					       3:[[-1,2],[0,2],[1,2]]
+        self.rightCells = {0:[[1,2],[0,2],[-1,2]],
+					       1:[[-2,-1],[-2,0],[-2,1]],
+					       2:[[1,-2],[0,-2],[-1,-2]],
+					       3:[[2,-1],[2,0],[2,1]]
         }
         
-        self.frontCells = {0:[[-1,2],[0,2],[1,2]],
-					       1:[[2,-1],[2,0],[2,1]],
-					       2:[[-1.-2],[0,-2],[1,-2]],
-					       3:[[-2,-1],[-2,0],[-2,1]]
+        self.frontCells = {0:[[2,-1],[2,0],[2,1]],
+					       1:[[-1,2],[0,2],[1,2]],
+					       2:[[-2,-1],[-2,0],[-2,1]],
+					       3:[[-1,-2],[0,-2],[1,-2]]
         }
         
         
@@ -48,24 +48,24 @@ class Robot():
         self.robotCenterH = h
         self.robotCenterW = w
 		
-        self.rightCells = {0:[[2,1],[2,0],[2,-1]],
-					       1:[[-1,-2],[0,-2],[1,-2]],
-					       2:[[-2,1],[-2,0],[-2,-1]],
-					       3:[[-1,2],[0,2],[1,2]]
+        self.rightCells = {0:[[1,2],[0,2],[-1,2]],
+					       1:[[-2,-1],[-2,0],[-2,1]],
+					       2:[[1,-2],[0,-2],[-1,-2]],
+					       3:[[2,-1],[2,0],[2,1]]
         }
         
-        self.frontCells = {0:[[-1,2],[0,2],[1,2]],
-					       1:[[2,1],[2,0],[2,-1]],
-					       2:[[1,-2],[0,-2],[-1,-2]],
-					       3:[[-2,-1],[-2,0],[-2,1]]
+        self.frontCells = {0:[[2,-1],[2,0],[2,1]],
+					       1:[[1,2],[0,2],[-1,2]],
+					       2:[[-2,1],[-2,0],[-2,-1]],
+					       3:[[-1,-2],[0,-2],[1,-2]]
         }
         
         
     # given robot center, mark all 9 cells as empty
     def returnBodyCells(self):
         bodyCells = []
-        for i in range(self.robotCenterW-1,self.robotCenterW+2):
-            for j in range(self.robotCenterH-1,self.robotCenterH+2):
+        for i in range(self.robotCenterH-1,self.robotCenterH+2):
+            for j in range(self.robotCenterW-1,self.robotCenterW+2):
                 bodyCells.append([i,j])
         return bodyCells
 
