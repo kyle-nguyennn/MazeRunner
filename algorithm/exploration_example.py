@@ -1,57 +1,80 @@
-from socket_server import TCPClient
-from Map import Map, CellType
+import socket
+from arena import Arena, CellType
 from random import randint
 import time
 
 
 class ExplorationExample():
-    def __init__(self):
-        self._map = Map()
+    def __init__(self, tcp_ip, tcp_port, buffer_size=1024):
+
+        self.arena = Arena()
+
+        self.tcp_ip = tcp_ip
+        self.tcp_port = tcp_port
+        self.buffer_size = buffer_size
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def run(self):
-        self._client = TCPClient('127.0.0.1', 6666)
-        self._client.send("startExplore".encode('utf-8'))
-        while True:
-            data = self._client.recv()
-            print(data.decode('utf-8'))
-            self._map.set(randint(0, 19), randint(
-                0, 14), CellType(randint(0, 1)))
-            self._client.send("F".encode('utf-8'))
-            data = self._client.recv()
-            print(data.decode('utf-8'))
-            self._map.set(randint(0, 19), randint(
-                0, 14), CellType(randint(0, 1)))
-            self._client.send("R".encode('utf-8'))
-            data = self._client.recv()
-            print(data.decode('utf-8'))
-            self._map.set(randint(0, 19), randint(
-                0, 14), CellType(randint(0, 1)))
-            self._client.send("F".encode('utf-8'))
-            data = self._client.recv()
-            print(data.decode('utf-8'))
-            self._map.set(randint(0, 19), randint(
-                0, 14), CellType(randint(0, 1)))
-            self._client.send("L".encode('utf-8'))
-            data = self._client.recv()
-            print(data.decode('utf-8'))
-            self._map.set(randint(0, 19), randint(
-                0, 14), CellType(randint(0, 1)))
-            self._client.send("B".encode('utf-8'))
-            data = self._client.recv()
-            print(data.decode('utf-8'))
-            self._map.set(randint(0, 19), randint(
-                0, 14), CellType(randint(0, 1)))
-            self._client.send("L".encode('utf-8'))
-            data = self._client.recv()
-            print(data.decode('utf-8'))
-            self._map.set(randint(0, 19), randint(
-                0, 14), CellType(randint(0, 1)))
-            self._client.send("F".encode('utf-8'))
-            data = self._client.recv()
-            print(data.decode('utf-8'))
-            self._map.set(randint(0, 19), randint(
-                0, 14), CellType(randint(0, 1)))
-            self._client.send("R".encode('utf-8'))
+        self.client_socket.connect((self.tcp_ip, self.tcp_port))
+        print(
+            "ExplorationExample - Connected to {}:{}".format(self.tcp_ip, self.tcp_port))
+        self.send_data("startExplore")
+        for i in range(10):
 
-    def getMap(self):
-        return self._map
+            self.recv_data()
+            self.arena.set(randint(0, 19), randint(
+                0, 14), CellType(randint(0, 1)))
+            self.send_data("F")
+
+            self.recv_data()
+            self.arena.set(randint(0, 19), randint(
+                0, 14), CellType(randint(0, 1)))
+            self.send_data("R")
+
+            self.recv_data()
+            self.arena.set(randint(0, 19), randint(
+                0, 14), CellType(randint(0, 1)))
+            self.send_data("F")
+
+            self.recv_data()
+            self.arena.set(randint(0, 19), randint(
+                0, 14), CellType(randint(0, 1)))
+            self.send_data("L")
+
+            self.recv_data()
+            self.arena.set(randint(0, 19), randint(
+                0, 14), CellType(randint(0, 1)))
+            self.send_data("B")
+
+            self.recv_data()
+            self.arena.set(randint(0, 19), randint(
+                0, 14), CellType(randint(0, 1)))
+            self.send_data("L")
+
+            self.recv_data()
+            self.arena.set(randint(0, 19), randint(
+                0, 14), CellType(
+                    randint(0, 1)))
+            self.send_data("F")
+            self.recv_data()
+            self.arena.set(randint(0, 19), randint(
+                0, 14), CellType(randint(0, 1)))
+            self.send_data("R")
+        self.send_data("endExplore")  
+        self.close_conn()
+
+    def recv_data(self):
+        data = self.client_socket.recv(self.buffer_size)
+        data_s = data.decode('utf-8')
+        print("ExplorationExample - Received data: {}".format(data_s))
+        return data_s
+
+    def send_data(self, data):
+        self.client_socket.send(data.encode('utf-8'))
+
+    def close_conn(self):
+        self.client_socket.close()
+        print("ExplorationExample - Connection cloased")
+
+    def get_arena(self):
+        return self.arena

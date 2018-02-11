@@ -1,11 +1,10 @@
-from Map import Map, CellType
+from arena import Arena, CellType
 from flask import Flask, session, request, flash, jsonify, url_for, redirect, render_template, g, stream_with_context
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.datastructures import Headers
 from werkzeug.wrappers import Response
 import json
 from race import getInstructions
-from socket_server import TCPServer, TCPServerChild, TCPClient
 from simulation_server import SimulatorServer
 from exploration_example import ExplorationExample
 from threading import Thread
@@ -15,7 +14,6 @@ app.config["SECRET_KEY"] = "nHDG3Zi4HVtyc1fPBcrUEi0oACzUPRkI"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-explore_algo = ExplorationExample()
 
 
 class MdfStrings(db.Model):
@@ -43,76 +41,79 @@ def save_arena():
     return "Saved."
 
 
-@app.route('/array_to_desc', methods=['POST'])
-def array_to_desc():
-    map_2d = json.loads(request.data)
-    map_obj = array_to_map(map_2d)
-    return json.dumps({"part1": map_obj.toMDFPart1(), "part2": map_obj.toMDFPart2()})
+@app.route('/array_to_mdf', methods=['POST'])
+def array_to_mdf():
+    arena_2d = json.loads(request.data)
+    arena_obj = array_to_arena(arena_2d)
+    return json.dumps({"part1": arena_obj.to_mdf_part1(), "part2": arena_obj.to_mdf_part2()})
 
 
-@app.route('/desc_to_array', methods=['POST'])
-def desc_to_array():
+@app.route('/mdf_to_array', methods=['POST'])
+def mdf_to_array():
     part1 = request.form['part1']
     part2 = request.form['part2']
 
-    map_obj = Map()
-    map_obj.fromMDFStrings(part1, part2)
-    map_2d = map_to_array(map_obj)
+    arena_obj = Arena()
+    arena_obj.from_mdf_strings(part1, part2)
+    arena_2d = arena_to_array(arena_obj)
 
-    return json.dumps(map_2d)
+    return json.dumps(arena_2d)
 
 
 @app.route('/fastest_path', methods=['POST'])
 def fastest_path():
     data = json.loads(request.data)
-    map_2d = data[0]
+    arena_2d = data[0]
     try:
         waypoint = (int(data[1]), int(data[2]))
     except ValueError:
         return json.dumps({"Bad input": "please enter numerical values"})
-    instructions = getInstructions(array_to_map(map_2d), waypoint)
+    instructions = getInstructions(array_to_arena(arena_2d), waypoint)
     return json.dumps({"instructions": instructions})
 
 
 @app.route('/exploration', methods=['POST'])
 def exploration():
-    map_2d = json.loads(request.data)
-    mapObj = array_to_map(map_2d)
-    thread = Thread(target=start_simulation_server, args=[mapObj])
-    thread.start()
-    thread = Thread(target=start_exploration_algo)
-    thread.start()
+    arena_2d = json.loads(request.data)
+    arena_obj = array_to_arena(arena_2d)
+    thread1 = Thread(target=start_simulation_server, args=[arena_obj])
+    thread1.start()
+    thread2 = Thread(target=start_exploration_algo)
+    thread2.start()
     return "Simulation server started."
 
 
 @app.route('/get_status', methods=['GET'])
 def get_status():
-    map_2d = map_to_array(explore_algo.getMap())
-    return json.dumps(map_2d)
+    global explore_algo
+    arena_2d = arena_to_array(explore_algo.get_arena())
+    return json.dumps(arena_2d)
 
 
-def map_to_array(map):
-    map_2d = [[-1 for y in range(15)] for x in range(20)]
+def arena_to_array(arena):
+    arena_2d = [[-1 for y in range(15)] for x in range(20)]
     for x in range(20):
         for y in range(15):
-            map_2d[19-x][y] = map.get(x, y).value
-    return map_2d
+            arena_2d[19-x][y] = arena.get(x, y).value
+    return arena_2d
 
 
-def array_to_map(map_2d):
-    map_obj = Map()
+def array_to_arena(arena_2d):
+    arena_obj = Arena()
     for x in range(20):
         for y in range(15):
-            map_obj.set(19-x, y, CellType(map_2d[x][y]))
-    return map_obj
+            arena_obj.set(19-x, y, CellType(arena_2d[x][y]))
+    return arena_obj
 
 
-def start_simulation_server(map_obj):
-    server = TCPServer(('127.0.0.1', 6666), SimulatorServer)
-    server.start_simulation(map_obj)
+def start_simulation_server(arena_obj):
+    server = SimulatorServer("127.0.0.1", 6666, arena_obj)
+    server.run()
 
 
 def start_exploration_algo():
+    global explore_algo
+    explore_algo = ExplorationExample("127.0.0.1", 6666)
     explore_algo.run()
 
 

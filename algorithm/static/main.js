@@ -15,8 +15,8 @@ if (table != null) {
     }
 }
 
-mdfPart1.oninput = function () { descToArray(); };
-mdfPart2.oninput = function () { descToArray(); };
+mdfPart1.oninput = function () { mdfToArray(); };
+mdfPart2.oninput = function () { mdfToArray(); };
 mdfList.oninput = function () { loadFromList(); };
 
 function loadFromList() {
@@ -24,7 +24,7 @@ function loadFromList() {
     var mdfParts = str.split("|");
     mdfPart1.value = mdfParts[0];
     mdfPart2.value = mdfParts[1];
-    descToArray();
+    mdfToArray();
 }
 
 
@@ -36,7 +36,7 @@ function updateCanvas(cell) {
     } else if (document.getElementById("optUnknown").checked) {
         cell.className = "unknown";
     }
-    arrayToDesc();
+    arrayToMdf();
 }
 
 function tableToArray() {
@@ -180,12 +180,12 @@ function saveArena() {
     });
 }
 
-function arrayToDesc() {
+function arrayToMdf() {
     $.ajax({
         type: 'POST',
         data: JSON.stringify(tableToArray()),
         contentType: 'application/json',
-        url: '/array_to_desc',
+        url: '/array_to_mdf',
         success: function (data) {
             var obj = jQuery.parseJSON(data);
             mdfPart1.value = obj.part1;
@@ -195,8 +195,8 @@ function arrayToDesc() {
 }
 
 
-function descToArray() {
-    $.post("/desc_to_array", {
+function mdfToArray() {
+    $.post("/mdf_to_array", {
         part1: $("#mdfPart1").val(),
         part2: $("#mdfPart2").val()
     }, function (data, status) {
@@ -206,11 +206,11 @@ function descToArray() {
 
 $(document).ready(function () {
     $("#btnLoadArena").click(function () {
-        descToArray();
+        mdfToArray();
     });
 
     $("#btnExportArena").click(function () {
-        arrayToDesc();
+        arrayToMdf();
     });
 
     $("#btnSaveArena").click(function () {

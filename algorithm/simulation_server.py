@@ -1,185 +1,213 @@
-from socket_server import TCPServer, TCPServerChild
-from Map import Map, CellType
+import socket
+from arena import Arena, CellType
 import time
 
 
-class SimulatorServer(TCPServerChild):
+class SimulatorServer():
 
-    def __init__(self, socket, mapObj):
-        super(SimulatorServer, self).__init__(socket)
-        self._map = mapObj
-        self._sensor = []
-        self._sensor.append(Sensor(3, 1, 0))
-        self._sensor.append(Sensor(3, 2, 0))
-        self._sensor.append(Sensor(3, 3, 0))
-        self._sensor.append(Sensor(3, 3, 90))
-        self._sensor.append(Sensor(3, 5, 90))
-        self._sensor.append(Sensor(8, 7, 270))
-        self._robotPos = [1, 1, 0]
+    def __init__(self, tcp_ip, tcp_port, arena_obj, buffer_size=1024):
+
+        self.arena = arena_obj
+        self.sensor = []
+        self.sensor.append(Sensor(3, 1, 0))
+        self.sensor.append(Sensor(3, 2, 0))
+        self.sensor.append(Sensor(3, 3, 0))
+        self.sensor.append(Sensor(3, 3, 90))
+        self.sensor.append(Sensor(3, 5, 90))
+        self.sensor.append(Sensor(8, 7, 270))
+        self.robot_pos = [1, 1, 0]
+
+        self.tcp_ip = tcp_ip
+        self.tcp_port = tcp_port
+        self.buffer_size = buffer_size
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def run(self):
-        self._map.print()
+        self.server_socket.bind((self.tcp_ip, self.tcp_port))
+        self.server_socket.listen(1)
+        print("SimulatorServer - Listening on {}:{}".format(self.tcp_ip, self.tcp_port))
+        self.client_conn, addr = self.server_socket.accept()
+        print(
+            "SimulatorServer - Accepted connection from {}:{}".format(addr[0], addr[1]))
         started = False
         while started == False:
-            data = self.recv()
-            if data.decode('utf-8') == "startExplore":
+            data = self.recv_data()
+            if data == "startExplore":
                 started = True
-                self.startExplore()
+                self.start_explore()
 
-    def setMap(self, map):
-        map.print()
-        self._map = map
+    def recv_data(self):
+        data = self.client_conn.recv(self.buffer_size)
+        if not data:
+            return None
+        data_s = data.decode('utf-8')
+        print("SimulatorServer - Received data: {}".format(data_s))
+        return data_s
 
-    def startExplore(self):
+    def send_data(self, data):
+        self.client_conn.send(data.encode('utf-8'))
+
+    def close_conn(self):
+        self.client_conn.close()
+        self.server_socket.close()
+        print("SimulatorServer - Connection cloased")
+
+    def set_arena(self, arena):
+        arena.print()
+        self.arena = arena
+
+    def start_explore(self):
         end = False
         while end == False:
-            self.socket.send(self.getReadings().encode('utf-8'))
-            data = self.recv()
-            command = data.decode('utf-8')
-            print(command)
-            for char in command:
-                self.moveRobot(char)
-            time.sleep(0.5)
+            self.send_data(self.getReadings())
+            command = self.recv_data()
+            if command == None or command == "endExplore":
+                self.close_conn()
+                end = True
+            else:
+                for char in command:
+                    self.move_robot(char)
+                time.sleep(1)
 
-    def moveRobot(self, action):
+    def move_robot(self, action):
 
         if action == 'F':
-            if self._robotPos[2] == 0:
-                self._robotPos[0] += 1
-            elif self._robotPos[2] == 90:
-                self._robotPos[1] += 1
-            elif self._robotPos[2] == 180:
-                self._robotPos[0] -= 1
-            elif self._robotPos[2] == 270:
-                self._robotPos[1] -= 1
+            if self.robot_pos[2] == 0:
+                self.robot_pos[0] += 1
+            elif self.robot_pos[2] == 90:
+                self.robot_pos[1] += 1
+            elif self.robot_pos[2] == 180:
+                self.robot_pos[0] -= 1
+            elif self.robot_pos[2] == 270:
+                self.robot_pos[1] -= 1
 
         if action == 'B':
-            if self._robotPos[2] == 0:
-                self._robotPos[0] -= 1
-            elif self._robotPos[2] == 90:
-                self._robotPos[1] -= 1
-            elif self._robotPos[2] == 180:
-                self._robotPos[0] += 1
-            elif self._robotPos[2] == 270:
-                self._robotPos[1] += 1
+            if self.robot_pos[2] == 0:
+                self.robot_pos[0] -= 1
+            elif self.robot_pos[2] == 90:
+                self.robot_pos[1] -= 1
+            elif self.robot_pos[2] == 180:
+                self.robot_pos[0] += 1
+            elif self.robot_pos[2] == 270:
+                self.robot_pos[1] += 1
 
         elif action == 'R':
-            self._robotPos[2] += 90
+            self.robot_pos[2] += 90
 
         elif action == 'L':
-            self._robotPos[2] -= 90
+            self.robot_pos[2] -= 90
 
-        if self._robotPos[2] < 0:
-            self._robotPos[2] += 360
+        if self.robot_pos[2] < 0:
+            self.robot_pos[2] += 360
 
-        self._robotPos[2] = self._robotPos[2] % 360
+        self.robot_pos[2] = self.robot_pos[2] % 360
 
     def getReadings(self):
         response = ""
-        for sensor in self._sensor:
-            sensor.setRobot(self._robotPos[0],
-                            self._robotPos[1], self._robotPos[2])
-            response += str(sensor.getReading(self._map))
+        for sensor in self.sensor:
+            sensor.set_robot(self.robot_pos[0],
+                             self.robot_pos[1], self.robot_pos[2])
+            response += str(sensor.get_reading(self.arena))
         return response
 
 
 class Sensor():
     def __init__(self, visible_range=3, sensor_pos=0, sensor_direction=0, robot_pos_h=1, robot_pos_w=1, robot_direction=0):
-        self._visible_range = visible_range
-        self._sensor_pos = sensor_pos
-        self._sensor_direction = sensor_direction
-        self._robot_pos_h = robot_pos_h
-        self._robot_pos_w = robot_pos_w
-        self._robot_direction = robot_direction
+        self.visible_range = visible_range
+        self.sensor_pos = sensor_pos
+        self.sensor_direction = sensor_direction
+        self.robot_pos_h = robot_pos_h
+        self.robot_pos_w = robot_pos_w
+        self.robot_direction = robot_direction
 
-    def setRobot(self, robot_pos_h=1, robot_pos_w=1, robot_direction=0):
-        self._robot_pos_h = robot_pos_h
-        self._robot_pos_w = robot_pos_w
-        self._robot_direction = robot_direction
+    def set_robot(self, robot_pos_h=1, robot_pos_w=1, robot_direction=0):
+        self.robot_pos_h = robot_pos_h
+        self.robot_pos_w = robot_pos_w
+        self.robot_direction = robot_direction
 
-    def getH(self):
-        if self._robot_direction == 0:
-            if self._sensor_pos == 1 or self._sensor_pos == 2 or self._sensor_pos == 3:
-                return self._robot_pos_h + 1
-            elif self._sensor_pos == 4 or self._sensor_pos == 8:
-                return self._robot_pos_h
-            elif self._sensor_pos == 5 or self._sensor_pos == 6 or self._sensor_pos == 7:
-                return self._robot_pos_h - 1
-        elif self._robot_direction == 90:
-            if self._sensor_pos == 1 or self._sensor_pos == 7 or self._sensor_pos == 8:
-                return self._robot_pos_h + 1
-            elif self._sensor_pos == 2 or self._sensor_pos == 6:
-                return self._robot_pos_h
-            elif self._sensor_pos == 3 or self._sensor_pos == 4 or self._sensor_pos == 5:
-                return self._robot_pos_h - 1
-        elif self._robot_direction == 180:
-            if self._sensor_pos == 1 or self._sensor_pos == 2 or self._sensor_pos == 3:
-                return self._robot_pos_h - 1
-            elif self._sensor_pos == 4 or self._sensor_pos == 8:
-                return self._robot_pos_h
-            elif self._sensor_pos == 5 or self._sensor_pos == 6 or self._sensor_pos == 7:
-                return self._robot_pos_h + 1
-        elif self._robot_direction == 270:
-            if self._sensor_pos == 1 or self._sensor_pos == 7 or self._sensor_pos == 8:
-                return self._robot_pos_h - 1
-            elif self._sensor_pos == 2 or self._sensor_pos == 6:
-                return self._robot_pos_h
-            elif self._sensor_pos == 3 or self._sensor_pos == 4 or self._sensor_pos == 5:
-                return self._robot_pos_h + 1
+    def get_h(self):
+        if self.robot_direction == 0:
+            if self.sensor_pos == 1 or self.sensor_pos == 2 or self.sensor_pos == 3:
+                return self.robot_pos_h + 1
+            elif self.sensor_pos == 4 or self.sensor_pos == 8:
+                return self.robot_pos_h
+            elif self.sensor_pos == 5 or self.sensor_pos == 6 or self.sensor_pos == 7:
+                return self.robot_pos_h - 1
+        elif self.robot_direction == 90:
+            if self.sensor_pos == 1 or self.sensor_pos == 7 or self.sensor_pos == 8:
+                return self.robot_pos_h + 1
+            elif self.sensor_pos == 2 or self.sensor_pos == 6:
+                return self.robot_pos_h
+            elif self.sensor_pos == 3 or self.sensor_pos == 4 or self.sensor_pos == 5:
+                return self.robot_pos_h - 1
+        elif self.robot_direction == 180:
+            if self.sensor_pos == 1 or self.sensor_pos == 2 or self.sensor_pos == 3:
+                return self.robot_pos_h - 1
+            elif self.sensor_pos == 4 or self.sensor_pos == 8:
+                return self.robot_pos_h
+            elif self.sensor_pos == 5 or self.sensor_pos == 6 or self.sensor_pos == 7:
+                return self.robot_pos_h + 1
+        elif self.robot_direction == 270:
+            if self.sensor_pos == 1 or self.sensor_pos == 7 or self.sensor_pos == 8:
+                return self.robot_pos_h - 1
+            elif self.sensor_pos == 2 or self.sensor_pos == 6:
+                return self.robot_pos_h
+            elif self.sensor_pos == 3 or self.sensor_pos == 4 or self.sensor_pos == 5:
+                return self.robot_pos_h + 1
 
-    def getW(self):
-        if self._robot_direction == 0:
-            if self._sensor_pos == 1 or self._sensor_pos == 7 or self._sensor_pos == 8:
-                return self._robot_pos_w - 1
-            elif self._sensor_pos == 2 or self._sensor_pos == 6:
-                return self._robot_pos_w
-            elif self._sensor_pos == 3 or self._sensor_pos == 4 or self._sensor_pos == 5:
-                return self._robot_pos_w + 1
-        elif self._robot_direction == 90:
-            if self._sensor_pos == 1 or self._sensor_pos == 2 or self._sensor_pos == 3:
-                return self._robot_pos_w + 1
-            elif self._sensor_pos == 4 or self._sensor_pos == 8:
-                return self._robot_pos_w
-            elif self._sensor_pos == 5 or self._sensor_pos == 6 or self._sensor_pos == 7:
-                return self._robot_pos_w - 1
-        elif self._robot_direction == 180:
-            if self._sensor_pos == 1 or self._sensor_pos == 7 or self._sensor_pos == 8:
-                return self._robot_pos_w + 1
-            elif self._sensor_pos == 2 or self._sensor_pos == 6:
-                return self._robot_pos_w
-            elif self._sensor_pos == 3 or self._sensor_pos == 4 or self._sensor_pos == 5:
-                return self._robot_pos_w - 1
-        elif self._robot_direction == 270:
-            if self._sensor_pos == 1 or self._sensor_pos == 2 or self._sensor_pos == 3:
-                return self._robot_pos_w - 1
-            elif self._sensor_pos == 4 or self._sensor_pos == 8:
-                return self._robot_pos_w
-            elif self._sensor_pos == 5 or self._sensor_pos == 6 or self._sensor_pos == 7:
-                return self._robot_pos_w + 1
+    def get_w(self):
+        if self.robot_direction == 0:
+            if self.sensor_pos == 1 or self.sensor_pos == 7 or self.sensor_pos == 8:
+                return self.robot_pos_w - 1
+            elif self.sensor_pos == 2 or self.sensor_pos == 6:
+                return self.robot_pos_w
+            elif self.sensor_pos == 3 or self.sensor_pos == 4 or self.sensor_pos == 5:
+                return self.robot_pos_w + 1
+        elif self.robot_direction == 90:
+            if self.sensor_pos == 1 or self.sensor_pos == 2 or self.sensor_pos == 3:
+                return self.robot_pos_w + 1
+            elif self.sensor_pos == 4 or self.sensor_pos == 8:
+                return self.robot_pos_w
+            elif self.sensor_pos == 5 or self.sensor_pos == 6 or self.sensor_pos == 7:
+                return self.robot_pos_w - 1
+        elif self.robot_direction == 180:
+            if self.sensor_pos == 1 or self.sensor_pos == 7 or self.sensor_pos == 8:
+                return self.robot_pos_w + 1
+            elif self.sensor_pos == 2 or self.sensor_pos == 6:
+                return self.robot_pos_w
+            elif self.sensor_pos == 3 or self.sensor_pos == 4 or self.sensor_pos == 5:
+                return self.robot_pos_w - 1
+        elif self.robot_direction == 270:
+            if self.sensor_pos == 1 or self.sensor_pos == 2 or self.sensor_pos == 3:
+                return self.robot_pos_w - 1
+            elif self.sensor_pos == 4 or self.sensor_pos == 8:
+                return self.robot_pos_w
+            elif self.sensor_pos == 5 or self.sensor_pos == 6 or self.sensor_pos == 7:
+                return self.robot_pos_w + 1
 
-    def getDirection(self):
-        direction = self._sensor_direction + self._robot_direction
+    def get_direction(self):
+        direction = self.sensor_direction + self.robot_direction
         return direction % 360
 
-    def getReading(self, map):
+    def get_reading(self, map):
 
-        for x in range(self._visible_range):
-            if self.getDirection() == 0:
-                blockH = self.getH()+x+1
-                blockW = self.getW()
-            elif self.getDirection() == 90:
-                blockH = self.getH()
-                blockW = self.getW()+x+1
-            elif self.getDirection() == 180:
-                blockH = self.getH()-x-1
-                blockW = self.getW()
-            elif self.getDirection() == 270:
-                blockH = self.getH()
-                blockW = self.getW()-x-1
+        for x in range(self.visible_range):
+            if self.get_direction() == 0:
+                block_h = self.get_h()+x+1
+                block_w = self.get_w()
+            elif self.get_direction() == 90:
+                block_h = self.get_h()
+                block_w = self.get_w()+x+1
+            elif self.get_direction() == 180:
+                block_h = self.get_h()-x-1
+                block_w = self.get_w()
+            elif self.get_direction() == 270:
+                block_h = self.get_h()
+                block_w = self.get_w()-x-1
 
-            if blockH < 0 or blockW < 0 or blockH > 19 or blockW > 14:
+            if block_h < 0 or block_w < 0 or block_h > 19 or block_w > 14:
                 return x
-            elif map.get(blockH, blockW) == CellType.OBSTACLE:
+            elif map.get(block_h, block_w) == CellType.OBSTACLE:
                 return x
 
         return 'Z'

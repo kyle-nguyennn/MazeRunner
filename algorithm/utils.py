@@ -1,4 +1,4 @@
-from Map import Map
+from arena import Arena
 def getBit(x, i):
     return (x & (1 << i)) >> i
 
@@ -12,12 +12,12 @@ def unsetBit(x, i):
 def createMapTest():
     file = open("C:\\Users\\nghia\\OneDrive\\CS\\Year 3 sem 2\\CZ3004 MDP\\MazeRunner\\MazeRunner\\algorithm\\mapTest.txt").read()
     file = file.split()
-    map = Map()
+    map = Arena()
     for i in range(len(file)):
         s = file[i]
         for j in range(len(s)):
             map.set(i, j, int(s[j]))
-    print(map.get2dArr())
+    print(map.get_2d_arr())
     return(map)
 
 if __name__ == "__main__":

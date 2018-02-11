@@ -5,14 +5,14 @@ if __name__ == "__main__":
     logging.basicConfig(filename=__file__+".log", level=logging.DEBUG)
 
 
-class Map():
+class Arena():
     # already have a internal map
     def __init__(self, height=20, width=15):
-        self._map = [[CellType.UNKNOWN
+        self.arena_map = [[CellType.UNKNOWN
                       for y in range(width)]
                      for x in range(height)]
 
-    def fromMDFStrings(self, part1, part2):
+    def from_mdf_strings(self, part1, part2):
 
         b1Size = len(part1) * 4
         bitStr1 = (bin(int(part1, 16))[4:b1Size]).zfill(b1Size-4)
@@ -20,25 +20,25 @@ class Map():
         b2Size = len(part2) * 4
         bitStr2 = (bin(int(part2, 16))[2:b2Size]).zfill(b2Size-2)
 
-        for x in range(len(self._map)):
-            for y in range(len(self._map[x])):
-                if bitStr1[(x*len(self._map[x]))+y] == "0":
-                    self._map[x][y] = CellType.UNKNOWN
+        for x in range(len(self.arena_map)):
+            for y in range(len(self.arena_map[x])):
+                if bitStr1[(x*len(self.arena_map[x]))+y] == "0":
+                    self.arena_map[x][y] = CellType.UNKNOWN
                 else:
-                    self._map[x][y] = CellType.EMPTY
+                    self.arena_map[x][y] = CellType.EMPTY
 
         bitCount = 0
 
-        for x in range(len(self._map)):
-            for y in range(len(self._map[x])):
-                if self._map[x][y] == CellType.EMPTY:
-                    self._map[x][y] = CellType(int(bitStr2[bitCount]))
+        for x in range(len(self.arena_map)):
+            for y in range(len(self.arena_map[x])):
+                if self.arena_map[x][y] == CellType.EMPTY:
+                    self.arena_map[x][y] = CellType(int(bitStr2[bitCount]))
                     bitCount += 1
 
         return
 
-    def toMDFPart1(self, withPadding=True):
-        map = self._map
+    def to_mdf_part1(self, withPadding=True):
+        map = self.arena_map
 
         bitStr = ""
 
@@ -54,8 +54,8 @@ class Map():
 
         return '{:0{}X}'.format(int(bitStr, 2), len(bitStr) // 4)
 
-    def toMDFPart2(self, withPadding=True):
-        map = self._map
+    def to_mdf_part2(self, withPadding=True):
+        map = self.arena_map
 
         bitStr = ""
 
@@ -73,20 +73,20 @@ class Map():
 
         return '{:0{}X}'.format(int(bitStr, 2), len(bitStr) // 4)
 
-    def get2dArr(self):
-        return self._map
+    def get_2d_arr(self):
+        return self.arena_map
 
     def print(self):
-        for x in range(len(self._map)):
-            for y in range(len(self._map[x])):
-                print(self._map[len(self._map)-1-x][y].value, end=" ")
+        for x in range(len(self.arena_map)):
+            for y in range(len(self.arena_map[x])):
+                print(self.arena_map[len(self.arena_map)-1-x][y].value, end=" ")
             print()
 
     def get(self, h, w):
-        return self._map[h][w]
+        return self.arena_map[h][w]
 
     def set(self, h, w, value):
-        self._map[h][w] = value
+        self.arena_map[h][w] = value
 
 
 class CellType(Enum):

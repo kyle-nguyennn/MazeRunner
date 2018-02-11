@@ -1,4 +1,4 @@
-from Map import Map,CellType
+from arena import Arena,CellType
 from Robot import Robot
 import time,race
 
@@ -9,7 +9,7 @@ timeLimit = 360
 reachGoal = 0
 startTime = time.time()
 robot = Robot()
-realTimeMap = Map()
+realTimeMap = Arena()
 
 frontCells = {0:[[[2,-1],[3,-1],[4,-1]],[[2,0],[3,0],[4,0]],[[2,1],[3,1],[4,1]]],
               1:[[[1,2],[1,3],[1,4]],[[0,2],[0,3],[0,4]],[[-1,2],[-1,3],[-1,4]]],
@@ -37,7 +37,7 @@ def initialize():
     startTime = time.time()
     robot = Robot(1,1,1)    
     robot.robotMode = "exploring"
-    realTimeMap = Map()
+    realTimeMap = Arena()
     
         
 def rush():

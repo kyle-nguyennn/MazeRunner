@@ -1,4 +1,4 @@
-from Map import Map, CellType
+from arena import Arena, CellType
 import utils
 import heapq
 
@@ -115,7 +115,7 @@ def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
     if direction[0] == "w":
         dir = 3
     instruction = ""
-    mymap = map.get2dArr()
+    mymap = map.get_2d_arr()
     (instruction1, dir1) = dijkstra(mymap, (1,1), waypoint, dir)
     (instruction2, dir2) = dijkstra(mymap, (waypoint), (18,13), dir1)
     return instruction1+instruction2
