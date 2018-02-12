@@ -1,6 +1,23 @@
 from arena import Arena,CellType
 from Robot import Robot
-import time,race
+from random import randint
+import time, socket
+import race
+
+
+######################## integrate with Calvin code #############################
+
+class Explorer():
+    def __init__(self, tcp_ip, tcp_port, buffer_size=1024):
+        self.running = False
+        self.arena = Arena()
+        self.robot = [1, 1, 0]
+        self.tcp_ip = tcp_ip
+        self.tcp_port = tcp_port
+        self.buffer_size = buffer_size
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+############################## below this is aiqing code ################
 
 exploredArea = 0
 cnt = 0 # no. of instruction executed
@@ -164,6 +181,7 @@ def reExplore():
         posDistance.append(dist)
     cellToMove = potentialPos[findArrayMin(posDistance)]
     # modification on getInstructions needed, to include start and goal coordinates
+    # use race.djikstra instead
     instr = race.getInstructions(realTimeMap,(robot.robotCenterH,robot.robotCenterW),cellToMove,cellToMove,(3,3),convertDirection(robot.robotHead))
     return (instr,cellToMove,robot.robotHead,realTimeMap)
     # need to check robot final head direction
