@@ -152,6 +152,7 @@ def checkRight():
             return True
         
 def reExplore():
+    global robot,realTimeMap
     # detect all unexplored cells
     reExploreCells = []
     cellEuclidean = []
@@ -159,6 +160,12 @@ def reExplore():
         for cell in row:
             if (cell == CellType.UNKNOWN):
                 reExploreCells.append(cell)
+                
+    # check if reExplore has finished, if is, go back
+    if (len(reExploreCells) == 0):
+        instr = race.getInstructions(realTimeMap,(robot.robotCenterH,robot.robotCenterW),(1,1),(1,1),(3,3),convertDirection(robot.robotHead))
+        return (instr,(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
+        
     # calculate Euclidean distance for each
     for cell in reExploreCells:
         euclideanDist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
