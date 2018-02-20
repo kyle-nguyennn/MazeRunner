@@ -11,50 +11,132 @@ class Explorer():
     def __init__(self, tcp_ip, tcp_port, buffer_size=1024):
         self.running = False
         self.arena = Arena()
-        self.robot = [1, 1, 0]
+        #self.robot = [1, 1, 0] # 2d position plus orientation
         self.tcp_ip = tcp_ip
         self.tcp_port = tcp_port
         self.buffer_size = buffer_size
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ##### exploration logics related variables ####
+        self.exploredArea = 0
+        self.cnt = 0 # no. of instruction executed
+        self.timeThreshold = 180
+        self.timeLimit = 360
+        self.reachGoal = False
+        self.startTime = time.time()
+        self.robot = Robot(mode='exploring')
 
+        self.frontCells = {0:[[[2,-1],[3,-1],[4,-1]],[[2,0],[3,0],[4,0]],[[2,1],[3,1],[4,1]]],
+                    1:[[[1,2],[1,3],[1,4]],[[0,2],[0,3],[0,4]],[[-1,2],[-1,3],[-1,4]]],
+                    2:[[[-2,1],[-3,1],[-4,1]],[[-2,0],[-3,0],[-4,0]],[[-2,-1],[-3,-1],[-4,-1]]],
+                    3:[[[-1,-2],[-1,-3],[-1,-4]],[[0,-2],[0,-3],[0,-4]],[[1,-2],[1,-3],[1,-4]]]
+            }
+        # only keep top right and bottom right lines
+        self.rightCells = {0:[[[1,2],[1,3],[1,4]],[[-1,2],[-1,3],[-1,4]]],
+                    1:[[[-2,1],[-3,1],[-4,1]],[[-2,-1],[-3,-1],[-4,-1]]],
+                    2:[[[-1,-2],[-1,-3],[-1,-4]],[[1,-2],[1,-3],[1,-4]]],
+                    3:[[[2,-1],[3,-1],[4,-1]],[[2,1],[3,1],[4,1]]]
+            }
+        # only keep top left lines, detect up to the 6 cells in front
+        self.leftCells = {0:[[1,-2],[1,-3],[1,-4],[1,-5],[1,-6],[1,-7]],
+                    1:[[2,1],[3,1],[4,1],[5,1],[6,1],[7,1]],
+                    2:[[-1,2],[-1,3],[-1,4],[-1,5],[-1,6],[-1,7]],
+                    3:[[-2,-1],[-3,-1],[-4,-1],[-5,-1],[-6,-1],[-7,-1]]
+                }
+
+    def run(self):
+        self.running = True
+        self.client_socket.connect((self.tcp_ip, self.tcp_port))
+        print(
+            "ExplorationExample - Connected to {}:{}".format(self.tcp_ip, self.tcp_port))
+        self.send_data("startExplore")
+        while self.robot.robotMode != "done":
+            sensors = self.recv_data()
+            #update map with sensor values
+            updateMap(sensors)
+            explorationTime = time.time() - self.startTime
+            # if reach time limit
+            if (explorationTime > self.timeLimit): 
+                self.send_data("S")
+                self.robot.robotMode = "done"
+                break
+            else:
+                if self.reachGoal:
+                    if explorationTime > self.timeThreshold:
+                        # TODO: find way back to start zone using fastest path algo
+                        # TODO: give order
+                        # TODO: update robot states (position and orientation)
+                        continue
+                    
+                    
+    def recv_data(self):
+        data = self.client_socket.recv(self.buffer_size)
+        data_s = data.decode('utf-8')
+        print("ExplorationExample - Received data: {}".format(data_s))
+        return data_s
+
+    def send_data(self, data):
+        self.client_socket.send(data.encode('utf-8'))
+
+    def close_conn(self):
+        self.client_socket.close()
+        print("ExplorationExample - Connection cloased")
+
+    def get_arena(self):
+        if self.running:
+            return self.arena
+        else:
+            return None
+
+    def get_robot(self):
+        return self.robot
+    ##### exploration logics #####
+    def explore(self,sensorValue,center,head):
+        global robot,exploredArea,cnt,reachGoal,realTimeMap
+        
+        #update map with sensor values
+        updateMap(sensorValue)
+    
+        # update robot status
+        # BUT seems to be redudant because the robot will update itself when it moves
+        robot.robotHead = head
+        robot.robotCenterW = center[1]
+        robot.robotCenterH = center[0]
+
+        # if reach goal, mark
+        if (robot.robotCenterH == 18 and robot.robotCenterW == 13):
+            reachGoal = 1
+            
+        if (cnt == 0): # first instruction ,sense only, dun move
+            return ("N",center,head,realTimeMap)   
+        cnt += 1
+        
+        explorationTime = time.time() - startTime           
+        
+        if (explorationTime > timeLimit): # if reach time limit
+            robot.robotMode = "break"
+            return ("N",(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
+        
+        else: # continue exploration           
+            if (explorationTime > timeThreshold and reachGoal == 1):
+                robot.robotMode = "rush"
+                return rush()
+            else:  
+                if (cnt > 30 and robot.robotCenterW == 1 and robot.robotCenterH == 1 and exploredArea > 280): # set as 30 first, any reasonable number just to make sure that the robot is not just started 
+                    # reach back to Start; exploration done
+                    robot.robotMode = "done"
+                    return ("N",(1,1),robot.robotHead,realTimeMap)
+                
+                elif (robot.robotMode == "reExplore"):
+                    return reExplore()
+                
+                elif (reachGoal == 1 and cnt > 30 and almostBack(robot.robotCenterH,robot.robotCenterW) and exploredArea < 280 ):
+                    # first time enter reExplore mode
+                    robot.robotMode = "reExplore"
+                    return reExplore()
+                            
+                else: # normal exploration procedure
+                    wallHugging()
 ############################## below this is aiqing code ################
-
-exploredArea = 0
-cnt = 0 # no. of instruction executed
-timeThreshold = 180
-timeLimit = 360
-reachGoal = 0
-startTime = time.time()
-robot = Robot()
-realTimeMap = Arena()
-
-frontCells = {0:[[[2,-1],[3,-1],[4,-1]],[[2,0],[3,0],[4,0]],[[2,1],[3,1],[4,1]]],
-              1:[[[1,2],[1,3],[1,4]],[[0,2],[0,3],[0,4]],[[-1,2],[-1,3],[-1,4]]],
-              2:[[[-2,1],[-3,1],[-4,1]],[[-2,0],[-3,0],[-4,0]],[[-2,-1],[-3,-1],[-4,-1]]],
-              3:[[[-1,-2],[-1,-3],[-1,-4]],[[0,-2],[0,-3],[0,-4]],[[1,-2],[1,-3],[1,-4]]]
-    }
-
-# only keep top right and bottom right lines
-rightCells = {0:[[[1,2],[1,3],[1,4]],[[-1,2],[-1,3],[-1,4]]],
-              1:[[[-2,1],[-3,1],[-4,1]],[[-2,-1],[-3,-1],[-4,-1]]],
-              2:[[[-1,-2],[-1,-3],[-1,-4]],[[1,-2],[1,-3],[1,-4]]],
-              3:[[[2,-1],[3,-1],[4,-1]],[[2,1],[3,1],[4,1]]]
-    }
-
-# only keep top left lines, detect up to the 6 cells in front
-leftCells = {0:[[1,-2],[1,-3],[1,-4],[1,-5],[1,-6],[1,-7]],
-             1:[[2,1],[3,1],[4,1],[5,1],[6,1],[7,1]],
-             2:[[-1,2],[-1,3],[-1,4],[-1,5],[-1,6],[-1,7]],
-             3:[[-2,-1],[-3,-1],[-4,-1],[-5,-1],[-6,-1],[-7,-1]]
-        }
-
-
-def initialize():
-    global startTime,robot,realTimeMap
-    startTime = time.time()
-    robot = Robot(1,1,1)    
-    robot.robotMode = "exploring"
-    realTimeMap = Arena()
     
         
 def rush():
@@ -237,57 +319,7 @@ def wallHugging():
         return ("L",(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
     			
 	
-def explore(self,sensorValue,center,head):
-    global robot,exploredArea,cnt,reachGoal,realTimeMap
-    
-    #update map with sensor values
-    updateMap(sensorValue)
- 
-    # update robot status
-    # BUT seems to be redudant because the robot will update itself when it moves
-    robot.robotHead = head
-    robot.robotCenterW = center[1]
-    robot.robotCenterH = center[0]
 
-    # if reach goal, mark
-    if (robot.robotCenterH == 18 and robot.robotCenterW == 13):
-        reachGoal = 1
-        
-    if (cnt == 0): # first instruction ,sense only, dun move
-        return ("N",center,head,realTimeMap)   
-    cnt += 1
-    
-    explorationTime = time.time() - startTime           
-    
-    if (explorationTime > timeLimit): # if reach time limit
-        robot.robotMode = "break"
-        return ("N",(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
-    
-    else: # continue exploration           
-        if (explorationTime > timeThreshold and reachGoal == 1):
-            robot.robotMode = "rush"
-            return rush()
-        else:  
-            if (cnt > 30 and robot.robotCenterW == 1 and robot.robotCenterH == 1 and exploredArea > 280): # set as 30 first, any reasonable number just to make sure that the robot is not just started 
-    		     # reach back to Start; exploration done
-                robot.robotMode = "done"
-                return ("N",(1,1),robot.robotHead,realTimeMap)
-            
-            elif (robot.robotMode == "reExplore"):
-                return reExplore()
-            
-            elif (reachGoal == 1 and cnt > 30 and almostBack(robot.robotCenterH,robot.robotCenterW) and exploredArea < 280 ):
-                # first time enter reExplore mode
-                robot.robotMode = "reExplore"
-                return reExplore()
-                         
-            else: # normal exploration procedure
-                wallHugging()
-                
-
-
-        
-        
 
 		
 		
