@@ -22,6 +22,7 @@ class Explorer():
 exploredArea = 0
 cnt = 0 # no. of instruction executed
 timeThreshold = 180
+percentageLimit = 0.9
 timeLimit = 360
 reachGoal = 0
 startTime = time.time()
@@ -162,7 +163,7 @@ def reExplore():
                 reExploreCells.append(cell)
                 
     # check if reExplore has finished, if is, go back
-    if (len(reExploreCells) == 0):
+    if (reExploreCells<300*(1-percentageLimit) or len(reExploreCells) == 0):
         instr = race.getInstructions(realTimeMap,(robot.robotCenterH,robot.robotCenterW),(1,1),(1,1),(3,3),convertDirection(robot.robotHead))
         return (instr,(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
         
@@ -275,7 +276,7 @@ def explore(self,sensorValue,center,head):
             robot.robotMode = "rush"
             return rush()
         else:  
-            if (cnt > 30 and robot.robotCenterW == 1 and robot.robotCenterH == 1 and exploredArea > 280): # set as 30 first, any reasonable number just to make sure that the robot is not just started 
+            if (cnt > 30 and robot.robotCenterW == 1 and robot.robotCenterH == 1 and exploredArea > 300*percentageLimit): # set as 30 first, any reasonable number just to make sure that the robot is not just started 
     		     # reach back to Start; exploration done
                 robot.robotMode = "done"
                 return ("N",(1,1),robot.robotHead,realTimeMap)
@@ -283,7 +284,7 @@ def explore(self,sensorValue,center,head):
             elif (robot.robotMode == "reExplore"):
                 return reExplore()
             
-            elif (reachGoal == 1 and cnt > 30 and almostBack(robot.robotCenterH,robot.robotCenterW) and exploredArea < 280 ):
+            elif (reachGoal == 1 and cnt > 30 and almostBack(robot.robotCenterH,robot.robotCenterW) and exploredArea < 300*percentageLimit ):
                 # first time enter reExplore mode
                 robot.robotMode = "reExplore"
                 return reExplore()
