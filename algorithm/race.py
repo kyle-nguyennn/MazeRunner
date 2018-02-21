@@ -38,7 +38,7 @@ def neighbors(mymap, cur, dir):
         neighbors.append((cur[0] + offset[0], cur[1] + offset[1], (dir+i)%4))
     return neighbors
 
-def dijkstra(mymap, start, end, direction):
+def dijkstra(mymap, start, end, direction): # return tuple of instruction string with the final orientation of the robot after executing these instructions
     q = []
     cost = []
     prev = [[[((0,0), "", 0) for i in range(4)] for i in range(len(mymap[0]))] for i in range(len(mymap))]

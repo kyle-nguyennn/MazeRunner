@@ -44,6 +44,8 @@ class Robot():
                 bodyCells.append([i,j])
         return bodyCells
 
+    def getPosition(self):
+        return [self.robotCenterH, self.robotCenterW, self.robotHead]
 
     # move front, update center cell coordinates
     def forward(self):
@@ -64,6 +66,11 @@ class Robot():
     
     def rotateLeft(self):
         self.robotHead = (self.robotHead - 1) %4
+
+    def isInGoal(self):
+        if self.robotCenterH == 18 and self.robotCenterW == 13:
+            return True
+        return False
 
     def isInStartZone(self):
         if self.robotCenterH == 1 and self.robotCenterW == 1:

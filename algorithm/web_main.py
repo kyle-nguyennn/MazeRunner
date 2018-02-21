@@ -7,6 +7,7 @@ import json
 from race import getInstructions
 from simulation_server import SimulatorServer
 from exploration_example import ExplorationExample
+from exploration import Explorer
 from threading import Thread
 
 app = Flask(__name__)
@@ -116,7 +117,7 @@ def start_simulation_server(arena_obj):
 
 def start_exploration_algo():
     global explore_algo
-    explore_algo = ExplorationExample("127.0.0.1", 6666)
+    explore_algo = Explorer("127.0.0.1", 6666)
     explore_algo.run()
 
 

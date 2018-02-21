@@ -3,6 +3,7 @@ from Robot import Robot
 from random import randint
 import time, socket
 import race
+from race import dijkstra
 
 
 ######################## integrate with Calvin code #############################
@@ -52,7 +53,7 @@ class Explorer():
         while self.robot.robotMode != "done":
             sensors = self.recv_data()
             #update map with sensor values
-            updateMap(sensors)
+            self.updateMap(sensors)
             explorationTime = time.time() - self.startTime
             # if reach time limit
             if self.timeLimit - explorationTime <= 20:
@@ -61,26 +62,49 @@ class Explorer():
                     self.robot.robotMode = "done"
                     break
                 else:
-                    #TODO: find the way back to start zone
+                    # find the way back to start zone using djikstra
+                    startnode = (self.robot.robotCenterH, self.robot.robotCenterW)
+                    endnode = (1,1)
+                    (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, self.robot.robotHead)
+                    # give instruction
+                    self.send_data(instructions)
+                    # update robot states (position and orientation)
+                    (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
+                    self.robot.robotHead = endOrientation
             else:
                 if self.reachGoal:
                     if explorationTime > self.timeThreshold and \
                         not self.robot.isAlmostBack() and \
                         self.robot.robotMode != 'reExplore':
-                        # TODO: find way back to start zone using fastest path algo
-                        # TODO: give instruction
-                        # TODO: update robot states (position and orientation)
+                        # find way back to start zone using fastest path algo (djikstra)
+                        startnode = (self.robot.robotCenterH, self.robot.robotCenterW)
+                        endnode = (1,1)
+                        (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, self.robot.robotHead)
+                        # give instruction
+                        self.send_data(instructions)
+                        # update robot states (position and orientation)
+                        (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
+                        self.robot.robotHead = endOrientation
                         continue
                     if self.robot.isAlmostBack() and self.exploredArea < 280:
                         self.robot.robotMode = 'reExplore'
                     if self.robot.robotMode == 'reExplore':
-                        # TODO: reexplore, find the fastest path to the nearest unexplored cell
-                        # TODO: give instruction
-                        # TODO: update robot states
+                        # reexplore, find the fastest path to the nearest unexplored cell
+                        (instruction, endnode, endOrientation) = self.reExplore()
+                        # give instruction
+                        self.send_data(instruction)
+                        # update robot states
+                        (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
+                        self.robot.robotHead = endOrientation                        
                         continue
                 #if havent reach any of above continue statements, just wall hugging
+                instruction = wallHugging()
+                # there's no need to update robot state because it is already done in wallHugging()
+                # give instruction 
+                self.send_data(instruction)
 
-                    
+                if self.reachGoal == False:
+                    self.reachGoal = self.robot.isInGoal()
                     
     def recv_data(self):
         data = self.client_socket.recv(self.buffer_size)
@@ -102,7 +126,7 @@ class Explorer():
             return None
 
     def get_robot(self):
-        return self.robot
+        return self.robot.getPosition()
     ##### exploration logics #####
 
     def updateExploredArea(self):   
@@ -160,7 +184,7 @@ class Explorer():
                 else:
                     print("wrong index count") # for error checking only
             else:
-                markCells(index,int(dist))
+                self.markCells(index,int(dist))
             index += 1
         self.updateExploredArea()
     # check whether the 3 consecutive cells in front are empty
@@ -179,145 +203,66 @@ class Explorer():
                 return False
             else:
                 return True
+    def wallHugging(self): # return instruction
+        # mark current body cells as empty
+        # actually might not need, just put here first
+        bodyCells = self.robot.returnBodyCells()
+        for cell in bodyCells:
+            self.arena.set(cell[0],cell[1],CellType.EMPTY)
                 
-    def explore(self,sensorValue,center,head):
-        global robot,exploredArea,cnt,reachGoal,realTimeMap
-        
-        #update map with sensor values
-        updateMap(sensorValue)
-    
-        # update robot status
-        # BUT seems to be redudant because the robot will update itself when it moves
-        robot.robotHead = head
-        robot.robotCenterW = center[1]
-        robot.robotCenterH = center[0]
-
-        # if reach goal, mark
-        if (robot.robotCenterH == 18 and robot.robotCenterW == 13):
-            reachGoal = 1
+        # decide turn-right condition
+        if (self.checkRight()):
+            # chage the internal state of the robot
+            self.robot.rotateRight()
+            self.robot.forward()        
+            return ("RF")
+                        
+        # decide front condition
+        elif (self.checkFront()):
+            self.robot.forward()
+            return ("F")
+        else:
+            self.robot.rotateLeft()
+            return ("L")
+    def reExplore(self):
+        # detect all unexplored cells
+        reExploreCells = []
+        cellEuclidean = []
+        robot = self.robot
+        for row in self.arena.get_2d_arr():
+            for cell in row:
+                if (cell == CellType.UNKNOWN):
+                    reExploreCells.append(cell)
+        # calculate Euclidean distance for each
+        for cell in reExploreCells:
+            euclideanDist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
+            cellEuclidean.append(euclideanDist)
             
-        if (cnt == 0): # first instruction ,sense only, dun move
-            return ("N",center,head,realTimeMap)   
-        cnt += 1
+        # find the nearest one
+        targetCell = reExploreCells[findArrayIndexMin(cellEuclidean)]
         
-        explorationTime = time.time() - startTime           
-        
-        if (explorationTime > timeLimit): # if reach time limit
-            robot.robotMode = "break"
-            return ("N",(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
-        
-        else: # continue exploration           
-            if (explorationTime > timeThreshold and reachGoal == 1):
-                robot.robotMode = "rush"
-                return rush()
-            else:  
-                if (cnt > 30 and robot.robotCenterW == 1 and robot.robotCenterH == 1 and exploredArea > 280): # set as 30 first, any reasonable number just to make sure that the robot is not just started 
-                    # reach back to Start; exploration done
-                    robot.robotMode = "done"
-                    return ("N",(1,1),robot.robotHead,realTimeMap)
-                
-                elif (robot.robotMode == "reExplore"):
-                    return reExplore()
-                
-                elif (reachGoal == 1 and cnt > 30 and almostBack(robot.robotCenterH,robot.robotCenterW) and exploredArea < 280 ):
-                    # first time enter reExplore mode
-                    robot.robotMode = "reExplore"
-                    return reExplore()
-                            
-                else: # normal exploration procedure
-                    wallHugging()
-############################## below this is aiqing code ################
-    
-        
-def rush():
-    instr = race.getInstructions(realTimeMap,(robot.robotCenterH,robot.robotCenterW),(1,1),(1,1),(3,3),convertDirection(robot.robotHead))
-    return (instr,(1,1),robot.robotHead, realTimeMap)
-    # need to change to final robot head direction
-        
-def reExplore():
-    # detect all unexplored cells
-    reExploreCells = []
-    cellEuclidean = []
-    for row in realTimeMap:
-        for cell in row:
-            if (cell == CellType.UNKNOWN):
-                reExploreCells.append(cell)
-    # calculate Euclidean distance for each
-    for cell in reExploreCells:
-        euclideanDist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
-        cellEuclidean.append(euclideanDist)
-        
-    # find the nearest one
-    targetCell = reExploreCells[findArrayMin(cellEuclidean)]
-    
-    # find its nearest observing point
-    offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
-    potentialPos = []
-    index2 = 0
-    for offset in offsets:
-        potentialPos.append([targetCell[0]+offset[index2][0],targetCell[1]+offset[index2][1]])
-        index2 += 1
-    # calculate Euclidean distance for each
-    posDistance = []
-    for cell in potentialPos:
-        dist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
-        posDistance.append(dist)
-    cellToMove = potentialPos[findArrayMin(posDistance)]
-    # modification on getInstructions needed, to include start and goal coordinates
-    # use race.djikstra instead
-    instr = race.getInstructions(realTimeMap,(robot.robotCenterH,robot.robotCenterW),cellToMove,cellToMove,(3,3),convertDirection(robot.robotHead))
-    return (instr,cellToMove,robot.robotHead,realTimeMap)
-    # need to check robot final head direction
-
-
-def convertDirection(head):
-    if (head == 0):
-        return "north"
-    elif (head == 1):
-        return "east"
-    elif (head == 2):
-        return "south"
-    elif (head == 3):
-        return "west"
-    else:
-        print("error in converting")
-    
+        # find its nearest observing point
+        offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
+        potentialPos = []
+        index2 = 0
+        for offset in offsets:
+            potentialPos.append([targetCell[0]+offset[index2][0],targetCell[1]+offset[index2][1]])
+            index2 += 1
+        # calculate Euclidean distance for each
+        posDistance = []
+        for cell in potentialPos:
+            dist = euclidean([robot.robotCenterH,robot.robotCenterW],cell)
+            posDistance.append(dist)
+        cellToMove = potentialPos[findArrayIndexMin(posDistance)]
+        # use djikstra
+        startnode = (robot.robotCenterH, robot.robotCenterW)
+        (instr, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, robot.robotHead)
+        return (instr, cellToMove, endOrientation)
+        # need to check robot final head direction
+###### helper functions #####    
 def findArrayIndexMin(arr):
     return arr.index(min(arr))
             
 def euclidean(pos1,pos2):
     return abs(pos1[1]-pos2[1])+abs(pos1[0]-pos2[0])
-  
-def wallHugging():
-    global robot,realTimeMap
-    # mark current body cells as empty
-    # actually might not need, just put here first
-    bodyCells = robot.returnBodyCells()
-    for cell in bodyCells:
-        realTimeMap.set(cell[0],cell[1],CellType.EMPTY)
-    		
-    # decide turn-right condition
-    if (checkRight()):
-        robot.turnRight()
-        robot.moveFront()        
-        return ("RF",(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
-    				
-    # decide front condition
-    elif (checkFront()):
-        robot.moveFront()
-        return ("F",(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
-    else:
-        robot.turnLeft()
-        return ("L",(robot.robotCenterH,robot.robotCenterW),robot.robotHead,realTimeMap)
-    			
-	
 
-
-		
-		
-		
-		
-		
-		
-		
-		
