@@ -1,8 +1,10 @@
 import bluetooth
+import time
 
 
 class BtServer():
     def __init__(self, channel, buffer_size=1024):
+        self.lock = False
         self.channel = channel
         self.buffer_size = buffer_size
         self.server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
@@ -40,11 +42,15 @@ class BtServer():
         return data_s
 
     def send(self, data):
+        while self.lock:
+            time.sleep(1)
+        self.lock = True
         try:
             self.client_conn.send((data+"\n").encode('utf-8'))
             print("BtServer - Sent data: {}".format(data))
         except:
             print("BtServer - Error sending data: {}".format(data))
+        self.lock = False
 
     def close_client(self):
         self.client_conn.close()

@@ -1,8 +1,10 @@
 import socket
+import time
 
 
 class TcpServer():
     def __init__(self, ip, port, buffer_size=1024):
+        self.lock = False
         self.ip = ip
         self.port = port
         self.buffer_size = buffer_size
@@ -31,11 +33,15 @@ class TcpServer():
         return data_s
 
     def send(self, data):
+        while self.lock:
+            time.sleep(1)
+        self.lock = True
         try:
             self.client_conn.send(data.encode('utf-8'))
             print("TcpServer - Sent data: {}".format(data))
         except:
             print("TcpServer - Error sending data: {}".format(data))
+        self.lock = False
 
     def close_client(self):
         self.client_conn.close()

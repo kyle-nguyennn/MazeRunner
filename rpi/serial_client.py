@@ -1,14 +1,22 @@
 import serial
+import time
 
 
 class SerialClient():
     def __init__(self, port, baud_rate):
+        self.lock = False
         self.port = port
         self.baud_rate = baud_rate
 
     def connect(self):
-        self.client_conn = serial.Serial(
-            self.port, self.baud_rate, timeout=None)
+        connected = False
+        while not connected:
+            try:
+                self.client_conn = serial.Serial(
+                    self.port, self.baud_rate, timeout=None)
+                connected = True
+            except:
+                time.sleep(1)
         print("SerialClient - Connected on {}:{}".format(self.port, self.baud_rate))
 
     def recv(self):
@@ -23,11 +31,15 @@ class SerialClient():
         return data_s
 
     def send(self, data):
+        while self.lock:
+            time.sleep(1)
+        self.lock = True
         try:
             self.client_conn.write(data.encode('utf-8'))
             print("SerialClient - Sent data: {}".format(data))
         except:
             print("SerialClient - Error sending data: {}".format(data))
+        self.lock = False
 
     def close_conn(self):
         self.client_conn.close()
