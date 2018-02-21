@@ -19,7 +19,7 @@ class Explorer():
         ##### exploration logics related variables ####
         self.exploredArea = 0
         self.cnt = 0 # no. of instruction executed
-        self.timeThreshold = 180
+        self.timeThreshold = 260
         self.timeLimit = 360
         self.reachGoal = False
         self.startTime = time.time()
@@ -55,17 +55,31 @@ class Explorer():
             updateMap(sensors)
             explorationTime = time.time() - self.startTime
             # if reach time limit
-            if (explorationTime > self.timeLimit): 
-                self.send_data("S")
-                self.robot.robotMode = "done"
-                break
+            if self.timeLimit - explorationTime <= 20:
+                if self.robot.isInStartZone():
+                    self.send_data("S")
+                    self.robot.robotMode = "done"
+                    break
+                else:
+                    #TODO: find the way back to start zone
             else:
                 if self.reachGoal:
-                    if explorationTime > self.timeThreshold:
+                    if explorationTime > self.timeThreshold and \
+                        not self.robot.isAlmostBack() and \
+                        self.robot.robotMode != 'reExplore':
                         # TODO: find way back to start zone using fastest path algo
-                        # TODO: give order
+                        # TODO: give instruction
                         # TODO: update robot states (position and orientation)
                         continue
+                    if self.robot.isAlmostBack() and self.exploredArea < 280:
+                        self.robot.robotMode = 'reExplore'
+                    if self.robot.robotMode == 'reExplore':
+                        # TODO: reexplore, find the fastest path to the nearest unexplored cell
+                        # TODO: give instruction
+                        # TODO: update robot states
+                        continue
+                #if havent reach any of above continue statements, just wall hugging
+
                     
                     
     def recv_data(self):
@@ -90,6 +104,83 @@ class Explorer():
     def get_robot(self):
         return self.robot
     ##### exploration logics #####
+
+    def updateExploredArea(self):   
+        count = 0
+        for row in self.arena.get_2d_arr():
+            for cell in row:
+                if (cell != CellType.UNKNOWN):
+                    count += 1
+        self.exploredArea = count
+    # given inputs, find corresponding cell coordinates needed to be marked as enum EMPTY or OBSTACLE
+    def markCells(self, sensorIndex, dist):
+        w = self.robot.robotCenterW
+        h = self.robot.robotCenterH
+        head = self.robot.robotHead
+        realTimeMap = self.arena
+        # if withint the map range, then mark. Otherwise discard the reading
+        if (0 <= w <= 14 and 0 <= h <= 19):
+        
+            if (0 <= sensorIndex <= 2):
+                for i in range(0,dist):
+                    # mark empty
+                    realTimeMap.set(h+frontCells[head][sensorIndex][i][0],w+frontCells[head][sensorIndex][i][1],CellType.EMPTY)
+                #mark obstacle
+                if (dist <= 3):
+                    realTimeMap.set(h+frontCells[head][sensorIndex][dist][0],w+frontCells[head][sensorIndex][dist][1],CellType.OBSTACLE)
+        
+            elif (3 <= sensorIndex <= 4):
+                for i in range(0,dist):
+                    #mark all cells empty before obstacle
+                    realTimeMap.set(h+rightCells[head][sensorIndex-3][i][0],w+rightCells[head][sensorIndex-3][i][1],CellType.EMPTY)
+                #mark obstacle
+                if (dist <= 3):
+                    realTimeMap.set(h+rightCells[head][sensorIndex-3][dist][0],w+rightCells[head][sensorIndex-3][dist][1],CellType.OBSTACLE)
+                
+            elif (sensorIndex == 5):
+                for i in range(0,dist):
+                    #mark all cells empty before obstacle
+                    realTimeMap.set(h+leftCells[head][i][0],w+leftCells[head][i][1],CellType.EMPTY)
+                #mark obstacle
+                if (dist <= 7):
+                    realTimeMap.set(h+leftCells[head][dist][0],w+leftCells[head][dist][1],CellType.OBSTACLE)
+            
+            else:
+                print("sensor index out of bound")
+    def updateMap(self, sensorValue):
+        # sensorValue = "AAAAAA"
+        # F1,F2,F3,R1,R2,L1
+        index = 0 # track string character position
+        for dist in sensorValue:
+            if (dist == "A"):
+                if (0 <= index <= 4): # front and right sensors
+                    dist = 3
+                elif (index == 5):# left sensors
+                    dist = 6
+                else:
+                    print("wrong index count") # for error checking only
+            else:
+                markCells(index,int(dist))
+            index += 1
+        self.updateExploredArea()
+    # check whether the 3 consecutive cells in front are empty
+    def checkFront(self):
+        for cell in self.robot.frontCells:
+            if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
+                or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
+                return False
+            else:
+                return True
+                        
+    # check whether the 3 consecutive cells on robot right are empty
+    def checkRight(self):
+        for cell in self.robot.rightCells:
+            if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
+                or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
+                return False
+            else:
+                return True
+                
     def explore(self,sensorValue,center,head):
         global robot,exploredArea,cnt,reachGoal,realTimeMap
         
@@ -143,95 +234,6 @@ def rush():
     instr = race.getInstructions(realTimeMap,(robot.robotCenterH,robot.robotCenterW),(1,1),(1,1),(3,3),convertDirection(robot.robotHead))
     return (instr,(1,1),robot.robotHead, realTimeMap)
     # need to change to final robot head direction
-
-    
-def almostBack(h,w):
-    if (w <= 4 and h <= 4):
-        return True
-    else:
-        return False
-    
-def updateMap(sensorValue):
-
-    # sensorValue = "AAAAAA"
-    # F1,F2,F3,R1,R2,L1
-    
-    index = 0 # track string character position
-    for dist in sensorValue:
-        if (dist == "A"):
-            if (0 <= index <= 4): # front and right sensors
-                dist = 3
-            elif (index == 5):# left sensors
-                dist = 6
-            else:
-                print("wrong index count") # for error checking only
-        else:
-            markCells(index,int(dist),robot.robotCenterW,robot.robotCenterH,robot.robotHead)
-        index += 1
-        
-    updateExploredArea()
-
-# given inputs, find corresponding cell coordinates needed to be marked as enum EMPTY or OBSTACLE
-def markCells(sensorIndex,dist,w,h,head):
-    global realTimeMap
-    
-    # if withint the map range, then mark. Otherwise discard the reading
-    if (0 <= w <= 14 and 0 <= h <= 19):
-    
-        if (0 <= sensorIndex <= 2):
-            for i in range(0,dist):
-                # mark empty
-                realTimeMap.set(h+frontCells[head][sensorIndex][i][0],w+frontCells[head][sensorIndex][i][1],CellType.EMPTY)
-            #mark obstacle
-            if (dist <= 3):
-                realTimeMap.set(h+frontCells[head][sensorIndex][dist][0],w+frontCells[head][sensorIndex][dist][1],CellType.OBSTACLE)
-    
-        elif (3 <= sensorIndex <= 4):
-            for i in range(0,dist):
-                #mark all cells empty before obstacle
-                realTimeMap.set(h+rightCells[head][sensorIndex-3][i][0],w+rightCells[head][sensorIndex-3][i][1],CellType.EMPTY)
-            #mark obstacle
-            if (dist <= 3):
-                realTimeMap.set(h+rightCells[head][sensorIndex-3][dist][0],w+rightCells[head][sensorIndex-3][dist][1],CellType.OBSTACLE)
-            
-        elif (sensorIndex == 5):
-            for i in range(0,dist):
-                #mark all cells empty before obstacle
-                realTimeMap.set(h+leftCells[head][i][0],w+leftCells[head][i][1],CellType.EMPTY)
-            #mark obstacle
-            if (dist <= 7):
-                realTimeMap.set(h+leftCells[head][dist][0],w+leftCells[head][dist][1],CellType.OBSTACLE)
-        
-        else:
-            print("sensor index out of bound")
-   
-def updateExploredArea():
-    global exploredArea   
-    count = 0
-    for row in realTimeMap:
-        for cell in row:
-            if (cell != CellType.UNKNOWN):
-                count += 1
-
-    exploredArea = count
-
-# check whether the 3 consecutive cells in front are empty
-def checkFront():
-    for cell in robot.frontCells[robot.robotHead]:
-        if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
-            or realTimeMap.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
-            return False
-        else:
-            return True
-					
-# check whether the 3 consecutive cells on robot right are empty
-def checkRight():
-    for cell in robot.rightCells[robot.robotHead]:
-        if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
-            or realTimeMap.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
-            return False
-        else:
-            return True
         
 def reExplore():
     # detect all unexplored cells
@@ -281,18 +283,9 @@ def convertDirection(head):
     else:
         print("error in converting")
     
-def findArrayMin(arr):
-    index = 0
-    currentMin = 0 # index, not value
-    while (index < len(arr)-1):
-        if (arr[index] <= arr[index+1]):
-            currentMin = index
-        else:
-            currentMin = index+1
-    return currentMin
+def findArrayIndexMin(arr):
+    return arr.index(min(arr))
             
-        
-    
 def euclidean(pos1,pos2):
     return abs(pos1[1]-pos2[1])+abs(pos1[0]-pos2[0])
   

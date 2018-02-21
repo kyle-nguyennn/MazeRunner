@@ -16,18 +16,24 @@ class Robot():
         # initialize starting point
         self.robotCenterH = h
         self.robotCenterW = w
-		# TODO: what are these cells for ???
+        # 3 cells of level 0 to the right with respect to each direction
         self.rightCells = {0:[[1,2],[0,2],[-1,2]],
 					       1:[[-2,-1],[-2,0],[-2,1]],
 					       2:[[1,-2],[0,-2],[-1,-2]],
 					       3:[[2,-1],[2,0],[2,1]]
-        }
-        
+        }[self.robotHead]
+        # 3 cells of level 0 in front with respect to each direction
         self.frontCells = {0:[[2,-1],[2,0],[2,1]],
 					       1:[[1,2],[0,2],[-1,2]],
 					       2:[[-2,1],[-2,0],[-2,-1]],
 					       3:[[-1,-2],[0,-2],[1,-2]]
-        }
+        }[self.robotHead]
+        self.directionString = {
+            0: "north",
+            1: "east",
+            2: "south",
+            3: "west"
+        }[self.robotHead]
 
         
     # given robot center, mark all 9 cells as empty
@@ -58,3 +64,18 @@ class Robot():
     
     def rotateLeft(self):
         self.robotHead = (self.robotHead - 1) %4
+
+    def isInStartZone(self):
+        if self.robotCenterH == 1 and self.robotCenterW == 1:
+            return True
+        return False
+
+    def isAlmostBack(self):
+        if self.robotCenterH <= 4 and self.robotCenterW <= 4:
+            return True
+        return False
+
+if __name__ == "__main__":
+    print("test robot class ...")
+    robot = Robot()
+    print(robot.rightCells)
