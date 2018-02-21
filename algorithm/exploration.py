@@ -170,8 +170,7 @@ class Explorer():
                 or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
                 return False
             else:
-                return True
-                        
+                return True                   
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self):
         for cell in self.robot.rightCells:
