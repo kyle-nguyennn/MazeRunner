@@ -86,7 +86,7 @@ def exploration():
 
 @app.route('/connect_to_pi', methods=['GET'])
 def connect_to_pi():
-    thread1 = Thread(target=connect_tcp_client, args=["192.168.1.7", 77])
+    thread1 = Thread(target=connect_tcp_client, args=["192.168.7.1", 77])
     thread1.start()
     return "OK"
 
