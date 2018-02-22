@@ -13,7 +13,11 @@ class Arena():
                      for x in range(height)]
 
     def from_mdf_strings(self, part1, part2):
-
+        if part1 is None:
+            return
+        if part2 is None:
+            return
+            
         b1Size = len(part1) * 4
         bitStr1 = (bin(int(part1, 16))[4:b1Size]).zfill(b1Size-4)
 

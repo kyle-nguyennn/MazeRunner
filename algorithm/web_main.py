@@ -9,12 +9,21 @@ from simulation_server import SimulatorServer
 from exploration_example import ExplorationExample
 from tcp_client import TcpClient
 from threading import Thread
+from enum import Enum
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "nHDG3Zi4HVtyc1fPBcrUEi0oACzUPRkI"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+global explore_algo
+explore_algo = ExplorationExample(None)
+
+
+class Mode(Enum):
+    NONE = 0
+    SIM_SERVER = 1
+    PI_CONNECTION = 2
 
 
 class MdfStrings(db.Model):
@@ -27,6 +36,9 @@ class MdfStrings(db.Model):
 
     def __repr__(self):
         return '<OrgUnit %r>' % self.part1 + " | " + self.part2
+
+
+mode = Mode.NONE
 
 
 @app.route('/', methods=['GET'])
@@ -81,6 +93,8 @@ def exploration():
     thread1.start()
     thread2 = Thread(target=connect_tcp_client, args=["127.0.0.1", 77])
     thread2.start()
+    global mode
+    mode = Mode.SIM_SERVER
     return "Simulation server started."
 
 
@@ -88,14 +102,32 @@ def exploration():
 def connect_to_pi():
     thread1 = Thread(target=connect_tcp_client, args=["192.168.7.1", 77])
     thread1.start()
+    global mode
+    mode = Mode.PI_CONNECTION
     return "OK"
+
+
+@app.route('/disconnect_from_pi', methods=['GET'])
+def disconnect_from_pi():
+    global tcp_conn
+    tcp_conn.close_conn()
+    global mode
+    mode = Mode.NONE
+    return "OK"
+
+
+@app.route('/current_mode', methods=['GET'])
+def current_mode():
+    global mode
+    return str(mode.value)
 
 
 @app.route('/get_explore_status', methods=['GET'])
 def get_explore_status():
     global explore_algo
     if explore_algo.get_arena() == None:
-        return "END"
+        print("Exploration not running.")
+        return "N"
     arena_2d = arena_to_array(explore_algo.get_arena())
     result = [arena_2d, explore_algo.get_robot()]
     return json.dumps(result)
@@ -131,20 +163,28 @@ def start_exploration_algo():
 
 def connect_tcp_client(ip, port):
     global tcp_conn
+    global mode
     tcp_conn = TcpClient(ip, port)
-    tcp_conn.connect()
-    while(True):
-        data = tcp_conn.recv()
-        if data is None:
-            break
-        handle_request(data)
+    try:
+        tcp_conn.connect()
+        while(True):
+            data = tcp_conn.recv()
+            if data is None:
+                break
+            handle_request(data)
+    except:
+        mode = Mode.NONE
+    mode = Mode.NONE
 
 
 def handle_request(data):
+    global tcp_conn
     if data[0] == "{":
         request = json.loads(data)
-        if request["command"] == "startExplore":
+        if request["command"] == "beginExplore":
             start_exploration_algo()
+        elif request["command"] == "beginFastest":
+            tcp_conn.send(getInstructions(None, None))
 
 
 if __name__ == '__main__':

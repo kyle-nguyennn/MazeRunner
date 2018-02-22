@@ -31,7 +31,7 @@ class SimulatorServer():
         print(
             "SimulatorServer - Accepted connection from {}:{}".format(addr[0], addr[1]))
         started = False
-        self.send_data(json.dumps({"command": "startExplore"}))
+        self.send_data(json.dumps({"command": "beginExplore"}))
         while not started:
             data = self.recv_data()
             if data == "startExplore":

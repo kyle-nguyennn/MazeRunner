@@ -8,11 +8,12 @@ import time
 class ExplorationExample():
     def __init__(self, tcp_conn):
         self.running = False
-        self.arena = Arena()
+        self.arena = None
         self.robot = [1, 1, 0]
         self.tcp_conn = tcp_conn
 
     def run(self):
+        self.arena = Arena()
         self.running = True
         self.tcp_conn.send("startExplore")
         for i in range(10):

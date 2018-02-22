@@ -4,11 +4,18 @@ var mdfPart2 = document.getElementById("mdfPart2");
 var mdfList = document.getElementById("mdfList");
 var tabEditMode = document.getElementById("tabEditMode");
 var tabSimMode = document.getElementById("tabSimMode");
+var tabActualMode = document.getElementById("tabActualMode");
 var editOptions = document.getElementById("editOptions");
+var cardConnect = document.getElementById("cardConnect");
+var cardArena = document.getElementById("cardArena");
+var cardFastestPath = document.getElementById("cardFastestPath");
+var cardExploration = document.getElementById("cardExploration");
+var btnConnect = document.getElementById("btnConnect");
+var btnDisconnect = document.getElementById("btnDisconnect");
+
 var cellMovt;
 var cellAni;
 var exploreStatusAni;
-var exploring = false;
 
 if (table != null) {
     for (var x = 0; x < table.rows.length; x++) {
@@ -19,7 +26,8 @@ if (table != null) {
         }
     }
 }
-
+switchEditMode();
+getMode();
 moveRobot("");
 
 mdfPart1.oninput = function () { mdfToArray(); };
@@ -159,15 +167,14 @@ function moveRobot(actions) {
 }
 
 function updateExploreStatus() {
-    exploring = true;
     clearInterval(exploreStatusAni);
-    exploreStatusAni = setInterval(getExploreStatus, 100);
+    exploreStatusAni = setInterval(getExploreStatus, 250);
     function getExploreStatus() {
         if (false) {
             clearInterval(exploreStatusAni);
         }
         $.get("/get_explore_status", function (data, status) {
-            if (data == "END")
+            if (data == "N")
                 clearInterval(exploreStatusAni);
             var obj = jQuery.parseJSON(data);
             var arena = obj[0];
@@ -228,10 +235,45 @@ function mdfToArray() {
     });
 }
 
+function getMode() {
+    $.get("/current_mode", function (data, status) {
+        // btnConnect.style.visibility = 'visible';
+        // btnDisconnect.style.visibility = 'hidden';
+        if (data == 1) {
+            switchSimMode();
+        }
+        else if (data == 2) {
+            switchActualMode();
+            // btnConnect.style.visibility = 'hidden';
+            // btnDisconnect.style.visibility = 'visible';
+        }
+    });
+}
+
+function getExploring() {
+    return $.get("/get_explore_status", function (data, status) {
+        if (data == "N")
+            return false
+        return true
+    });
+}
+
 function switchEditMode() {
     tabEditMode.className = "nav-link active";
     tabSimMode.className = "nav-link";
+    tabActualMode.className = "nav-link";
     editOptions.style.visibility = 'visible';
+
+    cardArena.style.visibility = 'visible';
+    cardConnect.style.visibility = 'hidden';
+    cardExploration.style.visibility = 'hidden';
+    cardFastestPath.style.visibility = 'hidden';
+
+    cardArena.style.position = '';
+    cardConnect.style.position = 'absolute';
+    cardExploration.style.position = 'absolute';
+    cardFastestPath.style.position = 'absolute';
+
     clearInterval(exploreStatusAni);
     mdfToArray();
     setFopVisible(false);
@@ -240,8 +282,41 @@ function switchEditMode() {
 function switchSimMode() {
     tabSimMode.className = "nav-link active";
     tabEditMode.className = "nav-link";
+    tabActualMode.className = "nav-link";
     editOptions.style.visibility = 'hidden';
-    if (exploring)
+
+    cardArena.style.visibility = 'hidden';
+    cardConnect.style.visibility = 'hidden';
+    cardExploration.style.visibility = 'visible';
+    cardFastestPath.style.visibility = 'visible';
+
+    cardArena.style.position = 'absolute';
+    cardConnect.style.position = 'absolute';
+    cardExploration.style.position = '';
+    cardFastestPath.style.position = '';
+
+    if (getExploring())
+        updateExploreStatus();
+    setFopVisible(true);
+}
+
+function switchActualMode() {
+    tabActualMode.className = "nav-link active";
+    tabSimMode.className = "nav-link";
+    tabEditMode.className = "nav-link";
+    editOptions.style.visibility = 'hidden';
+
+    cardArena.style.visibility = 'hidden';
+    cardConnect.style.visibility = 'visible';
+    cardExploration.style.visibility = 'hidden';
+    cardFastestPath.style.visibility = 'hidden';
+
+    cardArena.style.position = 'absolute';
+    cardConnect.style.position = '';
+    cardExploration.style.position = 'absolute';
+    cardFastestPath.style.position = 'absolute';
+
+    if (getExploring())
         updateExploreStatus();
     setFopVisible(true);
 }
@@ -257,6 +332,14 @@ $(document).ready(function () {
     $('#tabSimMode').click(function (e) {
         e.preventDefault();
         switchSimMode();
+        getMode();
+        return false;
+    });
+
+    $('#tabActualMode').click(function (e) {
+        e.preventDefault();
+        switchActualMode();
+        getMode();
         return false;
     });
 
@@ -270,6 +353,16 @@ $(document).ready(function () {
 
     $("#btnSaveArena").click(function () {
         saveArena();
+    });
+
+    $("#btnConnect").click(function () {
+        $.get("/connect_to_pi", function (data, status) {
+        });
+    });
+
+    $("#btnDisconnect").click(function () {
+        $.get("/disconnect_from_pi", function (data, status) {
+        });
     });
 
     $("#btnFastestPath").click(function () {
@@ -301,6 +394,4 @@ $(document).ready(function () {
             }
         });
     });
-
-
 });
