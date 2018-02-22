@@ -17,6 +17,9 @@ class Explorer():
         self.tcp_port = tcp_port
         self.buffer_size = buffer_size
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ### CONSTANT ####
+        self.MAX_SHORT_SENSOR = 3
+        self.MAX_LONG_SENSOR = 6
         ##### exploration logics related variables ####
         self.exploredArea = 0
         self.cnt = 0 # no. of instruction executed
@@ -98,7 +101,7 @@ class Explorer():
                         self.robot.robotHead = endOrientation                        
                         continue
                 #if havent reach any of above continue statements, just wall hugging
-                instruction = wallHugging()
+                instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
                 self.send_data(instruction)
@@ -137,59 +140,45 @@ class Explorer():
                     count += 1
         self.exploredArea = count
     # given inputs, find corresponding cell coordinates needed to be marked as enum EMPTY or OBSTACLE
-    def markCells(self, sensorIndex, dist):
+    def markCells(self, sensorIndex, value):
         w = self.robot.robotCenterW
         h = self.robot.robotCenterH
         head = self.robot.robotHead
         realTimeMap = self.arena
         # if withint the map range, then mark. Otherwise discard the reading
         if (0 <= w <= 14 and 0 <= h <= 19):
-        
-            if (0 <= sensorIndex <= 2):
-                for i in range(0,dist):
-                    # mark empty
-                    realTimeMap.set(h+frontCells[head][sensorIndex][i][0],w+frontCells[head][sensorIndex][i][1],CellType.EMPTY)
-                #mark obstacle
-                if (dist <= 3):
-                    realTimeMap.set(h+frontCells[head][sensorIndex][dist][0],w+frontCells[head][sensorIndex][dist][1],CellType.OBSTACLE)
-        
-            elif (3 <= sensorIndex <= 4):
-                for i in range(0,dist):
-                    #mark all cells empty before obstacle
-                    realTimeMap.set(h+rightCells[head][sensorIndex-3][i][0],w+rightCells[head][sensorIndex-3][i][1],CellType.EMPTY)
-                #mark obstacle
-                if (dist <= 3):
-                    realTimeMap.set(h+rightCells[head][sensorIndex-3][dist][0],w+rightCells[head][sensorIndex-3][dist][1],CellType.OBSTACLE)
-                
-            elif (sensorIndex == 5):
-                for i in range(0,dist):
-                    #mark all cells empty before obstacle
-                    realTimeMap.set(h+leftCells[head][i][0],w+leftCells[head][i][1],CellType.EMPTY)
-                #mark obstacle
-                if (dist <= 7):
-                    realTimeMap.set(h+leftCells[head][dist][0],w+leftCells[head][dist][1],CellType.OBSTACLE)
-            
+            # sensorIndex = 0..5 corresponding to F1,F2,F3,R1,R2,L1
+            # only the 5th sensor (top left) is long range sensor
+            if 0 <= sensorIndex <= 4:
+                #front sensors
+                if sensorIndex < 3:
+                    offsets = self.frontCells[head][sensorIndex]
+                else:
+                    # minus 3 as 3,4 correspond to 0 and 1 in rightCells arrays
+                    offsets = self.rightCells[head][sensorIndex-3]
+                for i in range(value):
+                    realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
+                if value < self.MAX_SHORT_SENSOR:
+                    realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
+            elif sensorIndex == 5:
+                offsets = self.leftCells[head]
+                for i in range(value):
+                    realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
+                if value < self.MAX_LONG_SENSOR:
+                    realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
             else:
                 print("sensor index out of bound")
-    def updateMap(self, sensorValue):
+        self.updateExploredArea()
+    def updateMap(self, sensorValues):
         # sensorValue = "AAAAAA"
         # F1,F2,F3,R1,R2,L1
-        index = 0 # track string character position
-        for dist in sensorValue:
-            if (dist == "A"):
-                if (0 <= index <= 4): # front and right sensors
-                    dist = 3
-                elif (index == 5):# left sensors
-                    dist = 6
-                else:
-                    print("wrong index count") # for error checking only
-            else:
-                self.markCells(index,int(dist))
-            index += 1
+        for i in range(len(sensorValues)):
+            self.markCells(i, int(sensorValues[i]))
         self.updateExploredArea()
     # check whether the 3 consecutive cells in front are empty
     def checkFront(self):
-        for cell in self.robot.frontCells:
+        robot = self.robot
+        for cell in robot.frontCells:
             if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
                 or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
                 return False
@@ -197,7 +186,8 @@ class Explorer():
                 return True                   
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self):
-        for cell in self.robot.rightCells:
+        robot = self.robot
+        for cell in robot.rightCells:
             if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
                 or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
                 return False

@@ -14,7 +14,7 @@ class SimulatorServer():
         self.sensor.append(Sensor(3, 3, 0))
         self.sensor.append(Sensor(3, 3, 90))
         self.sensor.append(Sensor(3, 5, 90))
-        self.sensor.append(Sensor(8, 7, 270))
+        self.sensor.append(Sensor(6, 7, 270))
         self.robot_pos = [1, 1, 0]
 
         self.tcp_ip = tcp_ip
@@ -210,4 +210,4 @@ class Sensor():
             elif map.get(block_h, block_w) == CellType.OBSTACLE:
                 return x
 
-        return 'Z'
+        return self.visible_range
