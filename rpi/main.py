@@ -18,7 +18,7 @@ def run_tcp_server(ip, port):
             data = pc_conn.recv()
             if data is None:
                 break
-            if data[0] == '{':
+            if data[0] == "{":
                 android_conn.send(data)
             else:
                 arduino_conn.send(data)
@@ -39,7 +39,7 @@ def run_bt_server(channel):
             data = android_conn.recv()
             if data is None:
                 break
-            if data[0] == '{':
+            if data[0] == "{":
                 pc_conn.send(data)
             else:
                 arduino_conn.send(data)

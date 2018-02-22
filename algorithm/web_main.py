@@ -7,6 +7,7 @@ import json
 from race import getInstructions
 from simulation_server import SimulatorServer
 from exploration_example import ExplorationExample
+from tcp_client import TcpClient
 from threading import Thread
 
 app = Flask(__name__)
@@ -78,9 +79,16 @@ def exploration():
     arena_obj = array_to_arena(arena_2d)
     thread1 = Thread(target=start_simulation_server, args=[arena_obj])
     thread1.start()
-    thread2 = Thread(target=start_exploration_algo)
+    thread2 = Thread(target=connect_tcp_client, args=["127.0.0.1", 88])
     thread2.start()
     return "Simulation server started."
+
+
+@app.route('/connect_to_pi', methods=['GET'])
+def connect_to_pi():
+    thread1 = Thread(target=connect_tcp_client, args=["10.42.0.107", 88])
+    thread1.start()
+    return "OK"
 
 
 @app.route('/get_explore_status', methods=['GET'])
@@ -110,14 +118,33 @@ def array_to_arena(arena_2d):
 
 
 def start_simulation_server(arena_obj):
-    server = SimulatorServer("127.0.0.1", 6666, arena_obj)
+    server = SimulatorServer("127.0.0.1", 88, arena_obj)
     server.run()
 
 
 def start_exploration_algo():
+    global tcp_conn
     global explore_algo
-    explore_algo = ExplorationExample("127.0.0.1", 6666)
+    explore_algo = ExplorationExample(tcp_conn)
     explore_algo.run()
+
+
+def connect_tcp_client(ip, port):
+    global tcp_conn
+    tcp_conn = TcpClient(ip, port)
+    tcp_conn.connect()
+    while(True):
+        data = tcp_conn.recv()
+        if data is None:
+            break
+        handle_request(data)
+
+
+def handle_request(data):
+    if data[0] == "{":
+        request = json.loads(data)
+        if request["command"] == "startExplore":
+            start_exploration_algo()
 
 
 if __name__ == '__main__':

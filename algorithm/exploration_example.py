@@ -1,75 +1,57 @@
 import socket
 from arena import Arena, CellType
 from random import randint
+from tcp_client import TcpClient
 import time
 
 
 class ExplorationExample():
-    def __init__(self, tcp_ip, tcp_port, buffer_size=1024):
+    def __init__(self, tcp_conn):
         self.running = False
         self.arena = Arena()
         self.robot = [1, 1, 0]
-        self.tcp_ip = tcp_ip
-        self.tcp_port = tcp_port
-        self.buffer_size = buffer_size
-        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tcp_conn = tcp_conn
 
     def run(self):
         self.running = True
-        self.client_socket.connect((self.tcp_ip, self.tcp_port))
-        print(
-            "ExplorationExample - Connected to {}:{}".format(self.tcp_ip, self.tcp_port))
-        self.send_data("startExplore")
+        self.tcp_conn.send("startExplore")
         for i in range(10):
 
-            self.recv_data()
+            self.tcp_conn.recv()
             self.random_state()
-            self.send_data("F")
+            self.tcp_conn.send("F")
 
-            self.recv_data()
+            self.tcp_conn.recv()
             self.random_state()
-            self.send_data("R")
+            self.tcp_conn.send("R")
 
-            self.recv_data()
+            self.tcp_conn.recv()
             self.random_state()
-            self.send_data("F")
+            self.tcp_conn.send("F")
 
-            self.recv_data()
+            self.tcp_conn.recv()
             self.random_state()
-            self.send_data("L")
+            self.tcp_conn.send("L")
 
-            self.recv_data()
+            self.tcp_conn.recv()
             self.random_state()
-            self.send_data("B")
+            self.tcp_conn.send("B")
 
-            self.recv_data()
+            self.tcp_conn.recv()
             self.random_state()
-            self.send_data("L")
+            self.tcp_conn.send("L")
 
-            self.recv_data()
+            self.tcp_conn.recv()
             self.random_state()
-            self.send_data("F")
+            self.tcp_conn.send("F")
 
-            self.recv_data()
+            self.tcp_conn.recv()
             self.random_state()
-            self.send_data("R")
+            self.tcp_conn.send("R")
 
-        self.send_data("endExplore")
+        self.tcp_conn.send("endExplore")
         self.running = False
-        self.close_conn()
-
-    def recv_data(self):
-        data = self.client_socket.recv(self.buffer_size)
-        data_s = data.decode('utf-8')
-        print("ExplorationExample - Received data: {}".format(data_s))
-        return data_s
-
-    def send_data(self, data):
-        self.client_socket.send(data.encode('utf-8'))
-
-    def close_conn(self):
-        self.client_socket.close()
-        print("ExplorationExample - Connection cloased")
+        #self.close_conn()
 
     def random_state(self):
         self.arena.set(randint(0, 19), randint(0, 14), CellType(randint(0, 1)))

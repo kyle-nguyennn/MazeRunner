@@ -1,6 +1,7 @@
 import socket
 from arena import Arena, CellType
 import time
+import json
 
 
 class SimulatorServer():
@@ -30,7 +31,8 @@ class SimulatorServer():
         print(
             "SimulatorServer - Accepted connection from {}:{}".format(addr[0], addr[1]))
         started = False
-        while started == False:
+        self.send_data(json.dumps({"command": "startExplore"}))
+        while not started:
             data = self.recv_data()
             if data == "startExplore":
                 started = True
