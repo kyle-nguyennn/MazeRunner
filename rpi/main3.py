@@ -12,9 +12,9 @@ def run_tcp_server(ip, port):
     global arduino_conn
     pc_conn = TcpServer(ip, port)
     pc_conn.run()
-    while(running):
+    while running:
         pc_conn.accept()
-        while(running):
+        while running:
             data = pc_conn.recv()
             if data is None:
                 break
@@ -33,9 +33,9 @@ def run_bt_server(channel):
     global arduino_conn
     android_conn = BtServer(channel)
     android_conn.run()
-    while(running):
+    while running:
         android_conn.accept()
-        while(running):
+        while running:
             data = android_conn.recv()
             if data is None:
                 break
@@ -53,9 +53,11 @@ def run_serial_client(port, baud_rate):
     global android_conn
     global arduino_conn
     arduino_conn = SerialClient(port, baud_rate)
-    while(running):
-        arduino_conn.connect()
-        while(running):
+    while running:
+        connected = False
+        while not connected and running:
+            connected = arduino_conn.connect()
+        while running:
             data = arduino_conn.recv()
             if data is None:
                 break
@@ -67,17 +69,23 @@ if __name__ == "__main__":
     global running
     running = True
     t1 = threading.Thread(target=run_bt_server, args=(4,))
-    t1.start()
     t2 = threading.Thread(target=run_tcp_server, args=("0.0.0.0", 77))
+    t3 = threading.Thread(target=run_serial_client,
+                          args=("/dev/ttyACM0", 9600))
+    # t1.setDaemon(True)
+    # t2.setDaemon(True)
+    # t3.setDaemon(True)
+    t1.start()
     t2.start()
-    t3 = threading.Thread(target=run_serial_client, args=("/dev/ttyACM0", 9600))
     t3.start()
+
     try:
         time.sleep(1)
-        raw_input("Press enter to quit \n")
+        raw_input("Press Enter / Ctrl-C to quit. \n")
         running = False
     except KeyboardInterrupt:
         running = False
+
     t1.join()
     t2.join()
     t3.join()

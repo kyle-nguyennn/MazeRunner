@@ -53,10 +53,16 @@ class BtServer():
         self.lock = False
 
     def close_client(self):
-        self.client_conn.close()
-        self.connected = False
-        print("BtServer - Client disconnected")
+        try:
+            self.client_conn.close()
+            self.connected = False
+            print("BtServer - Client disconnected")
+        except:
+            pass
 
     def close_server(self):
-        self.server_socket.close()
-        print("BtServer - Server closed")
+        try:
+            self.server_socket.close()
+            print("BtServer - Server closed")
+        except:
+            pass

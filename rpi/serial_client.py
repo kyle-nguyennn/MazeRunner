@@ -9,15 +9,14 @@ class SerialClient():
         self.baud_rate = baud_rate
 
     def connect(self):
-        connected = False
-        while not connected:
-            try:
-                self.client_conn = serial.Serial(
-                    self.port, self.baud_rate, timeout=None)
-                connected = True
-            except:
-                time.sleep(1)
-        print("SerialClient - Connected on {}:{}".format(self.port, self.baud_rate))
+        try:
+            self.client_conn = serial.Serial(
+                self.port, self.baud_rate, timeout=None)
+            print("SerialClient - Connected on {}:{}".format(self.port, self.baud_rate))
+            return True
+        except:
+            time.sleep(1)
+            return False
 
     def recv(self):
         try:
@@ -42,5 +41,8 @@ class SerialClient():
         self.lock = False
 
     def close_conn(self):
-        self.client_conn.close()
-        print("SerialClient - Disconnected")
+        try:
+            self.client_conn.close()
+            print("SerialClient - Disconnected")
+        except:
+            pass
