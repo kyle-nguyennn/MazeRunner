@@ -66,9 +66,9 @@ def run_serial_client(port, baud_rate):
 if __name__ == "__main__":
     global running
     running = True
-    t1 = threading.Thread(target=run_bt_server, args=(10,)) #4
+    t1 = threading.Thread(target=run_bt_server, args=(4,))
     t1.start()
-    t2 = threading.Thread(target=run_tcp_server, args=("0.0.0.0", 88))
+    t2 = threading.Thread(target=run_tcp_server, args=("0.0.0.0", 77))
     t2.start()
     t3 = threading.Thread(target=run_serial_client, args=("/dev/ttyACM0", 9600))
     t3.start()

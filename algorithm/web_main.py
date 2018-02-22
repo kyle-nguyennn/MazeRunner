@@ -79,14 +79,14 @@ def exploration():
     arena_obj = array_to_arena(arena_2d)
     thread1 = Thread(target=start_simulation_server, args=[arena_obj])
     thread1.start()
-    thread2 = Thread(target=connect_tcp_client, args=["127.0.0.1", 88])
+    thread2 = Thread(target=connect_tcp_client, args=["127.0.0.1", 77])
     thread2.start()
     return "Simulation server started."
 
 
 @app.route('/connect_to_pi', methods=['GET'])
 def connect_to_pi():
-    thread1 = Thread(target=connect_tcp_client, args=["10.42.0.107", 88])
+    thread1 = Thread(target=connect_tcp_client, args=["192.168.1.7", 77])
     thread1.start()
     return "OK"
 
@@ -118,7 +118,7 @@ def array_to_arena(arena_2d):
 
 
 def start_simulation_server(arena_obj):
-    server = SimulatorServer("127.0.0.1", 88, arena_obj)
+    server = SimulatorServer("127.0.0.1", 77, arena_obj)
     server.run()
 
 
