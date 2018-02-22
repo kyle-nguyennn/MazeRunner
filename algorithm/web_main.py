@@ -87,9 +87,11 @@ def fastest_path():
 
 @app.route('/exploration_sim', methods=['POST'])
 def exploration():
-    arena_2d = json.loads(request.data)
+    data = json.loads(request.data)
+    arena_2d = data[0]
+    speed = float(data[1])
     arena_obj = array_to_arena(arena_2d)
-    thread1 = Thread(target=start_simulation_server, args=[arena_obj])
+    thread1 = Thread(target=start_simulation_server, args=[arena_obj, speed])
     thread1.start()
     thread2 = Thread(target=connect_tcp_client, args=["127.0.0.1", 77])
     thread2.start()
@@ -149,8 +151,8 @@ def array_to_arena(arena_2d):
     return arena_obj
 
 
-def start_simulation_server(arena_obj):
-    server = SimulatorServer("127.0.0.1", 77, arena_obj)
+def start_simulation_server(arena_obj, speed):
+    server = SimulatorServer("127.0.0.1", 77, arena_obj, speed)
     server.run()
 
 

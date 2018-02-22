@@ -6,7 +6,7 @@ import json
 
 class SimulatorServer():
 
-    def __init__(self, tcp_ip, tcp_port, arena_obj, buffer_size=1024):
+    def __init__(self, tcp_ip, tcp_port, arena_obj, speed, buffer_size=1024):
 
         self.arena = arena_obj
         self.sensor = []
@@ -18,6 +18,7 @@ class SimulatorServer():
         self.sensor.append(Sensor(8, 7, 270))
         self.robot_pos = [1, 1, 0]
 
+        self.speed = speed
         self.tcp_ip = tcp_ip
         self.tcp_port = tcp_port
         self.buffer_size = buffer_size
@@ -69,7 +70,7 @@ class SimulatorServer():
             else:
                 for char in command:
                     self.move_robot(char)
-                time.sleep(1)
+                time.sleep(self.speed)
 
     def move_robot(self, action):
 

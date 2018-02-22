@@ -383,9 +383,11 @@ $(document).ready(function () {
     });
 
     $("#btnExploration").click(function () {
+        robotSpeed = $("#robotSpeed").val()
+        data = [tableToArray(), robotSpeed];
         $.ajax({
             type: 'POST',
-            data: JSON.stringify(tableToArray()),
+            data: JSON.stringify(data),
             contentType: 'application/json',
             url: '/exploration_sim',
             success: function (data) {
