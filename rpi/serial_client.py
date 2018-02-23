@@ -34,7 +34,7 @@ class SerialClient():
             time.sleep(1)
         self.lock = True
         try:
-            self.client_conn.write(data.encode('utf-8'))
+            self.client_conn.write((data+"\n").encode('utf-8'))
             print("SerialClient - Sent data: {}".format(data))
         except:
             print("SerialClient - Error sending data: {}".format(data))
