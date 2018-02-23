@@ -4,19 +4,16 @@ from random import randint
 import time, socket
 import race
 from race import dijkstra
-
+from tcp_client import TcpClient
 
 ######################## integrate with Calvin code #############################
 
 class Explorer():
-    def __init__(self, tcp_ip, tcp_port, buffer_size=1024):
+    def __init__(self, tcp_conn, buffer_size=1024):
         self.running = False
+        self.tcp_conn = tcp_conn
         self.arena = Arena()
         #self.robot = [1, 1, 0] # 2d position plus orientation
-        self.tcp_ip = tcp_ip
-        self.tcp_port = tcp_port
-        self.buffer_size = buffer_size
-        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         ### CONSTANT ####
         self.MAX_SHORT_SENSOR = 3
         self.MAX_LONG_SENSOR = 6
@@ -49,19 +46,16 @@ class Explorer():
 
     def run(self):
         self.running = True
-        self.client_socket.connect((self.tcp_ip, self.tcp_port))
-        print(
-            "ExplorationExample - Connected to {}:{}".format(self.tcp_ip, self.tcp_port))
-        self.send_data("startExplore")
+        self.tcp_conn.send("startExplore")
         while self.robot.robotMode != "done":
-            sensors = self.recv_data()
+            sensors = self.tcp_conn.recv()
             #update map with sensor values
             self.updateMap(sensors)
             explorationTime = time.time() - self.startTime
             # if reach time limit
             if self.timeLimit - explorationTime <= 20:
                 if self.robot.isInStartZone():
-                    self.send_data("S")
+                    self.tcp_conn.send("S")
                     self.robot.robotMode = "done"
                     break
                 else:
@@ -70,7 +64,7 @@ class Explorer():
                     endnode = (1,1)
                     (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, self.robot.robotHead)
                     # give instruction
-                    self.send_data(instructions)
+                    self.tcp_conn.send(instructions)
                     # update robot states (position and orientation)
                     (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
                     self.robot.robotHead = endOrientation
@@ -84,7 +78,7 @@ class Explorer():
                         endnode = (1,1)
                         (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, self.robot.robotHead)
                         # give instruction
-                        self.send_data(instructions)
+                        self.tcp_conn.send(instructions)
                         # update robot states (position and orientation)
                         (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
                         self.robot.robotHead = endOrientation
@@ -95,7 +89,7 @@ class Explorer():
                         # reexplore, find the fastest path to the nearest unexplored cell
                         (instruction, endnode, endOrientation) = self.reExplore()
                         # give instruction
-                        self.send_data(instruction)
+                        self.tcp_conn.send(instruction)
                         # update robot states
                         (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
                         self.robot.robotHead = endOrientation                        
@@ -104,22 +98,11 @@ class Explorer():
                 instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
-                self.send_data(instruction)
+                self.tcp_conn.send(instruction)
 
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()
                     
-    def recv_data(self):
-        data = self.client_socket.recv(self.buffer_size)
-        data_s = data.decode('utf-8')
-        print("ExplorationExample - Received data: {}".format(data_s))
-        return data_s
-
-    def send_data(self, data):
-        self.client_socket.send(data.encode('utf-8'))
-
-    def close_conn(self):
-        self.client_socket.close()
         print("ExplorationExample - Connection cloased")
 
     def get_arena(self):
@@ -180,39 +163,46 @@ class Explorer():
         robot = self.robot
         for cell in robot.frontCells:
             if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
+                or robot.robotCenterW+cell[1] < 0 or robot.robotCenterH+cell[0] < 0
                 or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
                 return False
-            else:
-                return True                   
+        print("check front true")
+        return True                   
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self):
         robot = self.robot
+        print("inside checkRight")
         for cell in robot.rightCells:
-            if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
-                or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
+            if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 \
+                or robot.robotCenterW+cell[1] < 0 or robot.robotCenterH+cell[0] < 0 \
+                or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY):
                 return False
-            else:
-                return True
+        print("check right true")
+        return True
     def wallHugging(self): # return instruction
         # mark current body cells as empty
         # actually might not need, just put here first
+        print("Inside wall hugging")
         bodyCells = self.robot.returnBodyCells()
         for cell in bodyCells:
             self.arena.set(cell[0],cell[1],CellType.EMPTY)
-                
+        print("hello")
         # decide turn-right condition
         if (self.checkRight()):
             # chage the internal state of the robot
             self.robot.rotateRight()
-            self.robot.forward()        
+            self.robot.forward()
+            print("turn right")        
             return ("RF")
                         
         # decide front condition
         elif (self.checkFront()):
             self.robot.forward()
+            print("go forward")  
             return ("F")
         else:
             self.robot.rotateLeft()
+            print("go forward")  
             return ("L")
     def reExplore(self):
         # detect all unexplored cells

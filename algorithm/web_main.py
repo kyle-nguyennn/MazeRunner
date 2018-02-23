@@ -10,7 +10,7 @@ from exploration_example import ExplorationExample
 from tcp_client import TcpClient
 from threading import Thread
 from enum import Enum
-
+from exploration import Explorer
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "nHDG3Zi4HVtyc1fPBcrUEi0oACzUPRkI"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -159,7 +159,7 @@ def start_simulation_server(arena_obj, speed):
 def start_exploration_algo():
     global tcp_conn
     global explore_algo
-    explore_algo = ExplorationExample(tcp_conn)
+    explore_algo = Explorer(tcp_conn)
     explore_algo.run()
 
 

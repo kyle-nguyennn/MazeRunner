@@ -45,7 +45,7 @@ class Robot():
         return bodyCells
 
     def getPosition(self):
-        return [self.robotCenterH, self.robotCenterW, self.robotHead]
+        return [self.robotCenterH, self.robotCenterW, self.robotHead*90]
 
     # move front, update center cell coordinates
     def forward(self):

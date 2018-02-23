@@ -385,6 +385,7 @@ $(document).ready(function () {
     $("#btnExploration").click(function () {
         robotSpeed = $("#robotSpeed").val()
         data = [tableToArray(), robotSpeed];
+        console.log(data[1])
         $.ajax({
             type: 'POST',
             data: JSON.stringify(data),
