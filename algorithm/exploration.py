@@ -25,6 +25,7 @@ class Explorer():
         self.reachGoal = False
         self.startTime = time.time()
         self.robot = Robot(mode='exploring')
+        self.checkingRight = False
 
         self.frontCells = {0:[[[2,-1],[3,-1],[4,-1]],[[2,0],[3,0],[4,0]],[[2,1],[3,1],[4,1]]],
                     1:[[[1,2],[1,3],[1,4]],[[0,2],[0,3],[0,4]],[[-1,2],[-1,3],[-1,4]]],
@@ -129,7 +130,7 @@ class Explorer():
         head = self.robot.robotHead
         realTimeMap = self.arena
         # if withint the map range, then mark. Otherwise discard the reading
-        if (0 <= w <= 14 and 0 <= h <= 19):
+        if (0 <= w <= 13 and 0 <= h <= 18):
             # sensorIndex = 0..5 corresponding to F1,F2,F3,R1,R2,L1
             # only the 5th sensor (top left) is long range sensor
             if 0 <= sensorIndex <= 4:
@@ -140,13 +141,16 @@ class Explorer():
                     # minus 3 as 3,4 correspond to 0 and 1 in rightCells arrays
                     offsets = self.rightCells[head][sensorIndex-3]
                 for i in range(value):
-                    realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
+                    # if got obstacle, dun update ???
+                    if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
+                        realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
                 if value < self.MAX_SHORT_SENSOR:
                     realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
             elif sensorIndex == 5:
                 offsets = self.leftCells[head]
                 for i in range(value):
-                    realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
+                    if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
+                        realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
                 if value < self.MAX_LONG_SENSOR:
                     realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
             else:
@@ -161,9 +165,13 @@ class Explorer():
     # check whether the 3 consecutive cells in front are empty
     def checkFront(self):
         robot = self.robot
-        for cell in robot.frontCells:
-            if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 # boundary check
-                or robot.robotCenterW+cell[1] < 0 or robot.robotCenterH+cell[0] < 0
+        print("front:",robot.robotCenterH+robot.frontCells[robot.robotHead][0][0],robot.robotCenterW+robot.frontCells[robot.robotHead][0][1])
+        print("front:",robot.robotCenterH+robot.frontCells[robot.robotHead][1][0],robot.robotCenterW+robot.frontCells[robot.robotHead][1][1])
+        print("front:",robot.robotCenterH+robot.frontCells[robot.robotHead][2][0],robot.robotCenterW+robot.frontCells[robot.robotHead][2][1])
+        frontCells = robot.frontCells
+        for cell in frontCells[robot.robotHead]:
+            if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 \
+                or robot.robotCenterW+cell[1] < 0 or robot.robotCenterH+cell[0] < 0 \
                 or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
                 return False
         print("check front true")
@@ -171,38 +179,57 @@ class Explorer():
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self):
         robot = self.robot
+        print("check")
+        print("right:",robot.robotCenterH+robot.rightCells[robot.robotHead][0][0],robot.robotCenterW+robot.rightCells[robot.robotHead][0][1])
+        print("right:",robot.robotCenterH+robot.rightCells[robot.robotHead][1][0],robot.robotCenterW+robot.rightCells[robot.robotHead][1][1])
+        print("right:",robot.robotCenterH+robot.rightCells[robot.robotHead][2][0],robot.robotCenterW+robot.rightCells[robot.robotHead][2][1])
         print("inside checkRight")
-        for cell in robot.rightCells:
+        rightCells = robot.rightCells
+        for cell in rightCells[robot.robotHead]:
             if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 \
                 or robot.robotCenterW+cell[1] < 0 or robot.robotCenterH+cell[0] < 0 \
-                or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY):
-                return False
+                or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.OBSTACLE):
+                return "false"
+            elif (self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.UNKNOWN):
+                return "unknown"
         print("check right true")
-        return True
+        return "true"
     def wallHugging(self): # return instruction
         # mark current body cells as empty
         # actually might not need, just put here first
         print("Inside wall hugging")
         bodyCells = self.robot.returnBodyCells()
+        print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
+        print("robot head:",self.robot.robotHead)
         for cell in bodyCells:
             self.arena.set(cell[0],cell[1],CellType.EMPTY)
         print("hello")
-        # decide turn-right condition
-        if (self.checkRight()):
-            # chage the internal state of the robot
-            self.robot.rotateRight()
-            self.robot.forward()
-            print("turn right")        
-            return ("RF")
-                        
+        if (self.checkingRight == False):
+            # decide turn-right condition
+            if (self.checkRight() == "true"):
+                self.robot.rotateRight()
+                self.robot.forward()
+                print("turn right")        
+                return ("RF")
+            
+            elif (self.checkRight() == "unknown"):
+                self.robot.rotateRight()
+                print("check right")  
+                self.checkingRight = True
+                return ("R")
+            else:
+                print("right has obstacle")
+                                  
+        # alr enter checkingRight now, so update status as False again
+        self.checkingRight = False
         # decide front condition
-        elif (self.checkFront()):
+        if (self.checkFront()):
             self.robot.forward()
             print("go forward")  
             return ("F")
         else:
             self.robot.rotateLeft()
-            print("go forward")  
+            print("turn left")  
             return ("L")
     def reExplore(self):
         # detect all unexplored cells

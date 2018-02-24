@@ -18,16 +18,16 @@ class Robot():
         self.robotCenterW = w
         # 3 cells of level 0 to the right with respect to each direction
         self.rightCells = {0:[[1,2],[0,2],[-1,2]],
-					       1:[[-2,-1],[-2,0],[-2,1]],
-					       2:[[1,-2],[0,-2],[-1,-2]],
+					       1:[[-2,1],[-2,0],[-2,-1]],
+					       2:[[-1,-2],[0,-2],[1,-2]],
 					       3:[[2,-1],[2,0],[2,1]]
-        }[self.robotHead]
+        }
         # 3 cells of level 0 in front with respect to each direction
         self.frontCells = {0:[[2,-1],[2,0],[2,1]],
 					       1:[[1,2],[0,2],[-1,2]],
 					       2:[[-2,1],[-2,0],[-2,-1]],
 					       3:[[-1,-2],[0,-2],[1,-2]]
-        }[self.robotHead]
+        }
         self.directionString = {
             0: "north",
             1: "east",
