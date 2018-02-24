@@ -46,13 +46,18 @@ class Explorer():
                 }
 
     def run(self):
+        cnt = 0
         self.running = True
         self.tcp_conn.send("startExplore")
-        while self.robot.robotMode != "done":
+        while self.robot.robotMode != "done": 
+            cnt += 1 
             sensors = self.tcp_conn.recv()
             #update map with sensor values
             self.updateMap(sensors)
             explorationTime = time.time() - self.startTime
+            #check reachgoal
+            if self.robot.robotCenterH == 18 and self.robot.robotCenterW == 13:
+                self.reachGoal = True
             # if reach time limit
             if self.timeLimit - explorationTime <= 20:
                 if self.robot.isInStartZone():
@@ -95,6 +100,9 @@ class Explorer():
                         (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
                         self.robot.robotHead = endOrientation                        
                         continue
+                    if self.robot.robotCenterH == 1 and self.robot.robotCenterW == 1 and cnt>50 :
+                        self.robot.robotMode = "done"
+                        break
                 #if havent reach any of above continue statements, just wall hugging
                 instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
@@ -102,9 +110,8 @@ class Explorer():
                 self.tcp_conn.send(instruction)
 
                 if self.reachGoal == False:
-                    self.reachGoal = self.robot.isInGoal()
-                    
-        print("ExplorationExample - Connection cloased")
+                    self.reachGoal = self.robot.isInGoal()           
+        print("ExplorationExample - Connection cloased.","time:",explorationTime)
 
     def get_arena(self):
         if self.running:
@@ -145,14 +152,16 @@ class Explorer():
                     if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
                         realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
                 if value < self.MAX_SHORT_SENSOR:
-                    realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
+                    if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
+                        realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
             elif sensorIndex == 5:
                 offsets = self.leftCells[head]
                 for i in range(value):
                     if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
                         realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
                 if value < self.MAX_LONG_SENSOR:
-                    realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
+                    if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
+                        realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
             else:
                 print("sensor index out of bound")
         self.updateExploredArea()
