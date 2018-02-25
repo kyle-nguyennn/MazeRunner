@@ -6,7 +6,7 @@ import json
 
 class SimulatorServer():
 
-    def __init__(self, tcp_ip, tcp_port, arena_obj, speed, buffer_size=1024):
+    def __init__(self, tcp_ip, tcp_port, arena_obj, robot_pos, speed, buffer_size=1024):
 
         self.arena = arena_obj
         self.sensor = []
@@ -16,7 +16,7 @@ class SimulatorServer():
         self.sensor.append(Sensor(3, 3, 90))
         self.sensor.append(Sensor(3, 5, 90))
         self.sensor.append(Sensor(6, 1, 270))
-        self.robot_pos = [1, 1, 0]
+        self.robot_pos = robot_pos
 
         self.speed = speed
         self.tcp_ip = tcp_ip
@@ -32,7 +32,8 @@ class SimulatorServer():
         print(
             "SimulatorServer - Accepted connection from {}:{}".format(addr[0], addr[1]))
         started = False
-        self.send_data(json.dumps({"command": "beginExplore"}))
+        self.send_data(json.dumps(
+            {"command": "beginExplore", "robotPos": self.robot_pos}))
         while not started:
             data = self.recv_data()
             if data == "startExplore":

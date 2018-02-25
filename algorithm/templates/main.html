@@ -138,15 +138,15 @@
                         <div class="card-body">
                             <h5 class="card-title">Fastest Path Simulation</h5>
                             <div class="form-group row">
-                                <label for="waypointRow" class="col-sm-4 col-form-label">Waypoint Row:</label>
-                                <div class="col-sm-8">
-                                    <input type="number" class="form-control" id="waypointRow" name="waypointRow">
+                                <label for="waypointRow" class="col-sm-6 col-form-label">Waypoint Row:</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="waypointRow" name="waypointRow" min=0 max=19>
                                 </div>
                             </div>
                             <div class="form-group row">
-                                <label for="waypointCol" class="col-sm-4 col-form-label">Waypoint Column:</label>
-                                <div class="col-sm-8">
-                                    <input type="number" class="form-control" id="waypointCol" name="waypointCol">
+                                <label for="waypointCol" class="col-sm-6 col-form-label">Waypoint Column:</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="waypointCol" name="waypointCol" min=0 max=14>
                                 </div>
                             </div>
                             <button type="button" id="btnFastestPath" class="btn btn-primary">Run Simulation</button>
@@ -159,9 +159,27 @@
                         <div class="card-body">
                             <h5 class="card-title">Exploration Simulation</h5>
                             <div class="form-group row">
-                                <label for="robotSpeed" class="col-sm-4 col-form-label">Robot Move Speed (seconds):</label>
-                                <div class="col-sm-8">
-                                    <input type="number" class="form-control" id="robotSpeed" name="robotSpeed" step="any" min=0>
+                                <label for="robotPosRow" class="col-sm-6 col-form-label">Robot Position (Row):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="robotPosRow" name="robotPosRow" min=1 max=18 value=1>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="robotPosCol" class="col-sm-6 col-form-label">Robot Position (Column):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="robotPosCol" name="robotPosCol" min=1 max=13 value=1>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="robotHead" class="col-sm-6 col-form-label">Robot Heading (Degree):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="robotHead" name="robotHead" step=90 min=0 max=270 value=0>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="robotSpeed" class="col-sm-6 col-form-label">Robot Move Speed (Seconds):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="robotSpeed" name="robotSpeed" step="any" min=0 value=1>
                                 </div>
                             </div>
                             <button type="button" id="btnExploration" class="btn btn-primary">Run Simulation</button>

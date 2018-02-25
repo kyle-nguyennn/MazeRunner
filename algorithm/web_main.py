@@ -89,9 +89,11 @@ def fastest_path():
 def exploration():
     data = json.loads(request.data)
     arena_2d = data[0]
-    speed = float(data[1])
+    robot_pos = [int(data[1]), int(data[2]), int(data[3])]
+    speed = float(data[4])
     arena_obj = array_to_arena(arena_2d)
-    thread1 = Thread(target=start_simulation_server, args=[arena_obj, speed])
+    thread1 = Thread(target=start_simulation_server,
+                     args=[arena_obj, robot_pos, speed])
     thread1.start()
     thread2 = Thread(target=connect_tcp_client, args=["127.0.0.1", 77])
     thread2.start()
@@ -151,15 +153,15 @@ def array_to_arena(arena_2d):
     return arena_obj
 
 
-def start_simulation_server(arena_obj, speed):
-    server = SimulatorServer("127.0.0.1", 77, arena_obj, speed)
+def start_simulation_server(arena_obj, robot_pos, speed):
+    server = SimulatorServer("127.0.0.1", 77, arena_obj, robot_pos, speed)
     server.run()
 
 
-def start_exploration_algo():
+def start_exploration_algo(robot_pos):
     global tcp_conn
     global explore_algo
-    explore_algo = Explorer(tcp_conn)
+    explore_algo = Explorer(tcp_conn, robot_pos)
     explore_algo.run()
 
 
@@ -184,7 +186,7 @@ def handle_request(data):
     if data[0] == "{":
         request = json.loads(data)
         if request["command"] == "beginExplore":
-            start_exploration_algo()
+            start_exploration_algo(request["robotPos"])
         elif request["command"] == "beginFastest":
             tcp_conn.send(getInstructions(None, None))
 

@@ -9,7 +9,7 @@ from tcp_client import TcpClient
 ######################## integrate with Calvin code #############################
 
 class Explorer():
-    def __init__(self, tcp_conn, buffer_size=1024):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024):
         self.running = False
         self.tcp_conn = tcp_conn
         self.arena = Arena()
@@ -24,7 +24,8 @@ class Explorer():
         self.timeLimit = 360
         self.reachGoal = False
         self.startTime = time.time()
-        self.robot = Robot(mode='exploring')
+        self.robot = Robot(
+            'exploring', robot_pos[2]/90, robot_pos[0], robot_pos[1])
         self.checkingRight = False
 
         self.frontCells = {0:[[[2,-1],[3,-1],[4,-1]],[[2,0],[3,0],[4,0]],[[2,1],[3,1],[4,1]]],

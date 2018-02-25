@@ -12,7 +12,9 @@ var cardFastestPath = document.getElementById("cardFastestPath");
 var cardExploration = document.getElementById("cardExploration");
 var btnConnect = document.getElementById("btnConnect");
 var btnDisconnect = document.getElementById("btnDisconnect");
-
+var robotPosRow = document.getElementById("robotPosRow");
+var robotPosCol = document.getElementById("robotPosCol");
+var robotHead = document.getElementById("robotHead");
 var cellMovt;
 var cellAni;
 var exploreStatusAni;
@@ -33,6 +35,9 @@ moveRobot("");
 mdfPart1.oninput = function () { mdfToArray(); };
 mdfPart2.oninput = function () { mdfToArray(); };
 mdfList.oninput = function () { loadFromList(); };
+robotPosRow.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
+robotPosCol.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
+robotHead.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
 
 function loadFromList() {
     var str = mdfList.options[mdfList.selectedIndex].text;
@@ -106,7 +111,7 @@ function moveRobot(actions) {
     var currentD = 0;
     var step = 0;
 
-    setRobotPosition(currentH, currentW, currentD);
+    setActualRobotPosition(currentH, currentW, currentD);
 
     cellMovt = setInterval(displayRobot, 500);
 
@@ -158,7 +163,7 @@ function moveRobot(actions) {
                     else if (currentD > posD)
                         currentD -= 3;
 
-                    setRobotPosition(currentH, currentW, currentD);
+                    setActualRobotPosition(currentH, currentW, currentD);
                 }
             }
             step++;
@@ -180,12 +185,16 @@ function updateExploreStatus() {
             var arena = obj[0];
             var robot = obj[1];
             drawCanvas(arena);
-            setRobotPosition(694 - (robot[0] * 33) - 100, 33 * robot[1], robot[2]);
+            setRobotPosition(robot[0], robot[1], robot[2]);
         });
     }
 }
 
 function setRobotPosition(h, w, d) {
+    setActualRobotPosition(694 - (h * 33) - 100, 33 * w, d);
+}
+
+function setActualRobotPosition(h, w, d) {
     d = normalizeDirection(d);
     var elem = document.getElementById("robot");
     elem.style.top = h + 'px';
@@ -383,9 +392,11 @@ $(document).ready(function () {
     });
 
     $("#btnExploration").click(function () {
+        robotPosRow = $("#robotPosRow").val()
+        robotPosCol = $("#robotPosCol").val()
+        robotHead = $("#robotHead").val()
         robotSpeed = $("#robotSpeed").val()
-        data = [tableToArray(), robotSpeed];
-        console.log(data[1])
+        data = [tableToArray(), robotPosRow, robotPosCol, robotHead, robotSpeed];
         $.ajax({
             type: 'POST',
             data: JSON.stringify(data),
