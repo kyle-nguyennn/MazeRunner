@@ -135,7 +135,7 @@ def get_explore_status():
         print("Exploration not running.")
         return "N"
     arena_2d = arena_to_array(explore_algo.get_arena())
-    result = [arena_2d, explore_algo.get_robot()]
+    result = [arena_2d, explore_algo.get_robot(), explore_algo.current_status()]
     return json.dumps(result)
 
 
@@ -187,13 +187,21 @@ def connect_tcp_client(ip, port):
 
 def handle_request(data):
     global tcp_conn
+    global explore_algo
     request = json.loads(data)
     if request["command"] == "beginExplore":
         explore_thread = Thread(target=start_exploration_algo, args=[
                                 request["robotPos"]])
         explore_thread.start()
     elif request["command"] == "beginFastest":
-        tcp_conn.send_command(getInstructions(None, None))
+        tcp_conn.send_command(getInstructions(None,  request["robotPos"]))
+    elif request["command"] == "autoStart":
+        explore_algo.set_update(True)
+    elif request["command"] == "autoStop":
+        explore_algo.set_update(False)
+    elif request["command"] == "sendArena":
+        tcp_conn.send_arena(explore_algo.get_arena)
+        tcp_conn.send_arena(explore_algo.get_robot)
 
 
 if __name__ == '__main__':

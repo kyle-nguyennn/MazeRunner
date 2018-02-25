@@ -15,6 +15,8 @@ var btnDisconnect = document.getElementById("btnDisconnect");
 var robotPosRow = document.getElementById("robotPosRow");
 var robotPosCol = document.getElementById("robotPosCol");
 var robotHead = document.getElementById("robotHead");
+var lblStatus = document.getElementById("lblStatus");
+
 var cellMovt;
 var cellAni;
 var exploreStatusAni;
@@ -184,6 +186,8 @@ function updateExploreStatus() {
             var obj = jQuery.parseJSON(data);
             var arena = obj[0];
             var robot = obj[1];
+            var status = obj[2];
+            lblStatus.textContent = "Robot Status: " + status;
             drawCanvas(arena);
             setRobotPosition(robot[0], robot[1], robot[2]);
         });
@@ -273,6 +277,8 @@ function switchEditMode() {
     tabActualMode.className = "nav-link";
     editOptions.style.visibility = 'visible';
 
+    lblStatus.style.visibility = 'hidden';
+
     cardArena.style.visibility = 'visible';
     cardConnect.style.visibility = 'hidden';
     cardExploration.style.visibility = 'hidden';
@@ -294,6 +300,8 @@ function switchSimMode() {
     tabActualMode.className = "nav-link";
     editOptions.style.visibility = 'hidden';
 
+    lblStatus.style.visibility = 'visible';
+
     cardArena.style.visibility = 'hidden';
     cardConnect.style.visibility = 'hidden';
     cardExploration.style.visibility = 'visible';
@@ -314,6 +322,8 @@ function switchActualMode() {
     tabSimMode.className = "nav-link";
     tabEditMode.className = "nav-link";
     editOptions.style.visibility = 'hidden';
+
+    lblStatus.style.visibility = 'visible';
 
     cardArena.style.visibility = 'hidden';
     cardConnect.style.visibility = 'visible';

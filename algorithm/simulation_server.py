@@ -1,4 +1,6 @@
 import socket
+import multiprocessing
+import threading
 from arena import Arena, CellType
 import time
 import json
@@ -24,7 +26,10 @@ class SimulatorServer():
         self.buffer_size = buffer_size
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+        self.recv_queue = multiprocessing.Queue()
+
     def run(self):
+        self.running = True
         self.server_socket.bind((self.tcp_ip, self.tcp_port))
         self.server_socket.listen(1)
         print("SimulatorServer - Listening on {}:{}".format(self.tcp_ip, self.tcp_port))
@@ -32,42 +37,56 @@ class SimulatorServer():
         print(
             "SimulatorServer - Accepted connection from {}:{}".format(addr[0], addr[1]))
         started = False
+        recv_thread = threading.Thread(target=self.recv_data)
+        recv_thread.start()
         self.send_data(json.dumps(
             {"command": "beginExplore", "robotPos": self.robot_pos}))
+        # self.send_data(json.dumps({"command": "autoStart"}))
         while not started:
-            data = self.recv_data()
-            if data == "EB":
+            data = self.get_command()
+            if data == "ES":
                 started = True
                 self.start_explore()
 
     def recv_data(self):
-        data = self.client_conn.recv(self.buffer_size)
-        if not data:
-            return None
-        data_s = data.decode('utf-8')
-        print("SimulatorServer - Received data: {}".format(data_s))
-        return data_s
+        while self.running:
+            try:
+                data = self.client_conn.recv(self.buffer_size)
+            except:
+                self.close_conn()
+                break
+            if not data:
+                self.close_conn()
+                break
+            data_s = data.decode('utf-8')
+            print("SimulatorServer - Received data: {}".format(data_s))
+            if data_s[0] != "{":
+                self.recv_queue.put(data_s)
 
     def send_data(self, data):
         self.client_conn.send(data.encode('utf-8'))
 
     def close_conn(self):
+        self.running = False
         self.client_conn.close()
         self.server_socket.close()
         print("SimulatorServer - Connection closed")
+
+    def get_command(self):
+        while self.recv_queue.empty():
+            pass
+        return self.recv_queue.get()
 
     def set_arena(self, arena):
         arena.print()
         self.arena = arena
 
     def start_explore(self):
-        end = False
-        while end == False:
+        while self.running:
             self.send_data(self.getReadings())
-            command = self.recv_data()
-            if command == None or command == "ES":
+            command = self.get_command()
+            if command == None or command == "EE":
                 self.close_conn()
-                end = True
             else:
                 for char in command:
                     self.move_robot(char)

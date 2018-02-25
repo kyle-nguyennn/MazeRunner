@@ -3,10 +3,6 @@ import multiprocessing
 import json
 import threading
 
-send_queue = multiprocessing.Queue()
-recv_json_queue = multiprocessing.Queue()
-recv_string_queue = multiprocessing.Queue()
-
 
 class TcpClient():
     def __init__(self, ip, port, buffer_size=1024):
@@ -14,6 +10,9 @@ class TcpClient():
         self.port = port
         self.buffer_size = buffer_size
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.send_queue = multiprocessing.Queue()
+        self.recv_json_queue = multiprocessing.Queue()
+        self.recv_string_queue = multiprocessing.Queue()
 
     def run(self):
         self.connect()
@@ -28,8 +27,6 @@ class TcpClient():
         print("TcpClient - Connected on {}:{}".format(self.ip, self.port))
 
     def recv(self):
-        global recv_json_queue
-        global recv_string_queue
         while self.connected:
             try:
                 data = self.client_socket.recv(self.buffer_size)
@@ -42,16 +39,15 @@ class TcpClient():
             data_s = data.decode('utf-8')
             print("TcpClient - Received data: {}".format(data_s))
             if data_s[0] == "{":
-                recv_json_queue.put(data_s)
+                self.recv_json_queue.put(data_s)
             else:
-                recv_string_queue.put(data_s)
+                self.recv_string_queue.put(data_s)
 
     def send(self):
-        global send_queue
         while self.connected:
-            if not send_queue.empty():
+            if not self.send_queue.empty():
                 try:
-                    data = send_queue.get()
+                    data = self.send_queue.get()
                     self.client_socket.send(data.encode('utf-8'))
                     print("TcpClient - Sent data: {}".format(data))
                 except:
@@ -60,24 +56,27 @@ class TcpClient():
                     break
 
     def get_json(self):
-        global recv_json_queue
-        while recv_json_queue.empty() and self.connected:
+        while self.recv_json_queue.empty() and self.connected:
             pass
-        return recv_json_queue.get()
+        return self.recv_json_queue.get()
 
     def get_string(self):
-        global recv_string_queue
-        while recv_string_queue.empty():
+        while self.recv_string_queue.empty():
             pass
-        return recv_string_queue.get()
+        return self.recv_string_queue.get()
 
     def send_command(self, command):
-        global send_queue
-        send_queue.put(command)
+        self.send_queue.put(command)
 
     def send_status(self, status):
-        global send_queue
-        send_queue.put(json.dumps({"status": status}))
+        self.send_queue.put(json.dumps({"status": status}))
+
+    def send_robot_pos(self, pos):
+        self.send_queue.put(json.dumps({"robotPos": pos}))
+
+    def send_arena(self, arena):
+        self.send_queue.put(json.dumps(
+            {"gridP1": arena.to_mdf_part1(), "gridP2": arena.to_mdf_part2()}))
 
     def close_conn(self):
         try:

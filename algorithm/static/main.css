@@ -53,6 +53,12 @@ td.marker {
     visibility: hidden;
 }
 
+#lblStatus {
+    position: absolute;
+    top: 10px;
+    left: 35px;
+}
+
 #robot {
     width: 100px;
     height: 100px;

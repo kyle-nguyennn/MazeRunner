@@ -11,6 +11,7 @@ from tcp_client import TcpClient
 class Explorer():
     def __init__(self, tcp_conn, robot_pos, buffer_size=1024):
         self.tcp_conn = tcp_conn
+        self.auto_update = False
         self.arena = Arena()
         #self.robot = [1, 1, 0] # 2d position plus orientation
         ### CONSTANT ####
@@ -47,7 +48,8 @@ class Explorer():
 
     def run(self):
         cnt = 0
-        self.tcp_conn.send_command("EB")
+        self.tcp_conn.send_command("ES")
+        self.update_status("Start exploration")
         while self.robot.robotMode != "done": 
             cnt += 1 
             sensors = self.tcp_conn.get_string()
@@ -110,19 +112,34 @@ class Explorer():
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()           
         print("Exploration time:",explorationTime)
-        self.tcp_conn.send_command("ES")
+        self.update_status("End exploration")
+        self.tcp_conn.send_command("EE")
 
     def get_arena(self):
-        if self.robot.robotMode != "done":
-            return self.arena
-        else:
+        if self.robot.robotMode == "done":
             return None
+        return self.arena
 
     def get_robot(self):
-        if self.robot.robotMode != "done":
-            return self.robot.getPosition()
-        else:
+        if self.robot.robotMode == "done":
             return None
+        return self.robot.getPosition()            
+
+    def update_status(self, status):
+        self.status = status
+        self.tcp_conn.send_status(status)
+        if self.auto_update:
+            self.tcp_conn.send_robot_pos(self.robot.getPosition())
+            self.tcp_conn.send_arena(self.arena)
+
+    def current_status(self):
+        if self.robot.robotMode == "done":
+            return None
+        return self.status
+
+    def set_update(self, auto):
+        self.auto_update = auto
+
     ##### exploration logics #####
 
     def updateExploredArea(self):   
@@ -220,12 +237,12 @@ class Explorer():
             if (self.checkRight() == "true"):
                 self.robot.rotateRight()
                 self.robot.forward()
-                print("turn right")        
+                self.update_status("Turning right")
                 return ("RF")
             
             elif (self.checkRight() == "unknown"):
                 self.robot.rotateRight()
-                print("check right")  
+                self.update_status("Checking right")  
                 self.checkingRight = True
                 return ("R")
             else:
@@ -236,11 +253,11 @@ class Explorer():
         # decide front condition
         if (self.checkFront()):
             self.robot.forward()
-            print("go forward")  
+            self.update_status("Moving forward")  
             return ("F")
         else:
             self.robot.rotateLeft()
-            print("turn left")  
+            self.update_status("Turning left")  
             return ("L")
     def reExplore(self):
         # detect all unexplored cells
