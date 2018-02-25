@@ -36,7 +36,7 @@ class SimulatorServer():
             {"command": "beginExplore", "robotPos": self.robot_pos}))
         while not started:
             data = self.recv_data()
-            if data == "startExplore":
+            if data == "EB":
                 started = True
                 self.start_explore()
 
@@ -65,7 +65,7 @@ class SimulatorServer():
         while end == False:
             self.send_data(self.getReadings())
             command = self.recv_data()
-            if command == None or command == "endExplore":
+            if command == None or command == "ES":
                 self.close_conn()
                 end = True
             else:

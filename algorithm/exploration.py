@@ -10,7 +10,6 @@ from tcp_client import TcpClient
 
 class Explorer():
     def __init__(self, tcp_conn, robot_pos, buffer_size=1024):
-        self.running = False
         self.tcp_conn = tcp_conn
         self.arena = Arena()
         #self.robot = [1, 1, 0] # 2d position plus orientation
@@ -48,11 +47,10 @@ class Explorer():
 
     def run(self):
         cnt = 0
-        self.running = True
-        self.tcp_conn.send("startExplore")
+        self.tcp_conn.send_command("EB")
         while self.robot.robotMode != "done": 
             cnt += 1 
-            sensors = self.tcp_conn.recv()
+            sensors = self.tcp_conn.get_string()
             #update map with sensor values
             self.updateMap(sensors)
             explorationTime = time.time() - self.startTime
@@ -62,7 +60,6 @@ class Explorer():
             # if reach time limit
             if self.timeLimit - explorationTime <= 20:
                 if self.robot.isInStartZone():
-                    self.tcp_conn.send("S")
                     self.robot.robotMode = "done"
                     break
                 else:
@@ -71,7 +68,7 @@ class Explorer():
                     endnode = (1,1)
                     (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, self.robot.robotHead)
                     # give instruction
-                    self.tcp_conn.send(instructions)
+                    self.tcp_conn.send_command(instructions)
                     # update robot states (position and orientation)
                     (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
                     self.robot.robotHead = endOrientation
@@ -85,7 +82,7 @@ class Explorer():
                         endnode = (1,1)
                         (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, self.robot.robotHead)
                         # give instruction
-                        self.tcp_conn.send(instructions)
+                        self.tcp_conn.send_command(instructions)
                         # update robot states (position and orientation)
                         (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
                         self.robot.robotHead = endOrientation
@@ -96,7 +93,7 @@ class Explorer():
                         # reexplore, find the fastest path to the nearest unexplored cell
                         (instruction, endnode, endOrientation) = self.reExplore()
                         # give instruction
-                        self.tcp_conn.send(instruction)
+                        self.tcp_conn.send_command(instruction)
                         # update robot states
                         (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
                         self.robot.robotHead = endOrientation                        
@@ -108,20 +105,24 @@ class Explorer():
                 instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
-                self.tcp_conn.send(instruction)
+                self.tcp_conn.send_command(instruction)
 
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()           
-        print("ExplorationExample - Connection cloased.","time:",explorationTime)
+        print("Exploration time:",explorationTime)
+        self.tcp_conn.send_command("ES")
 
     def get_arena(self):
-        if self.running:
+        if self.robot.robotMode != "done":
             return self.arena
         else:
             return None
 
     def get_robot(self):
-        return self.robot.getPosition()
+        if self.robot.robotMode != "done":
+            return self.robot.getPosition()
+        else:
+            return None
     ##### exploration logics #####
 
     def updateExploredArea(self):   

@@ -92,11 +92,12 @@ def exploration():
     robot_pos = [int(data[1]), int(data[2]), int(data[3])]
     speed = float(data[4])
     arena_obj = array_to_arena(arena_2d)
-    thread1 = Thread(target=start_simulation_server,
-                     args=[arena_obj, robot_pos, speed])
-    thread1.start()
-    thread2 = Thread(target=connect_tcp_client, args=["127.0.0.1", 77])
-    thread2.start()
+    sim_server_thread = Thread(target=start_simulation_server,
+                               args=[arena_obj, robot_pos, speed])
+    sim_server_thread.start()
+    tcp_client_thread = Thread(
+        target=connect_tcp_client, args=["127.0.0.1", 77])
+    tcp_client_thread.start()
     global mode
     mode = Mode.SIM_SERVER
     return "Simulation server started."
@@ -104,8 +105,9 @@ def exploration():
 
 @app.route('/connect_to_pi', methods=['GET'])
 def connect_to_pi():
-    thread1 = Thread(target=connect_tcp_client, args=["192.168.7.1", 77])
-    thread1.start()
+    tcp_client_thread = Thread(
+        target=connect_tcp_client, args=["192.168.7.1", 77])
+    tcp_client_thread.start()
     global mode
     mode = Mode.PI_CONNECTION
     return "OK"
@@ -154,8 +156,10 @@ def array_to_arena(arena_2d):
 
 
 def start_simulation_server(arena_obj, robot_pos, speed):
+    global mode
     server = SimulatorServer("127.0.0.1", 77, arena_obj, robot_pos, speed)
     server.run()
+    mode = Mode.NONE
 
 
 def start_exploration_algo(robot_pos):
@@ -169,10 +173,10 @@ def connect_tcp_client(ip, port):
     global tcp_conn
     global mode
     tcp_conn = TcpClient(ip, port)
+    tcp_conn.run()
     try:
-        tcp_conn.connect()
-        while(True):
-            data = tcp_conn.recv()
+        while True:
+            data = tcp_conn.get_json()
             if data is None:
                 break
             handle_request(data)
@@ -183,12 +187,13 @@ def connect_tcp_client(ip, port):
 
 def handle_request(data):
     global tcp_conn
-    if data[0] == "{":
-        request = json.loads(data)
-        if request["command"] == "beginExplore":
-            start_exploration_algo(request["robotPos"])
-        elif request["command"] == "beginFastest":
-            tcp_conn.send(getInstructions(None, None))
+    request = json.loads(data)
+    if request["command"] == "beginExplore":
+        explore_thread = Thread(target=start_exploration_algo, args=[
+                                request["robotPos"]])
+        explore_thread.start()
+    elif request["command"] == "beginFastest":
+        tcp_conn.send_command(getInstructions(None, None))
 
 
 if __name__ == '__main__':

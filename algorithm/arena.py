@@ -9,15 +9,13 @@ class Arena():
     # already have a internal map
     def __init__(self, height=20, width=15):
         self.arena_map = [[CellType.UNKNOWN
-                      for y in range(width)]
-                     for x in range(height)]
+                           for y in range(width)]
+                          for x in range(height)]
 
     def from_mdf_strings(self, part1, part2):
-        if part1 is None:
+        if part1 is None or part1 == "" or part2 is None or part2 == "":
             return
-        if part2 is None:
-            return
-            
+
         b1Size = len(part1) * 4
         bitStr1 = (bin(int(part1, 16))[4:b1Size]).zfill(b1Size-4)
 
@@ -83,7 +81,8 @@ class Arena():
     def print(self):
         for x in range(len(self.arena_map)):
             for y in range(len(self.arena_map[x])):
-                print(self.arena_map[len(self.arena_map)-1-x][y].value, end=" ")
+                print(self.arena_map[len(self.arena_map)-1-x]
+                      [y].value, end=" ")
             print()
 
     def get(self, h, w):
