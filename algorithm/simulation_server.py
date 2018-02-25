@@ -54,7 +54,7 @@ class SimulatorServer():
     def close_conn(self):
         self.client_conn.close()
         self.server_socket.close()
-        print("SimulatorServer - Connection cloased")
+        print("SimulatorServer - Connection closed")
 
     def set_arena(self, arena):
         arena.print()
