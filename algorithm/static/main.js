@@ -15,6 +15,7 @@ var btnDisconnect = document.getElementById("btnDisconnect");
 var robotPosRow = document.getElementById("robotPosRow");
 var robotPosCol = document.getElementById("robotPosCol");
 var robotHead = document.getElementById("robotHead");
+var robotSpeed = document.getElementById("robotSpeed");
 var lblStatus = document.getElementById("lblStatus");
 
 var cellMovt;
@@ -175,7 +176,7 @@ function moveRobot(actions) {
 
 function updateExploreStatus() {
     clearInterval(exploreStatusAni);
-    exploreStatusAni = setInterval(getExploreStatus, 250);
+    exploreStatusAni = setInterval(getExploreStatus, robotSpeed.value * 1000);
     function getExploreStatus() {
         if (false) {
             clearInterval(exploreStatusAni);
