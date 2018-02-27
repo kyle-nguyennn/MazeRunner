@@ -45,6 +45,7 @@ class Explorer():
                     2:[[-1,2],[-1,3],[-1,4],[-1,5],[-1,6],[-1,7]],
                     3:[[-2,-1],[-3,-1],[-4,-1],[-5,-1],[-6,-1],[-7,-1]]
                 }
+        
 
     def run(self):
         cnt = 0
@@ -89,7 +90,7 @@ class Explorer():
                         (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
                         self.robot.robotHead = endOrientation
                         continue
-                    if self.robot.isAlmostBack() and self.exploredArea < 280:
+                    if self.robot.isAlmostBack() and self.exploredArea < 300:
                         self.robot.robotMode = 'reExplore'
                     if self.robot.robotMode == 'reExplore':
                         # reexplore, find the fastest path to the nearest unexplored cell
@@ -98,7 +99,8 @@ class Explorer():
                         self.tcp_conn.send_command(instruction)
                         # update robot states
                         (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
-                        self.robot.robotHead = endOrientation                        
+                        self.robot.robotHead = endOrientation  
+                        print("comeplete a re-reploration")
                         continue
                     if self.robot.robotCenterH == 1 and self.robot.robotCenterW == 1 and cnt>50 :
                         self.robot.robotMode = "done"
@@ -193,9 +195,6 @@ class Explorer():
     # check whether the 3 consecutive cells in front are empty
     def checkFront(self):
         robot = self.robot
-        print("front:",robot.robotCenterH+robot.frontCells[robot.robotHead][0][0],robot.robotCenterW+robot.frontCells[robot.robotHead][0][1])
-        print("front:",robot.robotCenterH+robot.frontCells[robot.robotHead][1][0],robot.robotCenterW+robot.frontCells[robot.robotHead][1][1])
-        print("front:",robot.robotCenterH+robot.frontCells[robot.robotHead][2][0],robot.robotCenterW+robot.frontCells[robot.robotHead][2][1])
         frontCells = robot.frontCells
         for cell in frontCells[robot.robotHead]:
             if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 \
@@ -207,10 +206,6 @@ class Explorer():
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self):
         robot = self.robot
-        print("check")
-        print("right:",robot.robotCenterH+robot.rightCells[robot.robotHead][0][0],robot.robotCenterW+robot.rightCells[robot.robotHead][0][1])
-        print("right:",robot.robotCenterH+robot.rightCells[robot.robotHead][1][0],robot.robotCenterW+robot.rightCells[robot.robotHead][1][1])
-        print("right:",robot.robotCenterH+robot.rightCells[robot.robotHead][2][0],robot.robotCenterW+robot.rightCells[robot.robotHead][2][1])
         print("inside checkRight")
         rightCells = robot.rightCells
         for cell in rightCells[robot.robotHead]:
@@ -259,30 +254,66 @@ class Explorer():
             self.robot.rotateLeft()
             self.update_status("Turning left")  
             return ("L")
+        
+    def allEmpty(self,h,w):
+        for i in range(h-1,h+2):
+            for j in range(w-1,w+2):
+                if self.arena.get(i,j) != CellType.EMPTY:
+                    return False
+        return True
+    
+    def searchBoundaryCells(self,cells):
+        boundaryCells = []
+        for cell in cells:
+            h = cell[0]
+            w = cell[1]
+            if (self.arena.get(h+1,w-1) == CellType.EMPTY \
+                and self.arena.get(h+1,w) == CellType.EMPTY \
+                and self.arena.get(h+1,w+1) == CellType.EMPTY \
+                or self.arena.get(h+1,w+1) == CellType.EMPTY \
+                and self.arena.get(h,w+1) == CellType.EMPTY \
+                and self.arena.get(h-1,w+1) == CellType.EMPTY \
+                or self.arena.get(h-1,w-1) == CellType.EMPTY \
+                and self.arena.get(h-1,w) == CellType.EMPTY \
+                and self.arena.get(h-1,w+1) == CellType.EMPTY \
+                or self.arena.get(h+1,w-1) == CellType.EMPTY \
+                and self.arena.get(h,w-1) == CellType.EMPTY \
+                and self.arena.get(h-1,w-1) == CellType.EMPTY ):
+                boundaryCells.append(cell)
+        return boundaryCells
+            
+            
+        
     def reExplore(self):
         # detect all unexplored cells
         reExploreCells = []
         cellEuclidean = []
         robot = self.robot
-        for row in self.arena.get_2d_arr():
-            for cell in row:
-                if (cell == CellType.UNKNOWN):
-                    reExploreCells.append(cell)
+        
+        for x in range(len(self.arena.arena_map)):
+            for y in range(len(self.arena.arena_map[x])):
+                if (self.arena.get(x,y) == CellType.UNKNOWN):
+                    reExploreCells.append([x,y])
+        
+        # only move to explore one of the boundary cells - cell that has at least one side has 3 consecutive empty blocks            
+        boundaryCells = self.searchBoundaryCells(reExploreCells)
+        print("boundary:",boundaryCells)
+                    
         # calculate Euclidean distance for each
-        for cell in reExploreCells:
+        for cell in boundaryCells:
             euclideanDist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
             cellEuclidean.append(euclideanDist)
             
         # find the nearest one
-        targetCell = reExploreCells[findArrayIndexMin(cellEuclidean)]
+        targetCell = boundaryCells[findArrayIndexMin(cellEuclidean)]
+        print("target cell:",targetCell)
         
         # find its nearest observing point
         offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
         potentialPos = []
-        index2 = 0
         for offset in offsets:
-            potentialPos.append([targetCell[0]+offset[index2][0],targetCell[1]+offset[index2][1]])
-            index2 += 1
+            if self.allEmpty(targetCell[0]+offset[0],targetCell[1]+offset[1]):
+                potentialPos.append([targetCell[0]+offset[0],targetCell[1]+offset[1]])
         # calculate Euclidean distance for each
         posDistance = []
         for cell in potentialPos:
@@ -291,8 +322,9 @@ class Explorer():
         cellToMove = potentialPos[findArrayIndexMin(posDistance)]
         # use djikstra
         startnode = (robot.robotCenterH, robot.robotCenterW)
-        (instr, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, robot.robotHead)
+        (instr, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
         return (instr, cellToMove, endOrientation)
+        
         # need to check robot final head direction
 ###### helper functions #####    
 def findArrayIndexMin(arr):

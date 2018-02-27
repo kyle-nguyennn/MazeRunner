@@ -57,6 +57,7 @@ def dijkstra(mymap, start, end, direction): # return tuple of instruction string
     cost[start[0]][start[1]] = 0
     prev[start[0]][start[1]][0] = ((-1,-1), "", 0)
     heapq.heappush(q, (cost[start[0]][start[1]], start, dir, ""))
+    print("break1")
     while len(q) > 0:
         (c, cur, dir, m) = heapq.heappop(q)
         if cur == end:
@@ -86,6 +87,7 @@ def dijkstra(mymap, start, end, direction): # return tuple of instruction string
                     prev[neighbor[0]][neighbor[1]][neighbor_dir] = (cur, move, dir)
                     # TODO: change to c+dir_cost after fixing cost for different directions bug
                     heapq.heappush(q, (c+1, (neighbor[0], neighbor[1]), neighbor_dir, move))
+    print("break2")
     #(cur, m) = prev[end[0]][end[1]]
     final_dir = dir
     path = [(cur, "", final_dir)]
@@ -96,6 +98,7 @@ def dijkstra(mymap, start, end, direction): # return tuple of instruction string
             path.insert(0, prev[cur[0]][cur[1]][dir])
         cur = p
         dir = prev_direction
+    print("break3")
     for node in path:
         instruction += node[1]
         print(str(node) + " -> ")
