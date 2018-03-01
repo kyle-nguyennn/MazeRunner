@@ -6,8 +6,6 @@ import race
 from race import dijkstra
 from tcp_client import TcpClient
 
-######################## integrate with Calvin code #############################
-
 class Explorer():
     def __init__(self, tcp_conn, robot_pos, buffer_size=1024):
         self.tcp_conn = tcp_conn
@@ -67,9 +65,9 @@ class Explorer():
                     break
                 else:
                     # find the way back to start zone using djikstra
-                    startnode = (self.robot.robotCenterH, self.robot.robotCenterW)
-                    endnode = (1,1)
-                    (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, self.robot.robotHead)
+                    startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
+                    endnode = (1,1,0)
+                    (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                     # give instruction
                     self.tcp_conn.send_command(instructions)
                     # update robot states (position and orientation)
@@ -81,9 +79,9 @@ class Explorer():
                         not self.robot.isAlmostBack() and \
                         self.robot.robotMode != 'reExplore':
                         # find way back to start zone using fastest path algo (djikstra)
-                        startnode = (self.robot.robotCenterH, self.robot.robotCenterW)
-                        endnode = (1,1)
-                        (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, self.robot.robotHead)
+                        startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
+                        endnode = (1,1,0)
+                        (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                         # give instruction
                         self.tcp_conn.send_command(instructions)
                         # update robot states (position and orientation)
@@ -319,10 +317,11 @@ class Explorer():
         for cell in potentialPos:
             dist = euclidean([robot.robotCenterH,robot.robotCenterW],cell)
             posDistance.append(dist)
-        cellToMove = potentialPos[findArrayIndexMin(posDistance)]
+        xToMove, yToMove = potentialPos[findArrayIndexMin(posDistance)]
+        cellToMove = (xToMove, yToMove, 0)
         # use djikstra
-        startnode = (robot.robotCenterH, robot.robotCenterW)
-        (instr, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
+        startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
+        (instr, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=False) 
         return (instr, cellToMove, endOrientation)
         
         # need to check robot final head direction

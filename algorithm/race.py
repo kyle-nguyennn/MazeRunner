@@ -1,6 +1,5 @@
 from arena import Arena, CellType
 import utils
-import heapq
 
 def detectCollision(mymap, pos, robotsize=(3,3)): #take care of robot size in here, outside of this function the robot is treated as a 1x1 object
     # pos is the middle cell (for 3x3) that the robot takes
@@ -16,95 +15,92 @@ def detectCollision(mymap, pos, robotsize=(3,3)): #take care of robot size in he
             return True
     return False
 
-def neighbors(mymap, cur, dir):
-    # cur is the representative point of the robot
+def neighbors(mymap, cur): # cur is (x,y,d)
+    '''
+    return a list of neightbor
+    each neighbor have the data structure: (neighborPos, moveCost, move)
+    '''
+    def elementWiseAdd(a, b):
+        return tuple([sum(x) for x in zip(a, b)])
+    x, y, d = cur
     offsets_n = [(1,0), (0,1), (-1,0), (0,-1)]
     offsets_e = [(0,1), (-1,0), (0,-1), (1,0)]
     offsets_s = [(-1,0), (0,-1), (1,0), (0,1)]
     offsets_w = [(0,-1), (1,0), (0,1), (-1,0)]
-    offsets = []
-    if dir == 0:
-        offsets = offsets_n
-    if dir == 1:
-        offsets = offsets_e
-    if dir == 2:
-        offsets = offsets_s
-    if dir == 3:
-        offsets = offsets_w
+    offsets = {
+        0: offsets_n,
+        1: offsets_e,
+        2: offsets_s,
+        3: offsets_w
+    }[d]
 
     neighbors = []
     for i in range(len(offsets)):
-        offset = offsets[i]
-        neighbors.append((cur[0] + offset[0], cur[1] + offset[1], (dir+i)%4))
+        (neighborX, neighborY) = elementWiseAdd((x,y), offsets[i])
+        neighborD = (d+i)%4
+        neighborPos = (neighborX, neighborY, neighborD)
+        (moveCost, move) = {
+            0: (1, "F"),
+            1: (2, "RF"),
+            2: (1, "B"),
+            3: (2, "LF")
+        }[i]
+        neighbors.append((neighborPos, moveCost, move))
     return neighbors
 
-def dijkstra(mymap, start, end, direction): # return tuple of instruction string with the final orientation of the robot after executing these instructions
-    q = []
-    cost = []
-    prev = [[[((0,0), "", 0) for i in range(4)] for i in range(len(mymap[0]))] for i in range(len(mymap))]
-    dir = direction
-    cur = start
-    
-    for i in range(len(mymap)):
-        r = mymap[i]
-        z = []
-        p = []
-        for j in range(len(r)):
-            #p.append(((i,j), "", 0))
-            z.append(1000)
-        cost.append(z)
-        #prev.append(p)
-    cost[start[0]][start[1]] = 0
-    prev[start[0]][start[1]][0] = ((-1,-1), "", 0)
-    heapq.heappush(q, (cost[start[0]][start[1]], start, dir, ""))
-    print("break1")
-    while len(q) > 0:
-        (c, cur, dir, m) = heapq.heappop(q)
-        if cur == end:
-            break
-        my_neighbors = neighbors(mymap, cur, dir)
-        for i in range(len(my_neighbors)):
-            neighbor = (my_neighbors[i][0], my_neighbors[i][1])
-            neighbor_dir = my_neighbors[i][2]
-            if not detectCollision(mymap, neighbor):
-                dir_cost = 0
-                move = ""
-                if i == 0:
-                    dir_cost = 1
-                    move = "F"
-                if i == 1:
-                    dir_cost = 2
-                    move = "RF"
-                if i == 2:
-                    dir_cost = 1
-                    move = "B"
-                if i == 3:
-                    dir_cost = 2
-                    move = "LF"
-                if cost[neighbor[0]][neighbor[1]] > c+dir_cost:
-                    # TODO: costs for same cell but different directions are different
-                    cost[neighbor[0]][neighbor[1]] = c+dir_cost
-                    prev[neighbor[0]][neighbor[1]][neighbor_dir] = (cur, move, dir)
-                    # TODO: change to c+dir_cost after fixing cost for different directions bug
-                    heapq.heappush(q, (c+1, (neighbor[0], neighbor[1]), neighbor_dir, move))
-    print("break2")
-    #(cur, m) = prev[end[0]][end[1]]
-    final_dir = dir
-    path = [(cur, "", final_dir)]
-    instruction = ""
-    while cur != (-1,-1):
-        (p, move, prev_direction) = prev[cur[0]][cur[1]][dir]
-        if p != (-1,-1): # check curent position
-            path.insert(0, prev[cur[0]][cur[1]][dir])
-        cur = p
-        dir = prev_direction
-    print("break3")
-    for node in path:
-        instruction += node[1]
-        print(str(node) + " -> ")
-    print('END')
-    return (instruction, final_dir)
-
+def popMin(costs):
+    k = min(costs, key=costs.get)
+    cur = k
+    curCost = costs[k]
+    del costs[k]
+    return (cur, curCost)
+def dijkstra(mymap, start, end, endOrientationImportant = False):
+    ''' 
+    return: tuple of instruction string with the final orientation of the robot after executing these instructions
+    param:
+        mymap: 2d array of CellType representing the map
+        start: triple of the start position including x,y coordinates and the orientation
+        end: end position, same data structure as start
+    '''
+    costs = {}  # a dict storing with key is the state and value is the cost of the path that leads to it
+                # structure of each element is: (x,y,d):cost
+    prev = {}   # k:v == (x,y,d): ((xx, yy, dd), move_to_go_next),
+                # where from (xx, yy, dd) the robot takes move_to_go_next and end up in (x, y, d)
+    # initialise(costs, start)  # set all the costs to infinity, except for the start state
+    for x in range(len(mymap)):
+        for y in range(len(mymap[0])):
+            for d in range(4):
+                costs[(x,y,d)] = 1000
+    costs[start] = 0
+    if endOrientationImportant:
+        compareEndUntil = None
+    else:
+        compareEndUntil = -1
+    while True:
+        cur, curCost = popMin(costs)    # get the item with min cost and remove it from the dict
+        if end == (18, 13, 0):
+            print("in djikstra: cur ", cur, curCost)
+        if cur[:compareEndUntil] == end[:compareEndUntil]:
+            # store the final minimal cost if needed
+            # trace back the path here
+            temp = cur
+            path = [(cur, "")]
+            print("In djikstra: on end: prev", prev)
+            while prev.get(temp) != None:
+                p = prev[temp]
+                path.insert(0, p)
+                temp = p[0]
+            ins = ""
+            for item in path:
+                ins += item[1]
+            return (ins, cur)
+        for neighbor in neighbors(mymap, cur):
+            neighborPos, moveCost, move = neighbor
+            if not detectCollision(mymap, neighborPos[:-1]):
+                if costs.get(neighborPos) != None: # has not been popped out (cost fixed)
+                    if costs[neighborPos] > curCost + moveCost:
+                        costs[neighborPos] = curCost + moveCost
+                        prev[neighborPos] = (cur, move)
 
 def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
     map.print()
@@ -119,8 +115,13 @@ def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
         dir = 3
     instruction = ""
     mymap = map.get_2d_arr()
-    (instruction1, dir1) = dijkstra(mymap, (1,1), waypoint, dir)
-    (instruction2, dir2) = dijkstra(mymap, (waypoint), (18,13), dir1)
+    waypoint = (waypoint[0], waypoint[1], 0) # padding 0 at the 3rd position to make it work with djikstra
+    (instruction1, endpoint1) = dijkstra(mymap, (1, 1, dir), waypoint, endOrientationImportant = False)
+    print("In getInstruction: reached waypoint", endpoint1)
+    (instruction2, endpoint2) = dijkstra(mymap, endpoint1, (18,13, 0), endOrientationImportant = False)
+    print("nothing in your eyes", instruction2, endpoint2)
+    print("In getInstruction: reached goal")
+    print(instruction1+instruction2)
     return instruction1+instruction2
 
 if __name__ == "__main__":
