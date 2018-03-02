@@ -155,7 +155,7 @@ function moveRobot(actions) {
             else if (action == 'L')
                 posD = currentD - 90;
 
-            cellAni = setInterval(animateRobot, 10);
+            cellAni = setInterval(animateRobot, 8);
 
             function animateRobot() {
                 if (currentH == posH && currentW == posW && currentD == posD) {
