@@ -134,9 +134,9 @@ class SimulatorServer():
         return response
 
     def get_robot(self):
-        if not self.running:
-            return None
-        return self.robot_pos
+        if self.running:
+            return self.robot_pos
+        return None
 
 
 class Sensor():
