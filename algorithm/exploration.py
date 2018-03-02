@@ -113,8 +113,6 @@ class Explorer():
         self.tcp_conn.send_command("EE")
 
     def get_arena(self):
-        if self.robot.robotMode == "done":
-            return None
         return self.arena
 
     def get_robot(self):
@@ -130,8 +128,6 @@ class Explorer():
             self.tcp_conn.send_arena(self.arena)
 
     def current_status(self):
-        if self.robot.robotMode == "done":
-            return None
         return self.status
 
     def set_update(self, auto):
