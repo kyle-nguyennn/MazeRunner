@@ -90,7 +90,7 @@ class SimulatorServer():
             else:
                 for char in command:
                     self.move_robot(char)
-                time.sleep(self.speed)
+                    time.sleep(self.speed)
 
     def move_robot(self, action):
 
@@ -132,6 +132,11 @@ class SimulatorServer():
                              self.robot_pos[1], self.robot_pos[2])
             response += str(sensor.get_reading(self.arena))
         return response
+
+    def get_robot(self):
+        if not self.running:
+            return None
+        return self.robot_pos
 
 
 class Sensor():

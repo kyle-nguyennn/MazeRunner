@@ -130,12 +130,17 @@ def current_mode():
 
 @app.route('/get_explore_status', methods=['GET'])
 def get_explore_status():
+    global mode
     global explore_algo
+    global sim_server
     if explore_algo.get_arena() == None:
         print("Exploration not running.")
         return "N"
     arena_2d = arena_to_array(explore_algo.get_arena())
-    result = [arena_2d, explore_algo.get_robot(), explore_algo.current_status()]
+    if mode == Mode.SIM_SERVER:
+        result = [arena_2d, sim_server.get_robot(), explore_algo.current_status()]
+    elif mode == Mode.PI_CONNECTION:
+        result = [arena_2d, explore_algo.get_robot(), explore_algo.current_status()]
     return json.dumps(result)
 
 
@@ -157,8 +162,9 @@ def array_to_arena(arena_2d):
 
 def start_simulation_server(arena_obj, robot_pos, speed):
     global mode
-    server = SimulatorServer("127.0.0.1", 77, arena_obj, robot_pos, speed)
-    server.run()
+    global sim_server
+    sim_server = SimulatorServer("127.0.0.1", 77, arena_obj, robot_pos, speed)
+    sim_server.run()
     mode = Mode.NONE
 
 
