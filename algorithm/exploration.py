@@ -59,7 +59,7 @@ class Explorer():
             if self.robot.robotCenterH == 18 and self.robot.robotCenterW == 13:
                 self.reachGoal = True
             # if reach time limit
-            if self.timeLimit - explorationTime <= 20:
+            if self.timeLimit - explorationTime <= 20 or self.exploredArea == 300:
                 if self.robot.isInStartZone():
                     self.robot.robotMode = "done"
                     break
@@ -71,8 +71,9 @@ class Explorer():
                     # give instruction
                     self.tcp_conn.send_command(instructions)
                     # update robot states (position and orientation)
-                    (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
-                    self.robot.robotHead = endOrientation
+                    (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
+                    self.robot.robotMode = "done"
+                    break
             else:
                 if self.reachGoal:
                     if explorationTime > self.timeThreshold and \
@@ -85,19 +86,18 @@ class Explorer():
                         # give instruction
                         self.tcp_conn.send_command(instructions)
                         # update robot states (position and orientation)
-                        (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
+                        (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
                         self.robot.robotHead = endOrientation
                         continue
                     if self.robot.isAlmostBack() and self.exploredArea < 300:
                         self.robot.robotMode = 'reExplore'
                     if self.robot.robotMode == 'reExplore':
                         # reexplore, find the fastest path to the nearest unexplored cell
-                        (instruction, endnode, endOrientation) = self.reExplore()
+                        (instruction, endnode) = self.reExplore()
                         # give instruction
                         self.tcp_conn.send_command(instruction)
                         # update robot states
-                        (self.robot.robotCenterH, self.robot.robotCenterW) = endnode
-                        self.robot.robotHead = endOrientation  
+                        (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
                         print("comeplete a re-reploration")
                         continue
                     if self.robot.robotCenterH == 1 and self.robot.robotCenterW == 1 and cnt>50 :
@@ -283,6 +283,7 @@ class Explorer():
             
         
     def reExplore(self):
+            
         # detect all unexplored cells
         reExploreCells = []
         cellEuclidean = []
@@ -318,11 +319,34 @@ class Explorer():
             dist = euclidean([robot.robotCenterH,robot.robotCenterW],cell)
             posDistance.append(dist)
         xToMove, yToMove = potentialPos[findArrayIndexMin(posDistance)]
-        cellToMove = (xToMove, yToMove, 0)
+        endingCell = [xToMove,yToMove]
+
+        indexOff = 0
+        for offset in offsets:
+            if [endingCell[0]-targetCell[0],endingCell[1]-targetCell[1]] == offset:
+                if 0 <= indexOff < 3:
+                    observeDirection = 0
+                    break
+                elif 3 <= indexOff < 6:
+                    observeDirection = 1
+                    break
+                elif 6 <= indexOff < 9:
+                    observeDirection = 2
+                    break
+                else:
+                    observeDirection = 3
+                    break
+            else:
+                indexOff += 1
+                
+        print("offset:",offset)
+        print("observeDirection:",observeDirection)
+            
+        cellToMove = (xToMove, yToMove, observeDirection)
         # use djikstra
         startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
-        (instr, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=False) 
-        return (instr, cellToMove, endOrientation)
+        (instr, endNode) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+        return (instr, endNode)
         
         # need to check robot final head direction
 ###### helper functions #####    
