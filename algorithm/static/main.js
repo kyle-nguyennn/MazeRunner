@@ -185,7 +185,7 @@ function moveRobot(actions) {
 
 function updateExploreStatus() {
     clearInterval(exploreStatusAni);
-    var refreshRate = document.getElementById("robotSpeed").value * 1000;
+    var refreshRate = document.getElementById("robotSpeed").value * 500;
     exploreStatusAni = setInterval(getExploreStatus, refreshRate);
     function getExploreStatus() {
         if (false) {
