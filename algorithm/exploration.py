@@ -72,8 +72,7 @@ class Explorer():
                     self.tcp_conn.send_command(instructions)
                     # update robot states (position and orientation)
                     (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
-                    self.robot.robotMode = "done"
-                    break
+                    continue
             else:
                 if self.reachGoal:
                     if explorationTime > self.timeThreshold and \
@@ -100,9 +99,7 @@ class Explorer():
                         (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
                         print("comeplete a re-reploration")
                         continue
-                    if self.robot.robotCenterH == 1 and self.robot.robotCenterW == 1 and cnt>50 :
-                        self.robot.robotMode = "done"
-                        break
+
                 #if havent reach any of above continue statements, just wall hugging
                 instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
