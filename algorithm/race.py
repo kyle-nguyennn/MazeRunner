@@ -37,7 +37,10 @@ def neighbors(mymap, cur): # cur is (x,y,d)
     neighbors = []
     for i in range(len(offsets)):
         (neighborX, neighborY) = elementWiseAdd((x,y), offsets[i])
-        neighborD = (d+i)%4
+        if i != 2:
+            neighborD = (d+i)%4
+        else:
+            neighborD = d
         neighborPos = (neighborX, neighborY, neighborD)
         (moveCost, move) = {
             0: (1, "F"),
