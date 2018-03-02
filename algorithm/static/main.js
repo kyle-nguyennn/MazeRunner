@@ -139,6 +139,16 @@ function moveRobot(actions) {
                 else if (currentD == 270)
                     posW = currentW - 33;
             }
+            else if (action == 'B') {
+                if (currentD == 0)
+                    posH = currentH + 33;
+                else if (currentD == 90)
+                    posW = currentW - 33;
+                else if (currentD == 180)
+                    posH = currentH - 33;
+                else if (currentD == 270)
+                    posW = currentW + 33;
+            }
             else if (action == 'R')
                 posD = currentD + 90;
 
