@@ -20,7 +20,7 @@ class Arena():
         bitStr1 = (bin(int(part1, 16))[4:b1Size]).zfill(b1Size-4)
 
         b2Size = len(part2) * 4
-        bitStr2 = (bin(int(part2, 16))[2:b2Size]).zfill(b2Size-2)
+        bitStr2 = (bin(int(part2, 16))[2:b2Size]).zfill(b2Size)
 
         for x in range(len(self.arena_map)):
             for y in range(len(self.arena_map[x])):
