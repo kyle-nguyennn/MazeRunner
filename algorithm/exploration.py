@@ -7,7 +7,7 @@ from race import dijkstra
 from tcp_client import TcpClient
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9):
         self.tcp_conn = tcp_conn
         self.auto_update = False
         self.arena = Arena()
@@ -18,8 +18,10 @@ class Explorer():
         ##### exploration logics related variables ####
         self.exploredArea = 0
         self.cnt = 0 # no. of instruction executed
-        self.timeThreshold = 260
+        self.goBackTime = tBack # seconds for it to go back Start from any position
+        self.timeThreshold = tThresh # user-input time to terminate exploration
         self.timeLimit = 360
+        self.areaPercentage = pArea # percentage we want the robot to explore up to
         self.reachGoal = False
         self.startTime = time.time()
         self.robot = Robot(
@@ -55,11 +57,15 @@ class Explorer():
             #update map with sensor values
             self.updateMap(sensors)
             explorationTime = time.time() - self.startTime
+            # if hard deadline reached: just break
+            if explorationTime > self.timeLimit:
+                self.robot.robotMode = "break"
+                break
             #check reachgoal
             if self.robot.robotCenterH == 18 and self.robot.robotCenterW == 13:
                 self.reachGoal = True
             # if reach time limit
-            if self.timeLimit - explorationTime <= 20 or self.exploredArea == 300:
+            if self.timeThreshold < explorationTime or self.exploredArea >= 300*self.areaPercentage:
                 if self.robot.isInStartZone():
                     self.robot.robotMode = "done"
                     break
