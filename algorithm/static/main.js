@@ -1,4 +1,5 @@
 var table = document.getElementById("arena");
+var robot = document.getElementById("robot");
 var mdfPart1 = document.getElementById("mdfPart1");
 var mdfPart2 = document.getElementById("mdfPart2");
 var mdfList = document.getElementById("mdfList");
@@ -15,12 +16,20 @@ var btnDisconnect = document.getElementById("btnDisconnect");
 var robotPosRow = document.getElementById("robotPosRow");
 var robotPosCol = document.getElementById("robotPosCol");
 var robotHead = document.getElementById("robotHead");
+var robotSpeed = document.getElementById("robotSpeed");
+var exploreTime = document.getElementById("exploreTime");
+var explorePercent = document.getElementById("explorePercent");
 var lblStatus = document.getElementById("lblStatus");
 var floatTable = document.getElementById("floatingArena");
+
 
 var cellMovt;
 var cellAni;
 var exploreStatusAni;
+
+var arenaHeight = 694;
+var cellSize = 33;
+var robotSize = 100;
 
 if (table != null) {
     for (var x = 0; x < table.rows.length; x++) {
@@ -110,8 +119,8 @@ function moveRobot(actions) {
     clearInterval(cellMovt);
     clearInterval(cellAni);
 
-    var currentH = 694 - 33 - 100;
-    var currentW = 33;
+    var currentH = arenaHeight - cellSize - robotSize;
+    var currentW = cellSize;
     var currentD = 0;
     var step = 0;
 
@@ -133,23 +142,23 @@ function moveRobot(actions) {
             var action = actions.charAt(step);
             if (action == 'F') {
                 if (currentD == 0)
-                    posH = currentH - 33;
+                    posH = currentH - cellSize;
                 else if (currentD == 90)
-                    posW = currentW + 33;
+                    posW = currentW + cellSize;
                 else if (currentD == 180)
-                    posH = currentH + 33;
+                    posH = currentH + cellSize;
                 else if (currentD == 270)
-                    posW = currentW - 33;
+                    posW = currentW - cellSize;
             }
             else if (action == 'B') {
                 if (currentD == 0)
-                    posH = currentH + 33;
+                    posH = currentH + cellSize;
                 else if (currentD == 90)
-                    posW = currentW - 33;
+                    posW = currentW - cellSize;
                 else if (currentD == 180)
-                    posH = currentH - 33;
+                    posH = currentH - cellSize;
                 else if (currentD == 270)
-                    posW = currentW + 33;
+                    posW = currentW + cellSize;
             }
             else if (action == 'R')
                 posD = currentD + 90;
@@ -187,7 +196,7 @@ function moveRobot(actions) {
 
 function updateExploreStatus() {
     clearInterval(exploreStatusAni);
-    var refreshRate = document.getElementById("robotSpeed").value * 500;
+    var refreshRate = robotSpeed.value * 500;
     exploreStatusAni = setInterval(getExploreStatus, refreshRate);
     function getExploreStatus() {
         if (false) {
@@ -208,15 +217,14 @@ function updateExploreStatus() {
 }
 
 function setRobotPosition(h, w, d) {
-    setActualRobotPosition(694 - (h * 33) - 100, 33 * w, d);
+    setActualRobotPosition(arenaHeight - (h * cellSize) - robotSize, cellSize * w, d);
 }
 
 function setActualRobotPosition(h, w, d) {
     d = normalizeDirection(d);
-    var elem = document.getElementById("robot");
-    elem.style.top = h + 'px';
-    elem.style.left = w + 'px';
-    elem.style.transform = 'rotate(' + d + 'deg)';
+    robot.style.top = h + 'px';
+    robot.style.left = w + 'px';
+    robot.style.transform = 'rotate(' + d + 'deg)';
 }
 
 function normalizeDirection(deg) {
@@ -231,8 +239,8 @@ function normalizeDirection(deg) {
 
 function saveArena() {
     $.post("/save_arena", {
-        part1: $("#mdfPart1").val(),
-        part2: $("#mdfPart2").val()
+        part1: mdfPart1.value,
+        part2: mdfPart2.value
     }, function (data, status) {
         window.location.replace("/");
     });
@@ -254,8 +262,8 @@ function arrayToMdf() {
 
 function mdfToArray() {
     $.post("/mdf_to_array", {
-        part1: $("#mdfPart1").val(),
-        part2: $("#mdfPart2").val()
+        part1: mdfPart1.value,
+        part2: mdfPart2.value
     }, function (data, status) {
         drawCanvas(table, JSON.parse(data));
     });
@@ -273,14 +281,6 @@ function getMode() {
             // btnConnect.style.visibility = 'hidden';
             // btnDisconnect.style.visibility = 'visible';
         }
-    });
-}
-
-function getExploring() {
-    return $.get("/get_explore_status", function (data, status) {
-        if (data == "N")
-            return false
-        return true
     });
 }
 
@@ -338,7 +338,6 @@ function switchSimMode() {
     $.get("/get_explore_status", function (data, status) {
         if (data == "N")
             return
-
         floatTable.style.visibility = 'visible';
         $.get("/get_original_arena", function (data, status) {
             var original = jQuery.parseJSON(data);
@@ -373,8 +372,13 @@ function switchActualMode() {
     cardExploration.style.top = '0';
     cardFastestPath.style.top = '0';
 
-    if (getExploring())
+
+    $.get("/get_explore_status", function (data, status) {
+        if (data == "N")
+            return false
         updateExploreStatus();
+    });
+
     setFopVisible(true);
 }
 
@@ -440,13 +444,7 @@ $(document).ready(function () {
     });
 
     $("#btnExploration").click(function () {
-        robotPosRow = $("#robotPosRow").val()
-        robotPosCol = $("#robotPosCol").val()
-        robotHead = $("#robotHead").val()
-        robotSpeed = $("#robotSpeed").val()
-        exploreTime = $("#exploreTime").val()
-        explorePercent = $("#explorePercent").val()
-        data = [tableToArray(), robotPosRow, robotPosCol, robotHead, robotSpeed, exploreTime, explorePercent];
+        data = [tableToArray(), robotPosRow.value, robotPosCol.value, robotHead.value, robotSpeed.value, exploreTime.value, explorePercent.value];
         $.ajax({
             type: 'POST',
             data: JSON.stringify(data),
@@ -454,7 +452,6 @@ $(document).ready(function () {
             url: '/exploration_sim',
             success: function (data) {
                 switchSimMode();
-                //updateExploreStatus();
             }
         });
     });
