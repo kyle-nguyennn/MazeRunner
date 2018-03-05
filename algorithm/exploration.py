@@ -7,7 +7,7 @@ from race import dijkstra
 from tcp_client import TcpClient
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -19,8 +19,10 @@ class Explorer():
         ##### exploration logics related variables ####
         self.exploredArea = 0
         self.cnt = 0 # no. of instruction executed
-        self.timeThreshold = 260
+        self.goBackTime = tBack # seconds for it to go back Start from any position
+        self.timeThreshold = tThresh # user-input time to terminate exploration
         self.timeLimit = 360
+        self.areaPercentage = pArea # percentage we want the robot to explore up to
         self.reachGoal = False
         self.startTime = time.time()
         self.robot = Robot(
@@ -56,11 +58,15 @@ class Explorer():
             #update map with sensor values
             self.updateMap(sensors)
             explorationTime = time.time() - self.startTime
+            # if hard deadline reached: just break
+            if explorationTime > self.timeLimit:
+                self.robot.robotMode = "break"
+                break
             #check reachgoal
             if self.robot.robotCenterH == 18 and self.robot.robotCenterW == 13:
                 self.reachGoal = True
             # if reach time limit
-            if self.timeLimit - explorationTime <= 20 or self.exploredArea == 300:
+            if self.timeThreshold < explorationTime or self.exploredArea >= 300*self.areaPercentage:
                 if self.robot.isInStartZone():
                     self.robot.robotMode = "done"
                     break
@@ -177,31 +183,6 @@ class Explorer():
                     if self.is_valid_point((x,y)):
                         logging.debug("Obstacle coordinate " + str(x) + " " + str(y))
                         realTimeMap.set(x, y, CellType.OBSTACLE)
-            ######################
-            # if 0 <= sensorIndex <= 4:
-            #     #front sensors
-            #     if sensorIndex < 3:
-            #         offsets = self.frontCells[head][sensorIndex]
-            #     else:
-            #         # minus 3 as 3,4 correspond to 0 and 1 in rightCells arrays
-            #         offsets = self.rightCells[head][sensorIndex-3]
-            #     for i in range(value):
-            #         # if got obstacle, dun update ???
-            #         if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
-            #             realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
-            #     if value < self.MAX_SHORT_SENSOR:
-            #         if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
-            #             realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
-            # elif sensorIndex == 5:
-            #     offsets = self.leftCells[head]
-            #     for i in range(value):
-            #         if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
-            #             realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
-            #     if value < self.MAX_LONG_SENSOR:
-            #         if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
-            #             realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
-            # else:
-            #     print("sensor index out of bound")
         self.updateExploredArea()
     def updateMap(self, sensorValues):
         # sensorValue = "AAAAAA"

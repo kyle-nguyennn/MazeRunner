@@ -300,6 +300,10 @@ function switchEditMode() {
     cardExploration.style.position = 'absolute';
     cardFastestPath.style.position = 'absolute';
 
+    cardConnect.style.top = '0';
+    cardExploration.style.top = '0';
+    cardFastestPath.style.top = '0';
+
     clearInterval(exploreStatusAni);
     mdfToArray();
     setFopVisible(false);
@@ -323,6 +327,9 @@ function switchSimMode() {
     cardExploration.style.position = '';
     cardFastestPath.style.position = '';
 
+    cardArena.style.top = '0';
+    cardConnect.style.top = '0';
+
     if (getExploring())
         updateExploreStatus();
     setFopVisible(true);
@@ -345,6 +352,10 @@ function switchActualMode() {
     cardConnect.style.position = '';
     cardExploration.style.position = 'absolute';
     cardFastestPath.style.position = 'absolute';
+
+    cardArena.style.top = '0';
+    cardExploration.style.top = '0';
+    cardFastestPath.style.top = '0';
 
     if (getExploring())
         updateExploreStatus();
@@ -417,7 +428,9 @@ $(document).ready(function () {
         robotPosCol = $("#robotPosCol").val()
         robotHead = $("#robotHead").val()
         robotSpeed = $("#robotSpeed").val()
-        data = [tableToArray(), robotPosRow, robotPosCol, robotHead, robotSpeed];
+        exploreTime = $("#exploreTime").val()
+        explorePercent = $("#explorePercent").val()
+        data = [tableToArray(), robotPosRow, robotPosCol, robotHead, robotSpeed, exploreTime, explorePercent];
         $.ajax({
             type: 'POST',
             data: JSON.stringify(data),
