@@ -94,7 +94,7 @@ class SimulatorServer():
                 for char in command:
                     self.move_robot(char)
                     time.sleep(self.speed)
-                    self.send_data(self.getReadings())
+                self.send_data(self.getReadings())
 
     def move_robot(self, action):
 
