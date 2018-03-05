@@ -158,6 +158,11 @@ def get_explore_status():
     return json.dumps(result)
 
 
+@app.route('/get_original_arena', methods=['GET'])
+def get_original_arena():
+    return json.dumps(arena_to_array(sim_server.get_arena()))
+
+
 def arena_to_array(arena):
     arena_2d = [[-1 for y in range(15)] for x in range(20)]
     for x in range(20):
@@ -183,12 +188,16 @@ def start_simulation_server(arena_obj, robot_pos, speed):
 
 
 def start_exploration_algo(robot_pos):
+    global mode
     global tcp_conn
     global explore_algo
     global explore_time_limit
     global explore_coverage
-    explore_algo = Explorer(
-        tcp_conn, robot_pos, tThresh=explore_time_limit, pArea=(explore_coverage/100))
+    if mode == Mode.SIM_SERVER:
+        explore_algo = Explorer(
+            tcp_conn, robot_pos, tThresh=explore_time_limit, pArea=(explore_coverage/100))
+    elif mode == Mode.PI_CONNECTION:
+        explore_algo = Explorer(tcp_conn, robot_pos)
     explore_algo.run()
 
 
@@ -217,7 +226,7 @@ def handle_request(data):
                                 request["robotPos"]])
         explore_thread.start()
     elif request["command"] == "beginFastest":
-        tcp_conn.send_command(getInstructions(None,  request["robotPos"]))
+        tcp_conn.send_command(getInstructions(None,  request["wayPoint"]))
     elif request["command"] == "autoStart":
         explore_algo.set_update(True)
     elif request["command"] == "autoStop":
