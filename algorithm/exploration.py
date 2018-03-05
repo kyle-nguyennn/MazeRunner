@@ -1,13 +1,14 @@
 from arena import Arena,CellType
 from Robot import Robot
 from random import randint
-import time, socket
+import time, socket, logging, sys
 import race
 from race import dijkstra
 from tcp_client import TcpClient
 
 class Explorer():
     def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,pArea=0.9,alignLimit = 3):
+        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
         self.arena = Arena()
@@ -108,25 +109,22 @@ class Explorer():
                     # give instruction
                     self.tcp_conn.send_command(instructions)
                     # update robot states (position and orientation)
-                    (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
-                    self.robot.robotHead = endOrientation
+                    self.robot.jump(endnode)
                     continue
             else:
                 if self.reachGoal:
-# =============================================================================
-#                     if not self.robot.isAlmostBack() and \
-#                         self.robot.robotMode != 'reExplore':
-#                         # find way back to start zone using fastest path algo (djikstra)
-#                         startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
-#                         endnode = (1,1,0)
-#                         (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
-#                         # give instruction
-#                         self.tcp_conn.send_command(instructions)
-#                         # update robot states (position and orientation)
-#                         (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
-#                         self.robot.robotHead = endOrientation
-#                         continue
-# =============================================================================
+                    if explorationTime > self.timeLimit and \
+                        not self.robot.isAlmostBack() and \
+                        self.robot.robotMode != 'reExplore':
+                        # find way back to start zone using fastest path algo (djikstra)
+                        startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
+                        endnode = (1,1,0)
+                        (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
+                        # give instruction
+                        self.tcp_conn.send_command(instructions)
+                        # update robot states (position and orientation)
+                        self.robot.jump(endnode) # already update sensors inside
+                        continue
                     if self.robot.isAlmostBack() and self.exploredArea < 300*self.areaPercentage:
                         self.robot.robotMode = 'reExplore'
                     if self.robot.robotMode == 'reExplore':
@@ -135,7 +133,8 @@ class Explorer():
                         # give instruction
                         self.tcp_conn.send_command(instruction)
                         # update robot states
-                        (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
+                        self.robot.jump(endnode) # already update sensors inside
+
                         print("comeplete a re-reploration")
                         continue
 
@@ -144,12 +143,19 @@ class Explorer():
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
                 self.tcp_conn.send_command(instruction)
-
+                print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
+                print("robot head:",self.robot.robotHead)
+                print("sensor 1 absolute direction", self.robot.sensors[0].get_absolute_direction_mod4())
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()           
         print("Exploration time:",explorationTime)
         self.update_status("End exploration")
         self.tcp_conn.send_command("EE")
+
+    def is_valid_point(self, point):
+        x = point[0]
+        y = point[1]
+        return (x >= 0 and x <20 and y >= 0 and y < 15)
 
     def get_arena(self):
         return self.arena
@@ -187,57 +193,41 @@ class Explorer():
         h = self.robot.robotCenterH
         head = self.robot.robotHead
         realTimeMap = self.arena
+        print("inside markCells", sensorIndex, value)
         # if withint the map range, then mark. Otherwise discard the reading
         if (0 <= w <= 13 and 0 <= h <= 18):
             # sensorIndex = 0..5 corresponding to F1,F2,F3,R1,R2,L1
             # only the 5th sensor (top left) is long range sensor
-            if 0 <= sensorIndex <= 4:
-                #front sensors
-                if sensorIndex < 3:
-                    offsets = self.frontCells[head][sensorIndex]
-                else:
-                    # minus 3 as 3,4 correspond to 0 and 1 in rightCells arrays
-                    offsets = self.rightCells[head][sensorIndex-3]
+            sensor = self.robot.sensors[sensorIndex]
+            offsets = self.robot.visible_offsets(sensor)
+            print(offsets)
+            if value <= sensor.visible_range:
                 for i in range(value):
-                    # if got obstacle, dun update ???
-                    if realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) == CellType.OBSTACLE \
-                        and [h+offsets[i][0], w+offsets[i][1]] not in self.conflictCells:
-                        self.conflictCells.append([h+offsets[i][0], w+offsets[i][1]])
+                    x = h + offsets[i][0]
+                    y = w + offsets[i][1]
+                    print("empty coordinate ", x, y)
+                    logging.debug("Empty coordinate " + str(x) +" " + str(y))
+                    realTimeMap.set(x, y, CellType.EMPTY)
+                    
+                    if realTimeMap.get(x,y) == CellType.OBSTACLE \
+                        and [x,y] not in self.conflictCells:
+                        self.conflictCells.append(x,y)
                     else:
-                        realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
-                        if [h+offsets[i][0], w+offsets[i][1]] in self.conflictCells:
-                            self.conflictCells.remove([h+offsets[i][0], w+offsets[i][1]])
-                if value < self.MAX_SHORT_SENSOR:
-                    if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
-                        if realTimeMap.get(h+offsets[value][0], w+offsets[value][1]) == CellType.EMPTY\
-                        and [h+offsets[value][0], w+offsets[value][1]] not in self.conflictCells:
-                            self.conflictCells.append([h+offsets[value][0], w+offsets[value][1]])
+                        realTimeMap.set(x,y,CellType.EMPTY)
+                        if [x,y] in self.conflictCells:
+                            self.conflictCells.remove([x,y])                 
+                if value < sensor.visible_range:
+                    x = h + offsets[value][0]
+                    y = w + offsets[value][1]
+                    if self.is_valid_point((x,y)):
+                        logging.debug("Obstacle coordinate " + str(x) + " " + str(y))                      
+                        if realTimeMap.getx,y) == CellType.EMPTY \
+                        and [x,y] not in self.conflictCells:
+                            self.conflictCells.append([x,y])
                         else:
-                            realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
-                            if [h+offsets[value][0], w+offsets[value][1]] in self.conflictCells:
-                                self.conflictCells.remove([h+offsets[value][0], w+offsets[value][1]])
-
-            elif sensorIndex == 5:
-                offsets = self.leftCells[head]
-                for i in range(value):
-                    if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) == CellType.OBSTACLE \
-                        and [h+offsets[i][0], w+offsets[i][1]] not in self.conflictCells):
-                        self.conflictCells.append([h+offsets[i][0], w+offsets[i][1]])
-                    else:
-                        realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
-                        if [h+offsets[i][0], w+offsets[i][1]] in self.conflictCells:
-                            self.conflictCells.remove([h+offsets[i][0], w+offsets[i][1]])
-                if value < self.MAX_LONG_SENSOR:
-                    if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
-                        if realTimeMap.get(h+offsets[value][0], w+offsets[value][1]) == CellType.EMPTY\
-                        and [h+offsets[value][0], w+offsets[value][1]] not in self.conflictCells:
-                            self.conflictCells.append([h+offsets[value][0], w+offsets[value][1]])
-                        else:
-                            realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
-                            if [h+offsets[value][0], w+offsets[value][1]] in self.conflictCells:
-                                self.conflictCells.remove([h+offsets[value][0], w+offsets[value][1]])
-            else:
-                print("sensor index out of bound")
+                            realTimeMap.set(x,y,CellType.OBSTACLE)
+                            if [x,y] in self.conflictCells:
+                                self.conflictCells.remove([x,y])
         self.updateExploredArea()
         return wrongCells
     def updateMap(self, sensorValues):
@@ -306,10 +296,6 @@ class Explorer():
         print("Inside wall hugging")
         sensor = "" 
         bodyCells = self.robot.returnBodyCells()
-# =============================================================================
-#         print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
-#         print("robot head:",self.robot.robotHead)
-# =============================================================================
         for cell in bodyCells:
             self.arena.set(cell[0],cell[1],CellType.EMPTY)
         self.alignCnt += 1 # increment alignment counter
@@ -321,7 +307,7 @@ class Explorer():
             self.checkAlign(2)
         else:
             self.alignNow = False
-            
+
         if (self.checkingRight == False):
             # decide turn-right condition
             if (self.checkRight() == "true"):                    
@@ -341,11 +327,6 @@ class Explorer():
                     sensor = self.alignSensor
                     self.align()
                 return (''.join([sensor,"R"]))
-
-# =============================================================================
-#             else:
-#                 print("right has obstacle")
-# =============================================================================
                                   
         # alr enter checkingRight now, so update status as False again
         self.checkingRight = False
@@ -455,9 +436,12 @@ class Explorer():
         print("observeDirection:",observeDirection)
             
         cellToMove = (xToMove, yToMove, observeDirection)
+        logging.debug("Cell to move: " + str(cellToMove))
         # use djikstra
         startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
         (instr, endNode) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+        logging.debug("Instruction for going to observing cell" + instr)
+        logging.debug("Observing point " + str(endNode))
         return (instr, endNode)
         
         # need to check robot final head direction

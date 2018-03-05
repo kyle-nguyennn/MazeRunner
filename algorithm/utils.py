@@ -1,4 +1,6 @@
 from arena import Arena
+import json
+
 def getBit(x, i):
     return (x & (1 << i)) >> i
 
@@ -19,8 +21,16 @@ def createMapTest():
             map.set(i, j, int(s[j]))
     print(map.get_2d_arr())
     return(map)
+# 400000001c800000000000700000000800000001f8000070000000002000000000
+
+def parse_robot_config(path_to_config_file):
+    file = open(path_to_config_file).read()
+    return json.loads(file)
 
 if __name__ == "__main__":
-    createMapTest()
+    a = parse_robot_config("./robot.conf")
+    print(type(a))
+    for sensor in a["sensors"]:
+        print(sensor)
 
-# 400000001c800000000000700000000800000001f8000070000000002000000000
+

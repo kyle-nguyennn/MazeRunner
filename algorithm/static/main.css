@@ -56,6 +56,22 @@ td.marker {
     /* IE 10  */
 }
 
+#floatingArena {
+    width: 529px;
+    height: 694px;
+    position: absolute;
+    top: 43px;
+    left: 0;
+    opacity: 0.5;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    /* Webkit */
+    -moz-user-select: none;
+    /* Firefox */
+    -ms-user-select: none;
+    /* IE 10  */
+}
+
 #robot-fop {
     visibility: hidden;
 }

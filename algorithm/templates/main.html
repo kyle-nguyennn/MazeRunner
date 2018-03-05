@@ -8,6 +8,7 @@
     <!-- Bootstrap core CSS -->
     <link rel="stylesheet" href="/static/bootstrap.min.css">
     <!-- Custom styles for this template -->
+    <link rel="stylesheet" href="/static/jquery-ui.min.css">
     <link rel="stylesheet" href="/static/main.css">
 </head>
 
@@ -174,21 +175,53 @@
                                     <input type="number" class="form-control" id="robotSpeed" name="robotSpeed" step="any" min=0 value=1>
                                 </div>
                             </div>
+                            <div class="form-group row">
+                                <label for="exploreTime" class="col-sm-6 col-form-label">Exploration Time Limit (Seconds):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="exploreTime" name="exploreTime" min=0 value=60>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="explorePercent" class="col-sm-6 col-form-label">Eploration Coverage (%):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="explorePercent" name="explorePercent" min=0 max=100 value=100>
+                                </div>
+                            </div>
                             <button type="button" id="btnExploration" class="btn btn-primary">Run Simulation</button>
                         </div>
                     </div>
                 </div>
+
+                <table id="floatingArena">
+                    <tbody>
+                        {% for x in range(0, 20) %}
+                        <tr>
+                            <td class="marker">{{ 19-x }}</td>
+                            {% for y in range(0, 15) %}
+                            <td class="empty">&nbsp;</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                        <tr>
+                            <td class="marker">&nbsp;</td>
+                            {% for y in range(0, 15) %}
+                            <td class="marker">{{ y }}</td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>
+
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="/static/jquery-3.3.1.min.js"></script>
+    <script src="/static/jquery-ui.min.js"></script>
     <script src="/static/popper.min.js"></script>
     <script src="/static/bootstrap.min.js"></script>
-
     <script src="/static/main.js"></script>
 </body>
 
