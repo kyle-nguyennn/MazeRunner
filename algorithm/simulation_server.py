@@ -7,6 +7,7 @@ import json
 from sensor import Sensor
 from utils import parse_robot_config
 
+
 class SimulatorServer():
 
     def __init__(self, tcp_ip, tcp_port, arena_obj, robot_pos, speed, buffer_size=1024):
@@ -15,7 +16,8 @@ class SimulatorServer():
         self.sensor = []
         sensors = parse_robot_config("./robot.conf")
         for sensor in sensors["sensors"]:
-            self.sensor.append(Sensor(sensor["max_range"], sensor["position"], sensor["orientation"]))
+            self.sensor.append(
+                Sensor(sensor["max_range"], sensor["position"], sensor["orientation"]))
         self.robot_pos = robot_pos
 
         self.speed = speed
@@ -78,6 +80,9 @@ class SimulatorServer():
     def set_arena(self, arena):
         arena.print()
         self.arena = arena
+
+    def get_arena(self):
+        return self.arena
 
     def start_explore(self):
         self.send_data(self.getReadings())

@@ -16,6 +16,7 @@ var robotPosRow = document.getElementById("robotPosRow");
 var robotPosCol = document.getElementById("robotPosCol");
 var robotHead = document.getElementById("robotHead");
 var lblStatus = document.getElementById("lblStatus");
+var floatTable = document.getElementById("floatingArena");
 
 var cellMovt;
 var cellAni;
@@ -81,20 +82,21 @@ function tableToArray() {
     return null;
 }
 
-function drawCanvas(arena) {
-    if (table != null) {
-        for (var x = 0; x < table.rows.length - 1; x++) {
-            for (var y = 1; y < table.rows[x].cells.length; y++) {
+function drawCanvas(display, arena) {
+    if (display != null) {
+        for (var x = 0; x < display.rows.length - 1; x++) {
+            for (var y = 1; y < display.rows[x].cells.length; y++) {
                 if (arena[x][y - 1] == -1)
-                    table.rows[x].cells[y].className = "unknown";
+                    display.rows[x].cells[y].className = "unknown";
                 else if (arena[x][y - 1] == 0)
-                    table.rows[x].cells[y].className = "empty";
+                    display.rows[x].cells[y].className = "empty";
                 else if (arena[x][y - 1] == 1)
-                    table.rows[x].cells[y].className = "obstacle"
+                    display.rows[x].cells[y].className = "obstacle"
             }
         }
     }
 }
+
 
 function setFopVisible(visible) {
     var fop = document.getElementById("robot-fop");
@@ -199,7 +201,7 @@ function updateExploreStatus() {
             var robot = obj[1];
             var status = obj[2];
             lblStatus.textContent = "Robot Status: " + status;
-            drawCanvas(arena);
+            drawCanvas(table, arena);
             setRobotPosition(robot[0], robot[1], robot[2]);
         });
     }
@@ -255,7 +257,7 @@ function mdfToArray() {
         part1: $("#mdfPart1").val(),
         part2: $("#mdfPart2").val()
     }, function (data, status) {
-        drawCanvas(JSON.parse(data));
+        drawCanvas(table, JSON.parse(data));
     });
 }
 
@@ -294,6 +296,7 @@ function switchEditMode() {
     cardConnect.style.visibility = 'hidden';
     cardExploration.style.visibility = 'hidden';
     cardFastestPath.style.visibility = 'hidden';
+    floatTable.style.visibility = 'hidden';
 
     cardArena.style.position = '';
     cardConnect.style.position = 'absolute';
@@ -319,6 +322,7 @@ function switchSimMode() {
 
     cardArena.style.visibility = 'hidden';
     cardConnect.style.visibility = 'hidden';
+    floatTable.style.visibility = 'hidden';
     cardExploration.style.visibility = 'visible';
     cardFastestPath.style.visibility = 'visible';
 
@@ -330,8 +334,19 @@ function switchSimMode() {
     cardArena.style.top = '0';
     cardConnect.style.top = '0';
 
-    if (getExploring())
+
+    $.get("/get_explore_status", function (data, status) {
+        if (data == "N")
+            return
+
+        floatTable.style.visibility = 'visible';
+        $.get("/get_original_arena", function (data, status) {
+            var original = jQuery.parseJSON(data);
+            drawCanvas(floatTable, original);
+        });
         updateExploreStatus();
+    });
+
     setFopVisible(true);
 }
 
@@ -347,6 +362,7 @@ function switchActualMode() {
     cardConnect.style.visibility = 'visible';
     cardExploration.style.visibility = 'hidden';
     cardFastestPath.style.visibility = 'hidden';
+    floatTable.style.visibility = 'hidden';
 
     cardArena.style.position = 'absolute';
     cardConnect.style.position = '';
@@ -438,8 +454,12 @@ $(document).ready(function () {
             url: '/exploration_sim',
             success: function (data) {
                 switchSimMode();
-                updateExploreStatus();
+                //updateExploreStatus();
             }
         });
     });
+});
+
+$(function () {
+    $("#floatingArena").draggable();
 });
