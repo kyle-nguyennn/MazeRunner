@@ -127,6 +127,12 @@ class Robot():
             3: three
         }[dir]
 
+    def jump(self, pos):
+        self.robotCenterH = pos[0]
+        self.robotCenterW = pos[1]
+        self.robotHead = pos[2]
+        self.updateSensors()
+
 
 if __name__ == "__main__":
     print("test robot class ...")

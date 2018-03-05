@@ -35,6 +35,19 @@ def neighbors(mymap, cur): # cur is (x,y,d)
     }[d]
 
     neighbors = []
+    for i in range(1,4): # add states can achieved by stand still and turn
+        neighbor_pos = (x,y, (d+i)%4)
+        if i == 2:
+            moveCost = 2
+        else:
+            moveCost = 1
+        move = {
+            1: "R",
+            2: "RR",
+            3: "L"
+        }[i]
+        neighbors.append((neighbor_pos, moveCost, move))
+    ############## TODO: add states achieved by moving to neighbor cells and optional turn
     for i in range(len(offsets)):
         (neighborX, neighborY) = elementWiseAdd((x,y), offsets[i])
         if i != 2:
@@ -48,7 +61,8 @@ def neighbors(mymap, cur): # cur is (x,y,d)
             2: (1, "B"),
             3: (2, "LF")
         }[i]
-        neighbors.append((neighborPos, moveCost, move))
+        if i == 0 or i == 2: # only allow moving forward or backward
+            neighbors.append((neighborPos, moveCost, move))
     return neighbors
 
 def popMin(costs):
@@ -81,14 +95,14 @@ def dijkstra(mymap, start, end, endOrientationImportant = False):
         compareEndUntil = -1
     while True:
         cur, curCost = popMin(costs)    # get the item with min cost and remove it from the dict
-        if end == (18, 13, 0):
-            print("in djikstra: cur ", cur, curCost)
+        # if end == (18, 13, 0):
+        #     print("in djikstra: cur ", cur, curCost)
         if cur[:compareEndUntil] == end[:compareEndUntil]:
             # store the final minimal cost if needed
             # trace back the path here
             temp = cur
             path = [(cur, "")]
-            print("In djikstra: on end: prev", prev)
+            # print("In djikstra: on end: prev", prev)
             while prev.get(temp) != None:
                 p = prev[temp]
                 path.insert(0, p)

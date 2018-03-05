@@ -78,7 +78,7 @@ class Explorer():
                     # give instruction
                     self.tcp_conn.send_command(instructions)
                     # update robot states (position and orientation)
-                    (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
+                    self.robot.jump(endnode)
                     continue
             else:
                 if self.reachGoal:
@@ -92,8 +92,7 @@ class Explorer():
                         # give instruction
                         self.tcp_conn.send_command(instructions)
                         # update robot states (position and orientation)
-                        (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
-                        self.robot.robotHead = endOrientation
+                        self.robot.jump(endnode) # already update sensors inside
                         continue
                     if self.robot.isAlmostBack() and self.exploredArea < 300:
                         self.robot.robotMode = 'reExplore'
@@ -103,7 +102,8 @@ class Explorer():
                         # give instruction
                         self.tcp_conn.send_command(instruction)
                         # update robot states
-                        (self.robot.robotCenterH, self.robot.robotCenterW,self.robot.robotHead) = endnode
+                        self.robot.jump(endnode) # already update sensors inside
+
                         print("comeplete a re-reploration")
                         continue
 
@@ -124,7 +124,7 @@ class Explorer():
     def is_valid_point(self, point):
         x = point[0]
         y = point[1]
-        return (x > 0 and x <20 and y > 0 and y < 15)
+        return (x >= 0 and x <20 and y >= 0 and y < 15)
 
     def get_arena(self):
         return self.arena
@@ -338,9 +338,12 @@ class Explorer():
         print("observeDirection:",observeDirection)
             
         cellToMove = (xToMove, yToMove, observeDirection)
+        logging.debug("Cell to move: " + str(cellToMove))
         # use djikstra
         startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
         (instr, endNode) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+        logging.debug("Instruction for going to observing cell" + instr)
+        logging.debug("Observing point " + str(endNode))
         return (instr, endNode)
         
         # need to check robot final head direction
