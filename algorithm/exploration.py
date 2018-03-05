@@ -1,13 +1,14 @@
 from arena import Arena,CellType
 from Robot import Robot
 from random import randint
-import time, socket
+import time, socket, logging, sys
 import race
 from race import dijkstra
 from tcp_client import TcpClient
 
 class Explorer():
     def __init__(self, tcp_conn, robot_pos, buffer_size=1024):
+        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
         self.arena = Arena()
@@ -105,12 +106,19 @@ class Explorer():
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
                 self.tcp_conn.send_command(instruction)
-
+                print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
+                print("robot head:",self.robot.robotHead)
+                print("sensor 1 absolute direction", self.robot.sensors[0].get_absolute_direction_mod4())
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()           
         print("Exploration time:",explorationTime)
         self.update_status("End exploration")
         self.tcp_conn.send_command("EE")
+
+    def is_valid_point(self, point):
+        x = point[0]
+        y = point[1]
+        return (x > 0 and x <20 and y > 0 and y < 15)
 
     def get_arena(self):
         return self.arena
@@ -148,34 +156,52 @@ class Explorer():
         h = self.robot.robotCenterH
         head = self.robot.robotHead
         realTimeMap = self.arena
+        print("inside markCells", sensorIndex, value)
         # if withint the map range, then mark. Otherwise discard the reading
         if (0 <= w <= 13 and 0 <= h <= 18):
             # sensorIndex = 0..5 corresponding to F1,F2,F3,R1,R2,L1
             # only the 5th sensor (top left) is long range sensor
-            if 0 <= sensorIndex <= 4:
-                #front sensors
-                if sensorIndex < 3:
-                    offsets = self.frontCells[head][sensorIndex]
-                else:
-                    # minus 3 as 3,4 correspond to 0 and 1 in rightCells arrays
-                    offsets = self.rightCells[head][sensorIndex-3]
+            sensor = self.robot.sensors[sensorIndex]
+            offsets = self.robot.visible_offsets(sensor)
+            print(offsets)
+            if value <= sensor.visible_range:
                 for i in range(value):
-                    # if got obstacle, dun update ???
-                    if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
-                        realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
-                if value < self.MAX_SHORT_SENSOR:
-                    if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
-                        realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
-            elif sensorIndex == 5:
-                offsets = self.leftCells[head]
-                for i in range(value):
-                    if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
-                        realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
-                if value < self.MAX_LONG_SENSOR:
-                    if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
-                        realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
-            else:
-                print("sensor index out of bound")
+                    x = h + offsets[i][0]
+                    y = w + offsets[i][1]
+                    print("empty coordinate ", x, y)
+                    logging.debug("Empty coordinate " + str(x) +" " + str(y))
+                    realTimeMap.set(x, y, CellType.EMPTY)
+                if value < sensor.visible_range:
+                    x = h + offsets[value][0]
+                    y = w + offsets[value][1]
+                    if self.is_valid_point((x,y)):
+                        logging.debug("Obstacle coordinate " + str(x) + " " + str(y))
+                        realTimeMap.set(x, y, CellType.OBSTACLE)
+            ######################
+            # if 0 <= sensorIndex <= 4:
+            #     #front sensors
+            #     if sensorIndex < 3:
+            #         offsets = self.frontCells[head][sensorIndex]
+            #     else:
+            #         # minus 3 as 3,4 correspond to 0 and 1 in rightCells arrays
+            #         offsets = self.rightCells[head][sensorIndex-3]
+            #     for i in range(value):
+            #         # if got obstacle, dun update ???
+            #         if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
+            #             realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
+            #     if value < self.MAX_SHORT_SENSOR:
+            #         if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
+            #             realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
+            # elif sensorIndex == 5:
+            #     offsets = self.leftCells[head]
+            #     for i in range(value):
+            #         if (realTimeMap.get(h+offsets[i][0], w+offsets[i][1]) != CellType.OBSTACLE):
+            #             realTimeMap.set(h+offsets[i][0], w+offsets[i][1], CellType.EMPTY)
+            #     if value < self.MAX_LONG_SENSOR:
+            #         if (19 >= h+offsets[value][0] >= 0 and 14 >= w+offsets[value][1] >= 0):
+            #             realTimeMap.set(h+offsets[value][0], w+offsets[value][1], CellType.OBSTACLE)
+            # else:
+            #     print("sensor index out of bound")
         self.updateExploredArea()
     def updateMap(self, sensorValues):
         # sensorValue = "AAAAAA"
@@ -197,7 +223,6 @@ class Explorer():
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self):
         robot = self.robot
-        print("inside checkRight")
         rightCells = robot.rightCells
         for cell in rightCells[robot.robotHead]:
             if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 \
@@ -211,13 +236,9 @@ class Explorer():
     def wallHugging(self): # return instruction
         # mark current body cells as empty
         # actually might not need, just put here first
-        print("Inside wall hugging")
         bodyCells = self.robot.returnBodyCells()
-        print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
-        print("robot head:",self.robot.robotHead)
         for cell in bodyCells:
             self.arena.set(cell[0],cell[1],CellType.EMPTY)
-        print("hello")
         if (self.checkingRight == False):
             # decide turn-right condition
             if (self.checkRight() == "true"):

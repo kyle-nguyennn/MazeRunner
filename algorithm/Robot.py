@@ -1,3 +1,5 @@
+from utils import parse_robot_config
+from sensor import Sensor
 class Robot():
     
     # attributes
@@ -16,6 +18,11 @@ class Robot():
         # initialize starting point
         self.robotCenterH = h
         self.robotCenterW = w
+        self.sensors = []
+        sensors = parse_robot_config("./robot.conf")
+        for sensor in sensors["sensors"]:
+            self.sensors.append(Sensor(sensor["max_range"], sensor["position"], sensor["orientation"]))
+        # self.sensor.append(Sensor(3, 1, 0))
         # 3 cells of level 0 to the right with respect to each direction
         self.rightCells = {0:[[1,2],[0,2],[-1,2]],
 					       1:[[-2,1],[-2,0],[-2,-1]],
@@ -47,6 +54,9 @@ class Robot():
     def getPosition(self):
         return [self.robotCenterH, self.robotCenterW, self.robotHead*90]
 
+    def updateSensors(self):
+        for sensor in self.sensors:
+            sensor.set_robot(self.robotCenterH, self.robotCenterW, self.robotHead*90)
     # move front, update center cell coordinates
     def forward(self):
         if (self.robotHead == 0):		
@@ -59,13 +69,28 @@ class Robot():
             self.robotCenterW -= 1
         else:
             print("Error: head direction out of bound")
-              
-    
+        self.updateSensors()
+
+    def backward(self):
+        if (self.robotHead == 0):		
+            self.robotCenterH -= 1
+        elif (self.robotHead == 1):
+            self.robotCenterW -= 1
+        elif (self.robotHead == 2):
+           self.robotCenterH += 1
+        elif (self.robotHead == 3):
+            self.robotCenterW += 1
+        else:
+            print("Error: head direction out of bound")
+        self.updateSensors() 
+
     def rotateRight(self):
         self.robotHead = (self.robotHead + 1) %4
+        self.updateSensors()
     
     def rotateLeft(self):
         self.robotHead = (self.robotHead - 1) %4
+        self.updateSensors()
 
     def isInGoal(self):
         if self.robotCenterH == 18 and self.robotCenterW == 13:
@@ -81,6 +106,27 @@ class Robot():
         if self.robotCenterH <= 4 and self.robotCenterW <= 4:
             return True
         return False
+
+    def visible_offsets(self, sensor):
+        # compute based on sensor absolute direction, and relative postition on the robot
+        x,y = sensor.relative_pos()
+        dir = sensor.get_absolute_direction_mod4()
+        zero = []
+        one = []
+        two = []
+        three = []
+        for i in range(sensor.visible_range):
+            zero.append((x+i+1, y))
+            one.append((x, y+i+1))
+            two.append((x-i-1, y))
+            three.append((x, y-i-1))
+        return {
+            0: zero,
+            1: one,
+            2: two,
+            3: three
+        }[dir]
+
 
 if __name__ == "__main__":
     print("test robot class ...")
