@@ -174,6 +174,18 @@
                                     <input type="number" class="form-control" id="robotSpeed" name="robotSpeed" step="any" min=0 value=1>
                                 </div>
                             </div>
+                            <div class="form-group row">
+                                <label for="exploreTime" class="col-sm-6 col-form-label">Exploration Time Limit (Seconds):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="exploreTime" name="exploreTime" min=0 value=60>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="explorePercent" class="col-sm-6 col-form-label">Eploration Coverage (%):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="explorePercent" name="explorePercent" min=0 max=100 value=100>
+                                </div>
+                            </div>
                             <button type="button" id="btnExploration" class="btn btn-primary">Run Simulation</button>
                         </div>
                     </div>

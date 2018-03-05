@@ -82,15 +82,21 @@ class SimulatorServer():
         self.arena = arena
 
     def start_explore(self):
+        self.send_data(self.getReadings())
         while self.running:
-            self.send_data(self.getReadings())
             command = self.get_command()
             if command == None or command == "EE":
                 self.close_conn()
+            elif command[0] == "C":
+                pass
+            elif command == "N":
+                self.send_data(self.getReadings())
+                pass
             else:
                 for char in command:
                     self.move_robot(char)
                     time.sleep(self.speed)
+                    self.send_data(self.getReadings())
 
     def move_robot(self, action):
 

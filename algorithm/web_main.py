@@ -91,6 +91,10 @@ def exploration():
     arena_2d = data[0]
     robot_pos = [int(data[1]), int(data[2]), int(data[3])]
     speed = float(data[4])
+    global explore_time_limit
+    explore_time_limit = int(data[5])
+    global explore_coverage
+    explore_coverage = int(data[6])
     arena_obj = array_to_arena(arena_2d)
     sim_server_thread = Thread(target=start_simulation_server,
                                args=[arena_obj, robot_pos, speed])
@@ -181,7 +185,10 @@ def start_simulation_server(arena_obj, robot_pos, speed):
 def start_exploration_algo(robot_pos):
     global tcp_conn
     global explore_algo
-    explore_algo = Explorer(tcp_conn, robot_pos)
+    global explore_time_limit
+    global explore_coverage
+    explore_algo = Explorer(
+        tcp_conn, robot_pos, tThresh=explore_time_limit, pArea=(explore_coverage/100))
     explore_algo.run()
 
 
