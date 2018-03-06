@@ -119,8 +119,8 @@ def exploration_start():
 @app.route('/connect_to_pi', methods=['GET'])
 def connect_to_pi():
     tcp_client_thread = Thread(
-        # target=connect_tcp_client, args=["192.168.7.1", 77])
-        target=connect_tcp_client, args=["127.0.0.1", 77])
+        target=connect_tcp_client, args=["192.168.7.1", 77])
+    # target=connect_tcp_client, args=["127.0.0.1", 77])
     tcp_client_thread.start()
     global mode
     mode = Mode.PI_CONNECTING

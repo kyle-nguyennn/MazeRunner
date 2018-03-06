@@ -213,8 +213,9 @@ function updateExploreStatus() {
         }
 
         toShowFloatingTable(true);
-
-        var refreshRate = robotSpeed.value * 500;
+        var refreshRate = 200;
+        if (tabSimMode.className != "nav-link active")
+            var refreshRate = robotSpeed.value * 500;
         exploreStatusAni = setInterval(getExploreStatus, refreshRate);
         function getExploreStatus() {
             $.get("/get_explore_status", function (data, status) {
@@ -240,7 +241,6 @@ function toShowFloatingTable(running) {
         return
 
     if (running) {
-
         hideSimControls();
         floatTable.style.visibility = 'visible';
         $.get("/get_original_arena", function (data, status) {
@@ -249,10 +249,8 @@ function toShowFloatingTable(running) {
         });
     }
     else {
-        if (tabSimMode.className == "nav-link active") {
-            showSimControls();
-            floatTable.style.visibility = 'hidden';
-        }
+        showSimControls();
+        floatTable.style.visibility = 'hidden';
     }
 }
 
@@ -315,7 +313,7 @@ function lockMode() {
         if (data == 1) {
             switchSimMode();
         }
-        else if (data == 2) {
+        else if (data == 2 || data == 3 || data == 4) {
             switchActualMode();
         }
     });
@@ -372,7 +370,7 @@ function switchActualMode() {
 
     clearInterval(connectionStatus);
 
-    connectionStatus = setInterval(getConnectionStatus, 1000);
+    connectionStatus = setInterval(getConnectionStatus, 500);
     function getConnectionStatus() {
         $.get("/current_mode", function (data, status) {
             btnConnect.style.visibility = 'hidden';
@@ -387,11 +385,10 @@ function switchActualMode() {
             }
             else if (data == 4) {
                 btnDisconnect.style.visibility = 'visible';
+                updateExploreStatus();
             }
         });
     }
-
-    updateExploreStatus();
 }
 
 function hideEditControls() {
