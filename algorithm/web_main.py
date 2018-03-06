@@ -83,7 +83,7 @@ def fastest_path():
 
 
 @app.route('/exploration_sim', methods=['POST'])
-def exploration():
+def exploration_sim():
     data = json.loads(request.data)
     arena_2d = data[0]
     robot_pos = [int(data[1]), int(data[2]), int(data[3])]
@@ -103,6 +103,13 @@ def exploration():
     global mode
     mode = Mode.SIM_SERVER
     return "Simulation server started."
+
+
+@app.route('/exploration_start', methods=['GET'])
+def exploration_start():
+    explore_thread = Thread(target=start_exploration_algo, args=[[1, 1, 0]])
+    explore_thread.start()
+    return "Exploration started."
 
 
 @app.route('/connect_to_pi', methods=['GET'])

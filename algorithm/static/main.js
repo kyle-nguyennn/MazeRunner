@@ -455,6 +455,12 @@ $(document).ready(function () {
             }
         });
     });
+
+    $("#btnExploreStart").click(function () {
+        $.get("/exploration_start", function (data, status) {
+            switchActualMode();
+        });
+    });
 });
 
 $(function () {
