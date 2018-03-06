@@ -47,7 +47,7 @@ def neighbors(mymap, cur): # cur is (x,y,d)
             3: "L"
         }[i]
         neighbors.append((neighbor_pos, moveCost, move))
-    ############## TODO: add states achieved by moving to neighbor cells and optional turn
+    # add states achieved by moving to neighbor cells and optional turn
     for i in range(len(offsets)):
         (neighborX, neighborY) = elementWiseAdd((x,y), offsets[i])
         if i != 2:
