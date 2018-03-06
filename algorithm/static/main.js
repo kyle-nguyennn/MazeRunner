@@ -13,6 +13,7 @@ var cardFastestPath = document.getElementById("cardFastestPath");
 var cardExploration = document.getElementById("cardExploration");
 var btnConnect = document.getElementById("btnConnect");
 var btnDisconnect = document.getElementById("btnDisconnect");
+var btnExploreStart = document.getElementById("btnExploreStart");
 var robotPosRow = document.getElementById("robotPosRow");
 var robotPosCol = document.getElementById("robotPosCol");
 var robotHead = document.getElementById("robotHead");
@@ -26,22 +27,28 @@ var floatTable = document.getElementById("floatingArena");
 var cellMovt;
 var cellAni;
 var exploreStatusAni;
+var connectionStatus;
 
 var arenaHeight = 694;
 var cellSize = 33;
 var robotSize = 100;
 
 if (table != null) {
-    for (var x = 0; x < table.rows.length; x++) {
-        for (var y = 0; y < table.rows[x].cells.length; y++) {
+    for (var x = 0; x < table.rows.length - 1; x++) {
+        for (var y = 1; y < table.rows[x].cells.length; y++) {
             table.rows[x].cells[y].onclick = function () {
                 updateCanvas(this);
             };
         }
     }
 }
+
+btnConnect.style.visibility = 'hidden';
+btnDisconnect.style.visibility = 'hidden';
+btnExploreStart.style.visibility = 'hidden';
+
 switchEditMode();
-getMode();
+lockMode();
 moveRobot("");
 
 mdfPart1.oninput = function () { mdfToArray(); };
@@ -195,26 +202,58 @@ function moveRobot(actions) {
 }
 
 function updateExploreStatus() {
+
     clearInterval(exploreStatusAni);
-    var refreshRate = robotSpeed.value * 500;
-    exploreStatusAni = setInterval(getExploreStatus, refreshRate);
-    function getExploreStatus() {
-        if (false) {
+
+    $.get("/get_explore_status", function (data, status) {
+        if (data == "N") {
             clearInterval(exploreStatusAni);
+            toShowFloatingTable(false);
+            return;
         }
-        $.get("/get_explore_status", function (data, status) {
-            if (data == "N")
-                clearInterval(exploreStatusAni);
-            var obj = jQuery.parseJSON(data);
-            var arena = obj[0];
-            var robot = obj[1];
-            var status = obj[2];
-            lblStatus.textContent = "Robot Status: " + status;
-            drawCanvas(table, arena);
-            setRobotPosition(robot[0], robot[1], robot[2]);
+
+        toShowFloatingTable(true);
+        var refreshRate = 200;
+        if (tabSimMode.className != "nav-link active")
+            var refreshRate = robotSpeed.value * 500;
+        exploreStatusAni = setInterval(getExploreStatus, refreshRate);
+        function getExploreStatus() {
+            $.get("/get_explore_status", function (data, status) {
+                if (data == "N") {
+                    clearInterval(exploreStatusAni);
+                    toShowFloatingTable(false);
+                }
+                var obj = jQuery.parseJSON(data);
+                var arena = obj[0];
+                var robot = obj[1];
+                var status = obj[2];
+                lblStatus.textContent = "Robot Status: " + status;
+                drawCanvas(table, arena);
+                setRobotPosition(robot[0], robot[1], robot[2]);
+            });
+        }
+    });
+}
+
+
+function toShowFloatingTable(running) {
+    if (tabSimMode.className != "nav-link active")
+        return
+
+    if (running) {
+        hideSimControls();
+        floatTable.style.visibility = 'visible';
+        $.get("/get_original_arena", function (data, status) {
+            var original = jQuery.parseJSON(data);
+            drawCanvas(floatTable, original);
         });
     }
+    else {
+        showSimControls();
+        floatTable.style.visibility = 'hidden';
+    }
 }
+
 
 function setRobotPosition(h, w, d) {
     setActualRobotPosition(arenaHeight - (h * cellSize) - robotSize, cellSize * w, d);
@@ -269,17 +308,13 @@ function mdfToArray() {
     });
 }
 
-function getMode() {
+function lockMode() {
     $.get("/current_mode", function (data, status) {
-        // btnConnect.style.visibility = 'visible';
-        // btnDisconnect.style.visibility = 'hidden';
         if (data == 1) {
             switchSimMode();
         }
-        else if (data == 2) {
+        else if (data == 2 || data == 3 || data == 4) {
             switchActualMode();
-            // btnConnect.style.visibility = 'hidden';
-            // btnDisconnect.style.visibility = 'visible';
         }
     });
 }
@@ -288,26 +323,16 @@ function switchEditMode() {
     tabEditMode.className = "nav-link active";
     tabSimMode.className = "nav-link";
     tabActualMode.className = "nav-link";
-    editOptions.style.visibility = 'visible';
 
     lblStatus.style.visibility = 'hidden';
-
-    cardArena.style.visibility = 'visible';
-    cardConnect.style.visibility = 'hidden';
-    cardExploration.style.visibility = 'hidden';
-    cardFastestPath.style.visibility = 'hidden';
     floatTable.style.visibility = 'hidden';
 
-    cardArena.style.position = '';
-    cardConnect.style.position = 'absolute';
-    cardExploration.style.position = 'absolute';
-    cardFastestPath.style.position = 'absolute';
-
-    cardConnect.style.top = '0';
-    cardExploration.style.top = '0';
-    cardFastestPath.style.top = '0';
+    showEditControls();
+    hideSimControls();
+    hideActualControls();
 
     clearInterval(exploreStatusAni);
+    clearInterval(connectionStatus);
     mdfToArray();
     setFopVisible(false);
 }
@@ -316,71 +341,96 @@ function switchSimMode() {
     tabSimMode.className = "nav-link active";
     tabEditMode.className = "nav-link";
     tabActualMode.className = "nav-link";
-    editOptions.style.visibility = 'hidden';
 
     lblStatus.style.visibility = 'visible';
-
-    cardArena.style.visibility = 'hidden';
-    cardConnect.style.visibility = 'hidden';
     floatTable.style.visibility = 'hidden';
-    cardExploration.style.visibility = 'visible';
-    cardFastestPath.style.visibility = 'visible';
 
-    cardArena.style.position = 'absolute';
-    cardConnect.style.position = 'absolute';
-    cardExploration.style.position = '';
-    cardFastestPath.style.position = '';
-
-    cardArena.style.top = '0';
-    cardConnect.style.top = '0';
-
-
-    $.get("/get_explore_status", function (data, status) {
-        if (data == "N")
-            return
-        floatTable.style.visibility = 'visible';
-        $.get("/get_original_arena", function (data, status) {
-            var original = jQuery.parseJSON(data);
-            drawCanvas(floatTable, original);
-        });
-        updateExploreStatus();
-    });
-
+    hideEditControls();
+    showSimControls();
+    hideActualControls();
     setFopVisible(true);
+
+    clearInterval(connectionStatus);
+
+    updateExploreStatus();
 }
 
 function switchActualMode() {
     tabActualMode.className = "nav-link active";
     tabSimMode.className = "nav-link";
     tabEditMode.className = "nav-link";
-    editOptions.style.visibility = 'hidden';
 
     lblStatus.style.visibility = 'visible';
-
-    cardArena.style.visibility = 'hidden';
-    cardConnect.style.visibility = 'visible';
-    cardExploration.style.visibility = 'hidden';
-    cardFastestPath.style.visibility = 'hidden';
     floatTable.style.visibility = 'hidden';
 
+    hideEditControls();
+    hideSimControls();
+    showActualControls();
+    setFopVisible(true);
+
+    clearInterval(connectionStatus);
+
+    connectionStatus = setInterval(getConnectionStatus, 500);
+    function getConnectionStatus() {
+        $.get("/current_mode", function (data, status) {
+            btnConnect.style.visibility = 'hidden';
+            btnDisconnect.style.visibility = 'hidden';
+            btnExploreStart.style.visibility = 'hidden';
+            if (data == 0) {
+                btnConnect.style.visibility = 'visible';
+            }
+            else if (data == 2) {
+                btnDisconnect.style.visibility = 'visible';
+                btnExploreStart.style.visibility = 'visible';
+            }
+            else if (data == 4) {
+                btnDisconnect.style.visibility = 'visible';
+                updateExploreStatus();
+            }
+        });
+    }
+}
+
+function hideEditControls() {
+    editOptions.style.visibility = 'hidden';
+    cardArena.style.visibility = 'hidden';
     cardArena.style.position = 'absolute';
-    cardConnect.style.position = '';
+    cardArena.style.top = '0';
+}
+
+function hideSimControls() {
+    cardExploration.style.visibility = 'hidden';
+    cardFastestPath.style.visibility = 'hidden';
     cardExploration.style.position = 'absolute';
     cardFastestPath.style.position = 'absolute';
-
-    cardArena.style.top = '0';
     cardExploration.style.top = '0';
     cardFastestPath.style.top = '0';
-
-
-    $.get("/get_explore_status", function (data, status) {
-        if (data == "N")
-            return false
-        updateExploreStatus();
-    });
-
-    setFopVisible(true);
 }
+
+function hideActualControls() {
+    cardConnect.style.visibility = 'hidden';
+    cardConnect.style.position = 'absolute';
+    cardConnect.style.top = '0';
+}
+
+function showEditControls() {
+    editOptions.style.visibility = 'visible';
+    cardArena.style.visibility = 'visible';
+    cardArena.style.position = '';
+}
+
+function showSimControls() {
+    cardExploration.style.visibility = 'visible';
+    cardFastestPath.style.visibility = 'visible';
+    cardExploration.style.position = '';
+    cardFastestPath.style.position = '';
+}
+
+function showActualControls() {
+    cardConnect.style.visibility = 'visible';
+    cardConnect.style.position = '';
+}
+
 
 $(document).ready(function () {
 
@@ -393,14 +443,14 @@ $(document).ready(function () {
     $('#tabSimMode').click(function (e) {
         e.preventDefault();
         switchSimMode();
-        getMode();
+        lockMode();
         return false;
     });
 
     $('#tabActualMode').click(function (e) {
         e.preventDefault();
         switchActualMode();
-        getMode();
+        lockMode();
         return false;
     });
 
@@ -453,6 +503,12 @@ $(document).ready(function () {
             success: function (data) {
                 switchSimMode();
             }
+        });
+    });
+
+    $("#btnExploreStart").click(function () {
+        $.get("/exploration_start", function (data, status) {
+            switchActualMode();
         });
     });
 });

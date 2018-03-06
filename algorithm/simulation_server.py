@@ -61,12 +61,15 @@ class SimulatorServer():
                 self.close_conn()
                 break
             data_s = data.decode('utf-8')
-            print("SimulatorServer - Received data: {}".format(data_s))
-            if data_s[0] != "{":
-                self.recv_queue.put(data_s)
+            data_arr = data_s.splitlines()
+            for data_str in data_arr:
+                if data_str[0] != "{":
+                    print("SimulatorServer - Received data: {}".format(data_s))
+                    self.recv_queue.put(data_str)
 
     def send_data(self, data):
-        self.client_conn.send(data.encode('utf-8'))
+        self.client_conn.send((data+"\n").encode('utf-8'))
+        print("SimulatorServer - Sent data: {}".format(data))
 
     def close_conn(self):
         self.running = False

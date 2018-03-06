@@ -37,18 +37,20 @@ class TcpClient():
                 self.close_conn()
                 break
             data_s = data.decode('utf-8')
-            print("TcpClient - Received data: {}".format(data_s))
-            if data_s[0] == "{":
-                self.recv_json_queue.put(data_s)
-            else:
-                self.recv_string_queue.put(data_s)
+            data_arr = data_s.splitlines()
+            for data_str in data_arr:
+                print("TcpClient - Received data: {}".format(data_str))
+                if data_str[0] == "{":
+                    self.recv_json_queue.put(data_str)
+                else:
+                    self.recv_string_queue.put(data_str)
 
     def send(self):
         while self.connected:
             if not self.send_queue.empty():
                 try:
                     data = self.send_queue.get()
-                    self.client_socket.send(data.encode('utf-8'))
+                    self.client_socket.send((data+"\n").encode('utf-8'))
                     print("TcpClient - Sent data: {}".format(data))
                 except:
                     print("TcpClient - Error sending data: {}".format(data))
