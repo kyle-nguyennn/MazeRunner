@@ -65,7 +65,7 @@ def run_serial_client(port, baud_rate):
             data = arduino_conn.recv()
             if data is None:
                 break
-            pc_queue.put(data)
+            pc_queue.put(data.rstrip())
         arduino_conn.close_conn()
 
 

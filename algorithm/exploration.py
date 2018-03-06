@@ -215,22 +215,10 @@ class Explorer():
                 for i in range(value):
                     x = h + offsets[i][0]
                     y = w + offsets[i][1]
-                    print("empty coordinate ", x, y)
-                    logging.debug("Empty coordinate " + str(x) +" " + str(y))
-                    
-                    if realTimeMap.get(x,y) == CellType.OBSTACLE \
-                        and [x,y] not in self.conflictCells:
-                        self.reReadSensor = True
-                        self.conflictCells.append(x,y)
-                    else:
-                        realTimeMap.set(x,y,CellType.EMPTY)
-                        if [x,y] in self.conflictCells:
-                            self.conflictCells.remove([x,y])
-                            
-# =============================================================================
-#                     realTimeMap.set(x,y,CellType.EMPTY)
-# =============================================================================
-                    
+                    if self.is_valid_point((x,y)):
+                        print("empty coordinate ", x, y)
+                        logging.debug("Empty coordinate " + str(x) +" " + str(y))
+                        realTimeMap.set(x, y, CellType.EMPTY)
                 if value < sensor.visible_range:
                     x = h + offsets[value][0]
                     y = w + offsets[value][1]
@@ -418,17 +406,27 @@ class Explorer():
         for cell in boundaryCells:
             euclideanDist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
             cellEuclidean.append(euclideanDist)
+        failedCellIndex = []
+        while True:    
+            # find the nearest one
+            targetCell = boundaryCells[findArrayIndexMin(cellEuclidean)]
+            print("target cell:",targetCell)
             
-        # find the nearest one
-        targetCell = boundaryCells[findArrayIndexMin(cellEuclidean)]
-        print("target cell:",targetCell)
-        
-        # find its nearest observing point
-        offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
-        potentialPos = []
-        for offset in offsets:
-            if self.allEmpty(targetCell[0]+offset[0],targetCell[1]+offset[1]):
-                potentialPos.append([targetCell[0]+offset[0],targetCell[1]+offset[1]])
+            # find its nearest observing point
+            offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
+            potentialPos = []
+            for offset in offsets:
+                if self.allEmpty(targetCell[0]+offset[0],targetCell[1]+offset[1]):
+                    potentialPos.append([targetCell[0]+offset[0],targetCell[1]+offset[1]])
+            if len(potentialPos) != 0:
+                break
+            else:
+                index = findArrayIndexMin(cellEuclidean)
+                failedCellIndex.append(index)
+                del cellEuclidean[index]
+                del boundaryCells[index]
+            
+        print("porentialPos: ",potentialPos)
         # calculate Euclidean distance for each
         posDistance = []
         for cell in potentialPos:
