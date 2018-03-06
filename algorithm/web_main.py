@@ -15,6 +15,8 @@ app.config["SECRET_KEY"] = "nHDG3Zi4HVtyc1fPBcrUEi0oACzUPRkI"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+global explore_algo
+explore_algo = Explorer(None, [0, 0, 0])
 
 
 class Mode(Enum):

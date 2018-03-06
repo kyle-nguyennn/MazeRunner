@@ -195,25 +195,44 @@ function moveRobot(actions) {
 }
 
 function updateExploreStatus() {
+
     clearInterval(exploreStatusAni);
-    var refreshRate = robotSpeed.value * 500;
-    exploreStatusAni = setInterval(getExploreStatus, refreshRate);
-    function getExploreStatus() {
-        if (false) {
+
+    $.get("/get_explore_status", function (data, status) {
+        if (data == "N") {
             clearInterval(exploreStatusAni);
+            showSimControls();
+            floatTable.style.visibility = 'hidden';
+            return
         }
-        $.get("/get_explore_status", function (data, status) {
-            if (data == "N")
-                clearInterval(exploreStatusAni);
-            var obj = jQuery.parseJSON(data);
-            var arena = obj[0];
-            var robot = obj[1];
-            var status = obj[2];
-            lblStatus.textContent = "Robot Status: " + status;
-            drawCanvas(table, arena);
-            setRobotPosition(robot[0], robot[1], robot[2]);
+
+        hideSimControls();
+
+        floatTable.style.visibility = 'visible';
+        $.get("/get_original_arena", function (data, status) {
+            var original = jQuery.parseJSON(data);
+            drawCanvas(floatTable, original);
         });
-    }
+
+        var refreshRate = robotSpeed.value * 500;
+        exploreStatusAni = setInterval(getExploreStatus, refreshRate);
+        function getExploreStatus() {
+            $.get("/get_explore_status", function (data, status) {
+                if (data == "N") {
+                    clearInterval(exploreStatusAni);
+                    showSimControls();
+                    floatTable.style.visibility = 'hidden';
+                }
+                var obj = jQuery.parseJSON(data);
+                var arena = obj[0];
+                var robot = obj[1];
+                var status = obj[2];
+                lblStatus.textContent = "Robot Status: " + status;
+                drawCanvas(table, arena);
+                setRobotPosition(robot[0], robot[1], robot[2]);
+            });
+        }
+    });
 }
 
 function setRobotPosition(h, w, d) {
@@ -288,24 +307,13 @@ function switchEditMode() {
     tabEditMode.className = "nav-link active";
     tabSimMode.className = "nav-link";
     tabActualMode.className = "nav-link";
-    editOptions.style.visibility = 'visible';
 
     lblStatus.style.visibility = 'hidden';
-
-    cardArena.style.visibility = 'visible';
-    cardConnect.style.visibility = 'hidden';
-    cardExploration.style.visibility = 'hidden';
-    cardFastestPath.style.visibility = 'hidden';
     floatTable.style.visibility = 'hidden';
 
-    cardArena.style.position = '';
-    cardConnect.style.position = 'absolute';
-    cardExploration.style.position = 'absolute';
-    cardFastestPath.style.position = 'absolute';
-
-    cardConnect.style.top = '0';
-    cardExploration.style.top = '0';
-    cardFastestPath.style.top = '0';
+    showEditControls();
+    hideSimControls();
+    hideActualControls();
 
     clearInterval(exploreStatusAni);
     mdfToArray();
@@ -316,71 +324,74 @@ function switchSimMode() {
     tabSimMode.className = "nav-link active";
     tabEditMode.className = "nav-link";
     tabActualMode.className = "nav-link";
-    editOptions.style.visibility = 'hidden';
 
     lblStatus.style.visibility = 'visible';
-
-    cardArena.style.visibility = 'hidden';
-    cardConnect.style.visibility = 'hidden';
     floatTable.style.visibility = 'hidden';
-    cardExploration.style.visibility = 'visible';
-    cardFastestPath.style.visibility = 'visible';
 
-    cardArena.style.position = 'absolute';
-    cardConnect.style.position = 'absolute';
-    cardExploration.style.position = '';
-    cardFastestPath.style.position = '';
-
-    cardArena.style.top = '0';
-    cardConnect.style.top = '0';
-
-
-    $.get("/get_explore_status", function (data, status) {
-        if (data == "N")
-            return
-        floatTable.style.visibility = 'visible';
-        $.get("/get_original_arena", function (data, status) {
-            var original = jQuery.parseJSON(data);
-            drawCanvas(floatTable, original);
-        });
-        updateExploreStatus();
-    });
-
+    hideEditControls();
+    showSimControls();
+    hideActualControls();
     setFopVisible(true);
+
+    updateExploreStatus();
 }
 
 function switchActualMode() {
     tabActualMode.className = "nav-link active";
     tabSimMode.className = "nav-link";
     tabEditMode.className = "nav-link";
-    editOptions.style.visibility = 'hidden';
 
     lblStatus.style.visibility = 'visible';
-
-    cardArena.style.visibility = 'hidden';
-    cardConnect.style.visibility = 'visible';
-    cardExploration.style.visibility = 'hidden';
-    cardFastestPath.style.visibility = 'hidden';
     floatTable.style.visibility = 'hidden';
 
+    hideEditControls();
+    hideSimControls();
+    showActualControls();
+    setFopVisible(true);
+
+    updateExploreStatus();
+}
+
+function hideEditControls() {
+    editOptions.style.visibility = 'hidden';
+    cardArena.style.visibility = 'hidden';
     cardArena.style.position = 'absolute';
-    cardConnect.style.position = '';
+    cardArena.style.top = '0';
+}
+
+function hideSimControls() {
+    cardExploration.style.visibility = 'hidden';
+    cardFastestPath.style.visibility = 'hidden';
     cardExploration.style.position = 'absolute';
     cardFastestPath.style.position = 'absolute';
-
-    cardArena.style.top = '0';
     cardExploration.style.top = '0';
     cardFastestPath.style.top = '0';
-
-
-    $.get("/get_explore_status", function (data, status) {
-        if (data == "N")
-            return false
-        updateExploreStatus();
-    });
-
-    setFopVisible(true);
 }
+
+function hideActualControls() {
+    cardConnect.style.visibility = 'hidden';
+    cardConnect.style.position = 'absolute';
+    cardConnect.style.top = '0';
+}
+
+function showEditControls() {
+    editOptions.style.visibility = 'visible';
+    cardArena.style.visibility = 'visible';
+    cardArena.style.position = '';
+}
+
+function showSimControls() {
+    cardExploration.style.visibility = 'visible';
+    cardFastestPath.style.visibility = 'visible';
+    cardExploration.style.position = '';
+    cardFastestPath.style.position = '';
+}
+
+function showActualControls() {
+    cardConnect.style.visibility = 'visible';
+    cardConnect.style.position = '';
+}
+
 
 $(document).ready(function () {
 
