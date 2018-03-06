@@ -7,7 +7,7 @@ from race import dijkstra
 from tcp_client import TcpClient
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,pArea=0.9,alignLimit = 3):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9,alignLimit = 3):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -20,6 +20,7 @@ class Explorer():
         self.exploredArea = 0
         self.cnt = 0 # no. of instruction executed
         self.goBackTime = tBack # seconds for it to go back Start from any position
+        self.timeThreshold = tThresh # user-input time to terminate exploration
         self.timeLimit = 360
         self.areaPercentage = pArea # percentage we want the robot to explore up to
         self.reachGoal = False
@@ -27,9 +28,10 @@ class Explorer():
         self.alignCnt = 0 # counter for robot alignment
         self.alignLimit = alignLimit
         self.alignNow = False
+        self.reReadSensor = False
         self.readingConflict = False
         self.conflictCells = []
-        self.alignSensor = "" # C1(front), C2(right)
+        self.alignSensor = "" # CF(front), CS(right)
         self.robot = Robot(
             'exploring', robot_pos[2]/90, robot_pos[0], robot_pos[1])
         self.checkingRight = False
@@ -76,32 +78,37 @@ class Explorer():
         self.tcp_conn.send_command("ES")
         self.update_status("Start exploration")
         while self.robot.robotMode != "done": 
-            confirmReading = False # means sensor readings in this loop is for confirmation not detection
             cnt += 1 
-            sensors = self.tcp_conn.get_string()
-            if self.readingConflict == True:
+            sensors = self.tcp_conn.get_string()           
+            self.updateMap(sensors)
+            print("conflict cells:",self.conflictCells)
+            
+            # conflict solving
+            if self.reReadSensor == True:
+                self.tcp_conn.send_command("N")
                 
-            else:    
-                #update map with sensor values
-                self.updateMap(sensors)
-                # sensor conflict solving if conflictCells contains cells
-                if len(conflictCells) != 0:
-                    self.readingConflict = True
-                    self.tcp_conn.send_command("N")
-                else:
-                    self.readingConflict = False
+# =============================================================================
+#             else:    
+#                 #update map with sensor values
+#                 self.updateMap(sensors)
+#                 # sensor conflict solving if conflictCells contains cells
+#                 if len(self.conflictCells) != 0:
+#                     self.readingConflict = True
+#                     self.tcp_conn.send_command("N")
+#                 else:
+#                     self.readingConflict = False
+# =============================================================================
                 
             explorationTime = time.time() - self.startTime
             #check reachgoal
             if self.robot.robotCenterH == 18 and self.robot.robotCenterW == 13:
                 self.reachGoal = True
             # if reach time limit
-            if self.timeLimit < explorationTime or self.exploredArea >= 300*self.areaPercentage:
+            if self.timeThreshold < explorationTime or self.exploredArea >= 300*self.areaPercentage:
                 if self.robot.isInStartZone():
                     self.robot.robotMode = "done"
                     break
                 else:
-                    self.update_status("Robot rushing back")
                     # find the way back to start zone using djikstra
                     startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
                     endnode = (1,1,0)
@@ -113,7 +120,8 @@ class Explorer():
                     continue
             else:
                 if self.reachGoal:
-                    if explorationTime > self.timeLimit and \
+                       # shall we delete this first condition now?
+                    if explorationTime > self.timeThreshold and \
                         not self.robot.isAlmostBack() and \
                         self.robot.robotMode != 'reExplore':
                         # find way back to start zone using fastest path algo (djikstra)
@@ -200,39 +208,53 @@ class Explorer():
             # only the 5th sensor (top left) is long range sensor
             sensor = self.robot.sensors[sensorIndex]
             offsets = self.robot.visible_offsets(sensor)
-            print(offsets)
+            self.reReadSensor = False
+            
             if value <= sensor.visible_range:
                 for i in range(value):
                     x = h + offsets[i][0]
                     y = w + offsets[i][1]
                     print("empty coordinate ", x, y)
                     logging.debug("Empty coordinate " + str(x) +" " + str(y))
-                    realTimeMap.set(x, y, CellType.EMPTY)
                     
                     if realTimeMap.get(x,y) == CellType.OBSTACLE \
                         and [x,y] not in self.conflictCells:
+                        self.reReadSensor = True
                         self.conflictCells.append(x,y)
                     else:
                         realTimeMap.set(x,y,CellType.EMPTY)
                         if [x,y] in self.conflictCells:
-                            self.conflictCells.remove([x,y])                 
+                            self.conflictCells.remove([x,y])
+                            
+# =============================================================================
+#                     realTimeMap.set(x,y,CellType.EMPTY)
+# =============================================================================
+                    
                 if value < sensor.visible_range:
                     x = h + offsets[value][0]
                     y = w + offsets[value][1]
                     if self.is_valid_point((x,y)):
-                        logging.debug("Obstacle coordinate " + str(x) + " " + str(y))                      
-                        if realTimeMap.getx,y) == CellType.EMPTY \
+                        logging.debug("Obstacle coordinate " + str(x) + " " + str(y)) 
+                        
+                        if realTimeMap.get(x,y) == CellType.EMPTY \
                         and [x,y] not in self.conflictCells:
+                            self.reReadSensor = True
                             self.conflictCells.append([x,y])
                         else:
                             realTimeMap.set(x,y,CellType.OBSTACLE)
                             if [x,y] in self.conflictCells:
                                 self.conflictCells.remove([x,y])
+                                
+# =============================================================================
+#                         realTimeMap.set(x,y,CellType.OBSTACLE)                       
+# =============================================================================
+                                
         self.updateExploredArea()
-        return wrongCells
+        
     def updateMap(self, sensorValues):
         for i in range(len(sensorValues)):
             self.markCells(i, int(sensorValues[i]))
+        self.updateExploredArea()
     # check whether the 3 consecutive cells in front are empty
     def checkAlign(self,r):
         head = int(self.robot.robotHead)

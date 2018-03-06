@@ -6,7 +6,6 @@ from werkzeug.wrappers import Response
 import json
 from race import getInstructions
 from simulation_server import SimulatorServer
-from exploration_example import ExplorationExample
 from tcp_client import TcpClient
 from threading import Thread
 from enum import Enum
@@ -16,8 +15,6 @@ app.config["SECRET_KEY"] = "nHDG3Zi4HVtyc1fPBcrUEi0oACzUPRkI"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-global explore_algo
-explore_algo = ExplorationExample(None)
 
 
 class Mode(Enum):
@@ -91,13 +88,14 @@ def exploration():
     arena_2d = data[0]
     robot_pos = [int(data[1]), int(data[2]), int(data[3])]
     speed = float(data[4])
+    error_rate = int(data[7])
     global explore_time_limit
     explore_time_limit = int(data[5])
     global explore_coverage
     explore_coverage = int(data[6])
     arena_obj = array_to_arena(arena_2d)
     sim_server_thread = Thread(target=start_simulation_server,
-                               args=[arena_obj, robot_pos, speed])
+                               args=[arena_obj, robot_pos, speed, error_rate])
     sim_server_thread.start()
     tcp_client_thread = Thread(
         target=connect_tcp_client, args=["127.0.0.1", 77])
@@ -179,10 +177,11 @@ def array_to_arena(arena_2d):
     return arena_obj
 
 
-def start_simulation_server(arena_obj, robot_pos, speed):
+def start_simulation_server(arena_obj, robot_pos, speed, error_rate):
     global mode
     global sim_server
-    sim_server = SimulatorServer("127.0.0.1", 77, arena_obj, robot_pos, speed)
+    sim_server = SimulatorServer(
+        "127.0.0.1", 77, arena_obj, robot_pos, speed, error_rate)
     sim_server.run()
     mode = Mode.NONE
 

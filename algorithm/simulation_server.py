@@ -6,11 +6,12 @@ import time
 import json
 from sensor import Sensor
 from utils import parse_robot_config
+from random import randint
 
 
 class SimulatorServer():
 
-    def __init__(self, tcp_ip, tcp_port, arena_obj, robot_pos, speed, buffer_size=1024):
+    def __init__(self, tcp_ip, tcp_port, arena_obj, robot_pos, speed, error_rate, buffer_size=1024):
 
         self.arena = arena_obj
         self.sensor = []
@@ -21,6 +22,7 @@ class SimulatorServer():
         self.robot_pos = robot_pos
 
         self.speed = speed
+        self.error_rate = error_rate
         self.tcp_ip = tcp_ip
         self.tcp_port = tcp_port
         self.buffer_size = buffer_size
@@ -90,12 +92,13 @@ class SimulatorServer():
             command = self.get_command()
             if command == None or command == "EE":
                 self.close_conn()
-            elif command[0] == "C":
-                pass
+			  # AQ deleted
             elif command == "N":
                 self.send_data(self.getReadings())
                 pass
             else:
+                if command[0] == "C":
+                    command = command[3:]
                 for char in command:
                     self.move_robot(char)
                     time.sleep(self.speed)
@@ -139,7 +142,11 @@ class SimulatorServer():
         for sensor in self.sensor:
             sensor.set_robot(self.robot_pos[0],
                              self.robot_pos[1], self.robot_pos[2])
-            response += str(sensor.get_reading(self.arena))
+            chance = randint(0, 99)
+            if chance < self.error_rate:
+                response += str(randint(0, sensor.visible_range))
+            else:
+                response += str(sensor.get_reading(self.arena))
         return response
 
     def get_robot(self):
