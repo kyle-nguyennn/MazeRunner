@@ -8,10 +8,12 @@ from keras.optimizers import SGD
 import numpy as np
 from Robot import Robot
 from race import detectCollision
+import matplotlib.pylab as plt
 
-run_timeout = 5 # in seconds
-generations = 10
-pool_size = 10
+run_timeout = 0.1 # in seconds ~ 150 instructions in my pc
+generations = 100
+pool_size = 100
+ideal_max_instructions = 140
 current_pool = []
 new_model = True
 model_path = __file__ + "/../model_pool"
@@ -170,9 +172,18 @@ if __name__ == "__main__":
         save_pool()
     else:
         load_or_init_pool(model_path)
-
+    # evaluation metrics
+    discovered_avg = []
+    discovered_max = []
+    instruction_avg = []
+    instruction_min = []
+    ### start training 
     for generation in range(generations):
         fitness = [0 for i in range(pool_size)]
+        total_discovered = 0
+        max_discovered = 0
+        total_instructions = 0
+        min_instructions = 1000
         # start evaluating models in current generation
         for modelIndex in range(pool_size):
             model = current_pool[modelIndex]
@@ -217,14 +228,30 @@ if __name__ == "__main__":
                 print("discovered: ", discovered)
                 print("instruction count:", instruction_count)
                 print("runtime: ", runtime)
+                total_discovered += discovered
+                total_instructions += instruction_count
+                if discovered > max_discovered:
+                    max_discovered = discovered
+                if instruction_count < min_instructions:
+                    min_instructions = instruction_count
             # game over for this model
             # update fitness
-            fitness[modelIndex] = discovered + (run_timeout - runtime)
+            fitness[modelIndex] = discovered + (run_timeout - runtime) + (ideal_max_instructions - instruction_count)
         # evolving now
         evolve(fitness)
-
+        discovered_max.append(max_discovered)
+        instruction_min.append(min_instructions)
+        discovered_avg.append(total_discovered/pool_size)
+        instruction_avg.append(total_instructions/pool_size)
 
         # nn_input = np.atleast_2d(np.asarray([3,3,3,3,3,3,3,3,3]))
         # action = predict_action(current_pool[0], nn_input)
         # print(action)
-    
+    ### plot evaluation metrics
+    plt.plot(range(generations), discovered_max, label="discovered_max")
+    plt.plot(range(generations), discovered_avg, label="discovered_avg")
+    plt.plot(range(generations), instruction_min, label="instruction_min")
+    plt.plot(range(generations), instruction_avg, label="instruction_avg")
+    plt.xlabel('Generation')
+    plt.legend(loc='upper left')
+    plt.show()
