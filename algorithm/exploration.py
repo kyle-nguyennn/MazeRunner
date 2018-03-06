@@ -5,6 +5,7 @@ import time, socket, logging, sys
 import race
 from race import dijkstra
 from tcp_client import TcpClient
+import json
 
 class Explorer():
     def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9):
@@ -72,7 +73,7 @@ class Explorer():
                     # find the way back to start zone using djikstra
                     startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
                     endnode = (1,1,0)
-                    (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
+                    (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                     # give instruction
                     self.cnt += len(instructions)
                     self.tcp_conn.send_command(instructions)
@@ -87,7 +88,7 @@ class Explorer():
                         # find way back to start zone using fastest path algo (djikstra)
                         startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
                         endnode = (1,1,0)
-                        (instructions, endOrientation) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
+                        (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                         # give instruction
                         self.cnt += len(instructions)
                         self.tcp_conn.send_command(instructions)
@@ -166,27 +167,27 @@ class Explorer():
         h = self.robot.robotCenterH
         head = self.robot.robotHead
         realTimeMap = self.arena
-        print("inside markCells", sensorIndex, value)
         # if withint the map range, then mark. Otherwise discard the reading
         if (0 <= w <= 13 and 0 <= h <= 18):
             # sensorIndex = 0..5 corresponding to F1,F2,F3,R1,R2,L1
             # only the 5th sensor (top left) is long range sensor
             sensor = self.robot.sensors[sensorIndex]
             offsets = self.robot.visible_offsets(sensor)
+            if value > sensor.visible_range:
+                value = sensor.visible_range
             print(offsets)
             if value <= sensor.visible_range:
                 for i in range(value):
                     x = h + offsets[i][0]
                     y = w + offsets[i][1]
                     if self.is_valid_point((x,y)):
-                        print("empty coordinate ", x, y)
-                        logging.debug("Empty coordinate " + str(x) +" " + str(y))
+#                        logging.debug("Empty coordinate " + str(x) +" " + str(y))
                         realTimeMap.set(x, y, CellType.EMPTY)
                 if value < sensor.visible_range:
                     x = h + offsets[value][0]
                     y = w + offsets[value][1]
                     if self.is_valid_point((x,y)):
-                        logging.debug("Obstacle coordinate " + str(x) + " " + str(y))
+#                        logging.debug("Obstacle coordinate " + str(x) + " " + str(y))
                         realTimeMap.set(x, y, CellType.OBSTACLE)
         self.updateExploredArea()
     def updateMap(self, sensorValues):
@@ -265,19 +266,56 @@ class Explorer():
         for cell in cells:
             h = cell[0]
             w = cell[1]
-            if (self.arena.get(h+1,w-1) == CellType.EMPTY \
-                and self.arena.get(h+1,w) == CellType.EMPTY \
-                and self.arena.get(h+1,w+1) == CellType.EMPTY \
-                or self.arena.get(h+1,w+1) == CellType.EMPTY \
-                and self.arena.get(h,w+1) == CellType.EMPTY \
-                and self.arena.get(h-1,w+1) == CellType.EMPTY \
-                or self.arena.get(h-1,w-1) == CellType.EMPTY \
-                and self.arena.get(h-1,w) == CellType.EMPTY \
-                and self.arena.get(h-1,w+1) == CellType.EMPTY \
-                or self.arena.get(h+1,w-1) == CellType.EMPTY \
-                and self.arena.get(h,w-1) == CellType.EMPTY \
-                and self.arena.get(h-1,w-1) == CellType.EMPTY ):
-                boundaryCells.append(cell)
+            for side in range(4):
+                if side == 0 or side == 2:
+                    x = h+(side-1)
+                    if self.arena.get(x,w) == CellType.EMPTY:
+                        if self.arena.get(x,w-1) == CellType.EMPTY:
+                            if self.arena.get(x,w-2) == CellType.EMPTY:
+                                boundaryCells.append(cell)
+                                break
+                        elif self.arena.get(x,w+1) == CellType.EMPTY:
+                            if self.arena.get(x,w+2) == CellType.EMPTY:
+                                boundaryCells.append(cell)
+                                break
+                        else:
+                            continue                            
+                    # if middle cell not empty, break current direction and search next direction
+                    else:
+                        continue
+                else: # side == 1 or 3
+                    y = w+(side-2)
+                    if self.arena.get(h,y) == CellType.EMPTY:
+                        if self.arena.get(h-1,y) == CellType.EMPTY:
+                            if self.arena.get(h-2,y) == CellType.EMPTY:
+                                boundaryCells.append(cell)
+                                break
+                        elif self.arena.get(h+1,y) == CellType.EMPTY:
+                            if self.arena.get(h+2,y) == CellType.EMPTY:
+                                boundaryCells.append(cell)
+                                break
+                        else:
+                            continue                            
+                    # if middle cell not empty, break current direction and search next direction
+                    else:
+                        continue
+                       
+# =============================================================================
+#             if (self.arena.get(h+1,w-1) == CellType.EMPTY \
+#                 and self.arena.get(h+1,w) == CellType.EMPTY \
+#                 and self.arena.get(h+1,w+1) == CellType.EMPTY \
+#                 or self.arena.get(h+1,w+1) == CellType.EMPTY \
+#                 and self.arena.get(h,w+1) == CellType.EMPTY \
+#                 and self.arena.get(h-1,w+1) == CellType.EMPTY \
+#                 or self.arena.get(h-1,w-1) == CellType.EMPTY \
+#                 and self.arena.get(h-1,w) == CellType.EMPTY \
+#                 and self.arena.get(h-1,w+1) == CellType.EMPTY \
+#                 or self.arena.get(h+1,w-1) == CellType.EMPTY \
+#                 and self.arena.get(h,w-1) == CellType.EMPTY \
+#                 and self.arena.get(h-1,w-1) == CellType.EMPTY ):
+#                 boundaryCells.append(cell)
+# =============================================================================
+        
         return boundaryCells
             
             
@@ -286,9 +324,13 @@ class Explorer():
             
         # detect all unexplored cells
         reExploreCells = []
+        boundaryCellsDist = []
         cellEuclidean = []
+        targetCells = []
         robot = self.robot
-        
+        noOfPicks = 3
+        startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
+     
         for x in range(len(self.arena.arena_map)):
             for y in range(len(self.arena.arena_map[x])):
                 if (self.arena.get(x,y) == CellType.UNKNOWN):
@@ -296,70 +338,164 @@ class Explorer():
         
         # only move to explore one of the boundary cells - cell that has at least one side has 3 consecutive empty blocks            
         boundaryCells = self.searchBoundaryCells(reExploreCells)
-        print("boundary:",boundaryCells)
+        logging.debug("boundary cells:" + str(boundaryCells))
                     
         # calculate Euclidean distance for each
         for cell in boundaryCells:
             euclideanDist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
             cellEuclidean.append(euclideanDist)
-        failedCellIndex = []
-        while True:    
-            # find the nearest one
-            targetCell = boundaryCells[findArrayIndexMin(cellEuclidean)]
-            print("target cell:",targetCell)
+            boundaryCellsDist.append((cell,euclideanDist))
+        
+        # sort cellEuclidean distance and remove all duplicates
+        cellEuclidean.sort()
+        cellEuclidean = list(set(cellEuclidean))
+        
+        # pick k number of eucliean nearest cell candidates
+        itemNo = 0
+        noMore = False
+        for dist in cellEuclidean:
+            for cellTup in boundaryCellsDist:
+                if cellTup[1] == dist:
+                    if itemNo < noOfPicks:
+                        targetCells.append(cellTup[0])
+                        itemNo += 1
+                if itemNo > noOfPicks:
+                    noMore = True
+                    break
+            if noMore == True:
+                break
             
+        logging.debug("targetCells" + str(targetCells))
+        
+        potentialPos = []
+        for cell in targetCells:
             # find its nearest observing point
             offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
-            potentialPos = []
             for offset in offsets:
-                if self.allEmpty(targetCell[0]+offset[0],targetCell[1]+offset[1]):
-                    potentialPos.append([targetCell[0]+offset[0],targetCell[1]+offset[1]])
-            if len(potentialPos) != 0:
-                break
-            else:
-                index = findArrayIndexMin(cellEuclidean)
-                failedCellIndex.append(index)
-                del cellEuclidean[index]
-                del boundaryCells[index]
-            
-        print("porentialPos: ",potentialPos)
-        # calculate Euclidean distance for each
-        posDistance = []
-        for cell in potentialPos:
-            dist = euclidean([robot.robotCenterH,robot.robotCenterW],cell)
-            posDistance.append(dist)
-        xToMove, yToMove = potentialPos[findArrayIndexMin(posDistance)]
-        endingCell = [xToMove,yToMove]
-
-        indexOff = 0
-        for offset in offsets:
-            if [endingCell[0]-targetCell[0],endingCell[1]-targetCell[1]] == offset:
-                if 0 <= indexOff < 3:
-                    observeDirection = 0
-                    break
-                elif 3 <= indexOff < 6:
-                    observeDirection = 1
-                    break
-                elif 6 <= indexOff < 9:
-                    observeDirection = 2
-                    break
+                if self.allEmpty(cell[0]+offset[0],cell[1]+offset[1]):
+                    # potentialPos: [observingCoords,cellToObserveCoords]
+                    potentialPos.append([[cell[0]+offset[0],cell[1]+offset[1]],cell,0,0]) #default head is 0, cost = 0            
+        # update all potentialPos values with dijkstra cost
+        updatedNodes = []
+        for node in potentialPos:
+#        for [cellToGo,cellToOb,head,cost] in potentialPos:
+            indexOff = 0
+            for offset in offsets:
+                if [node[0][0]-node[1][0],node[0][1]-node[1][1]] == offset:
+                    if 0 <= indexOff < 3:
+                        node[2] = 0
+                        break
+                    elif 3 <= indexOff < 6:
+                        node[2] = 1
+                        break
+                    elif 6 <= indexOff < 9:
+                        node[2] = 2
+                        break
+                    else:
+                        node[2] = 3
+                        break
                 else:
-                    observeDirection = 3
-                    break
+                    indexOff += 1
+            cellToMove = (node[0][0],node[0][1],node[2])
+            (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+# =============================================================================
+#             print("dijkstra startnode:",startnode)
+#             print("dijkstra cellToMove:",cellToMove)
+#             print("dijkstra instr:",instr)
+#             print("dijkstra cost:",cost)
+# =============================================================================
+
+
+            node[3] = len(instr)
+            updatedNodes.append(node)
+        logging.debug("potentialPos: " + str(updatedNodes))
+        
+        # find the minimum cost in potentialPos 
+        # this algo can be optimized later
+        minCost = 1000
+        index = 0
+        for choice in updatedNodes:
+            if choice[3] < minCost and choice[3] != 0:
+                minCost = choice[3]       
+        for choice in updatedNodes:
+            if choice[3] != minCost:
+                index += 1
             else:
-                indexOff += 1
-                
-        print("offset:",offset)
-        print("observeDirection:",observeDirection)
-            
-        cellToMove = (xToMove, yToMove, observeDirection)
-        logging.debug("Cell to move: " + str(cellToMove))
-        # use djikstra
-        startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
-        (instr, endNode) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+                break
+        cellToMove = (updatedNodes[index][0][0], updatedNodes[index][0][1], updatedNodes[index][2])
+# =============================================================================
+#         print("cell to move:",cellToMove)
+#         print("start cell:",startnode)
+# =============================================================================
+        (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
         logging.debug("Instruction for going to observing cell" + instr)
-        logging.debug("Observing point " + str(endNode))
+        logging.debug("Observing point " + str(endNode))       
         return (instr, endNode)
+        
+# =============================================================================
+#         while True:    
+#             # find the nearest one
+#             targetCell = boundaryCells[findArrayIndexMin(cellEuclidean)]
+#             print("target cell:",targetCell)
+#             
+#             
+#             # find its nearest observing point
+#             offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
+#             potentialPos = []
+#             for offset in offsets:
+#                 if self.allEmpty(targetCell[0]+offset[0],targetCell[1]+offset[1]):
+#                     potentialPos.append([targetCell[0]+offset[0],targetCell[1]+offset[1]])
+#             if len(potentialPos) != 0:
+#                 break
+#             else:
+#                 index = findArrayIndexMin(cellEuclidean)
+#                 del cellEuclidean[index]
+#                 del boundaryCells[index]
+# =============================================================================
+            
+# =============================================================================
+#         # calculate Euclidean distance for each
+#         posDistance = []
+#         for cell in potentialPos:
+#             dist = euclidean([robot.robotCenterH,robot.robotCenterW],cell)
+#             posDistance.append(dist)
+#         xToMove, yToMove = potentialPos[findArrayIndexMin(posDistance)]
+#         endingCell = [xToMove,yToMove]
+# 
+#         indexOff = 0
+#         for offset in offsets:
+#             if [endingCell[0]-targetCell[0],endingCell[1]-targetCell[1]] == offset:
+#                 if 0 <= indexOff < 3:
+#                     observeDirection = 0
+#                     break
+#                 elif 3 <= indexOff < 6:
+#                     observeDirection = 1
+#                     break
+#                 elif 6 <= indexOff < 9:
+#                     observeDirection = 2
+#                     break
+#                 else:
+#                     observeDirection = 3
+#                     break
+#             else:
+#                 indexOff += 1
+#                 
+#         print("offset:",offset)
+#         print("observeDirection:",observeDirection)
+#             
+#         cellToMove = (xToMove, yToMove, observeDirection)
+#         logging.debug("Cell to move: " + str(cellToMove))
+#         # use djikstra
+#         startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
+#         
+#         # adding "cost" as the third return value
+#         (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+#                 logging.debug("Instruction for going to observing cell" + instr)
+#         logging.debug("Observing point " + str(endNode))
+        
+#         return (instr, endNode)
+# =============================================================================
+
         
         # need to check robot final head direction
 ###### helper functions #####    

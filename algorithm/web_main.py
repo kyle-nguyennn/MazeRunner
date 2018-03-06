@@ -15,12 +15,16 @@ app.config["SECRET_KEY"] = "nHDG3Zi4HVtyc1fPBcrUEi0oACzUPRkI"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+global explore_algo
+explore_algo = Explorer(None, [0, 0, 0])
 
 
 class Mode(Enum):
     NONE = 0
     SIM_SERVER = 1
-    PI_CONNECTION = 2
+    PI_CONNECTED = 2
+    PI_CONNECTING = 3
+    EXPLORE_RUNNING = 4
 
 
 class MdfStrings(db.Model):
@@ -49,6 +53,14 @@ def save_arena():
     db.session.add(new_mdf)
     db.session.commit()
     return "Saved."
+
+
+@app.route('/delete_arena', methods=['POST'])
+def delete_arena():
+    new_mdf = MdfStrings(request.form['part1'], request.form['part2'])
+    MdfStrings.query.filter_by(part1=new_mdf.part1, part2=new_mdf.part2).delete()
+    db.session.commit()
+    return "Deleted."
 
 
 @app.route('/array_to_mdf', methods=['POST'])
@@ -83,7 +95,7 @@ def fastest_path():
 
 
 @app.route('/exploration_sim', methods=['POST'])
-def exploration():
+def exploration_sim():
     data = json.loads(request.data)
     arena_2d = data[0]
     robot_pos = [int(data[1]), int(data[2]), int(data[3])]
@@ -105,13 +117,21 @@ def exploration():
     return "Simulation server started."
 
 
+@app.route('/exploration_start', methods=['GET'])
+def exploration_start():
+    explore_thread = Thread(target=start_exploration_algo, args=[[1, 1, 0]])
+    explore_thread.start()
+    return "Exploration started."
+
+
 @app.route('/connect_to_pi', methods=['GET'])
 def connect_to_pi():
     tcp_client_thread = Thread(
         target=connect_tcp_client, args=["192.168.7.1", 77])
+    # target=connect_tcp_client, args=["127.0.0.1", 77])
     tcp_client_thread.start()
     global mode
-    mode = Mode.PI_CONNECTION
+    mode = Mode.PI_CONNECTING
     return "OK"
 
 
@@ -142,7 +162,7 @@ def get_explore_status():
         if sim_server.get_robot() == None:
             print("Exploration not running.")
             return "N"
-    elif mode == Mode.PI_CONNECTION:
+    elif mode == Mode.EXPLORE_RUNNING:
         if explore_algo.get_robot() == None:
             print("Exploration not running.")
             return "N"
@@ -150,7 +170,7 @@ def get_explore_status():
     if mode == Mode.SIM_SERVER:
         result = [arena_2d, sim_server.get_robot(
         ), explore_algo.current_status()]
-    elif mode == Mode.PI_CONNECTION:
+    elif mode == Mode.EXPLORE_RUNNING:
         result = [arena_2d, explore_algo.get_robot(),
                   explore_algo.current_status()]
     return json.dumps(result)
@@ -195,8 +215,9 @@ def start_exploration_algo(robot_pos):
     if mode == Mode.SIM_SERVER:
         explore_algo = Explorer(
             tcp_conn, robot_pos, tThresh=explore_time_limit, pArea=(explore_coverage/100))
-    elif mode == Mode.PI_CONNECTION:
+    elif mode == Mode.PI_CONNECTED:
         explore_algo = Explorer(tcp_conn, robot_pos)
+        mode = Mode.EXPLORE_RUNNING
     explore_algo.run()
 
 
@@ -204,8 +225,10 @@ def connect_tcp_client(ip, port):
     global tcp_conn
     global mode
     tcp_conn = TcpClient(ip, port)
-    tcp_conn.run()
     try:
+        tcp_conn.run()
+        if mode == Mode.PI_CONNECTING:
+            mode = Mode.PI_CONNECTED
         while True:
             data = tcp_conn.get_json()
             if data is None:

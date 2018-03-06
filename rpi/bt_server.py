@@ -46,7 +46,7 @@ class BtServer():
             time.sleep(1)
         self.lock = True
         try:
-            self.client_conn.send((data+"\n").encode('utf-8'))
+            self.client_conn.send((data+"\r\n").encode('utf-8'))
             print("BtServer - Sent data: {}".format(data))
         except:
             print("BtServer - Error sending data: {}".format(data))
