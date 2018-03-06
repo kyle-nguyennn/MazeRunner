@@ -86,10 +86,16 @@ class Arena():
             print()
 
     def get(self, h, w):
+        if h>19 or h<0 or w>14 or w<0:
+            return False
         return self.arena_map[h][w]
 
     def set(self, h, w, value):
-        self.arena_map[h][w] = value
+        if not h>19 or h<0 or w>14 or w<0:
+            self.arena_map[h][w] = value
+            return True
+        else:
+            return False
 
 
 class CellType(Enum):

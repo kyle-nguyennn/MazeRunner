@@ -1,5 +1,6 @@
 from utils import parse_robot_config
 from sensor import Sensor
+import os
 class Robot():
     
     # attributes
@@ -19,9 +20,11 @@ class Robot():
         self.robotCenterH = h
         self.robotCenterW = w
         self.sensors = []
-        sensors = parse_robot_config("./robot.conf")
+        sensors = parse_robot_config(os.path.dirname(os.path.abspath(__file__)) + "/robot.conf")
         for sensor in sensors["sensors"]:
             self.sensors.append(Sensor(sensor["max_range"], sensor["position"], sensor["orientation"]))
+        for sensor in self.sensors:
+            sensor.set_robot(self.robotCenterH, self.robotCenterW, self.robotHead*90)
         # self.sensor.append(Sensor(3, 1, 0))
         # 3 cells of level 0 to the right with respect to each direction
         self.rightCells = {0:[[1,2],[0,2],[-1,2]],
@@ -53,6 +56,9 @@ class Robot():
 
     def getPosition(self):
         return [self.robotCenterH, self.robotCenterW, self.robotHead*90]
+
+    def getPositionMod4(self):
+        return [self.robotCenterH, self.robotCenterW, self.robotHead]
 
     def updateSensors(self):
         for sensor in self.sensors:
