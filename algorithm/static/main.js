@@ -276,15 +276,6 @@ function normalizeDirection(deg) {
     return deg;
 }
 
-function saveArena() {
-    $.post("/save_arena", {
-        part1: mdfPart1.value,
-        part2: mdfPart2.value
-    }, function (data, status) {
-        window.location.replace("/");
-    });
-}
-
 function arrayToMdf() {
     $.ajax({
         type: 'POST',
@@ -463,7 +454,21 @@ $(document).ready(function () {
     });
 
     $("#btnSaveArena").click(function () {
-        saveArena();
+        $.post("/save_arena", {
+            part1: mdfPart1.value,
+            part2: mdfPart2.value
+        }, function (data, status) {
+            window.location.replace("/");
+        });
+    });
+
+    $("#btnDeleteArena").click(function () {
+        $.post("/delete_arena", {
+            part1: mdfPart1.value,
+            part2: mdfPart2.value
+        }, function (data, status) {
+            window.location.replace("/");
+        });
     });
 
     $("#btnConnect").click(function () {

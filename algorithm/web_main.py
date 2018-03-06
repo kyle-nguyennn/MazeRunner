@@ -55,6 +55,14 @@ def save_arena():
     return "Saved."
 
 
+@app.route('/delete_arena', methods=['POST'])
+def delete_arena():
+    new_mdf = MdfStrings(request.form['part1'], request.form['part2'])
+    MdfStrings.query.filter_by(part1=new_mdf.part1, part2=new_mdf.part2).delete()
+    db.session.commit()
+    return "Deleted."
+
+
 @app.route('/array_to_mdf', methods=['POST'])
 def array_to_mdf():
     arena_2d = json.loads(request.data)
