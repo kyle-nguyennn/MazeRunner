@@ -170,6 +170,8 @@ class Explorer():
             # only the 5th sensor (top left) is long range sensor
             sensor = self.robot.sensors[sensorIndex]
             offsets = self.robot.visible_offsets(sensor)
+            if value > sensor.visible_range:
+                value = sensor.visible_range
             print(offsets)
             if value <= sensor.visible_range:
                 for i in range(value):
