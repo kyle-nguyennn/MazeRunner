@@ -18,10 +18,10 @@ var robotPosCol = document.getElementById("robotPosCol");
 var robotHead = document.getElementById("robotHead");
 var robotSpeed = document.getElementById("robotSpeed");
 var exploreTime = document.getElementById("exploreTime");
-var explorePercent = document.getElementById("explorePercent");
+var errorRate = document.getElementById("errorRate");
+var floatTable = document.getElementById("floatingArena");
 var lblStatus = document.getElementById("lblStatus");
 var floatTable = document.getElementById("floatingArena");
-
 
 var cellMovt;
 var cellAni;
@@ -444,7 +444,7 @@ $(document).ready(function () {
     });
 
     $("#btnExploration").click(function () {
-        data = [tableToArray(), robotPosRow.value, robotPosCol.value, robotHead.value, robotSpeed.value, exploreTime.value, explorePercent.value];
+        data = [tableToArray(), robotPosRow.value, robotPosCol.value, robotHead.value, robotSpeed.value, exploreTime.value, explorePercent.value, errorRate.value];
         $.ajax({
             type: 'POST',
             data: JSON.stringify(data),
