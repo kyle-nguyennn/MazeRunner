@@ -119,6 +119,7 @@ class Explorer():
                     self.reachGoal = self.robot.isInGoal()           
         print("Exploration time:",explorationTime)
         self.update_status("End exploration")
+        self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
         self.tcp_conn.send_command("EE")
 
     def is_valid_point(self, point):
