@@ -22,7 +22,9 @@ explore_algo = Explorer(None, [0, 0, 0])
 class Mode(Enum):
     NONE = 0
     SIM_SERVER = 1
-    PI_CONNECTION = 2
+    PI_CONNECTED = 2
+    PI_CONNECTING = 3
+    EXPLORE_RUNNING = 4
 
 
 class MdfStrings(db.Model):
@@ -117,10 +119,11 @@ def exploration_start():
 @app.route('/connect_to_pi', methods=['GET'])
 def connect_to_pi():
     tcp_client_thread = Thread(
-        target=connect_tcp_client, args=["192.168.7.1", 77])
+        # target=connect_tcp_client, args=["192.168.7.1", 77])
+        target=connect_tcp_client, args=["127.0.0.1", 77])
     tcp_client_thread.start()
     global mode
-    mode = Mode.PI_CONNECTION
+    mode = Mode.PI_CONNECTING
     return "OK"
 
 
@@ -151,7 +154,7 @@ def get_explore_status():
         if sim_server.get_robot() == None:
             print("Exploration not running.")
             return "N"
-    elif mode == Mode.PI_CONNECTION:
+    elif mode == Mode.EXPLORE_RUNNING:
         if explore_algo.get_robot() == None:
             print("Exploration not running.")
             return "N"
@@ -159,7 +162,7 @@ def get_explore_status():
     if mode == Mode.SIM_SERVER:
         result = [arena_2d, sim_server.get_robot(
         ), explore_algo.current_status()]
-    elif mode == Mode.PI_CONNECTION:
+    elif mode == Mode.EXPLORE_RUNNING:
         result = [arena_2d, explore_algo.get_robot(),
                   explore_algo.current_status()]
     return json.dumps(result)
@@ -204,8 +207,9 @@ def start_exploration_algo(robot_pos):
     if mode == Mode.SIM_SERVER:
         explore_algo = Explorer(
             tcp_conn, robot_pos, tThresh=explore_time_limit, pArea=(explore_coverage/100))
-    elif mode == Mode.PI_CONNECTION:
+    elif mode == Mode.PI_CONNECTED:
         explore_algo = Explorer(tcp_conn, robot_pos)
+        mode = Mode.EXPLORE_RUNNING
     explore_algo.run()
 
 
@@ -213,8 +217,10 @@ def connect_tcp_client(ip, port):
     global tcp_conn
     global mode
     tcp_conn = TcpClient(ip, port)
-    tcp_conn.run()
     try:
+        tcp_conn.run()
+        if mode == Mode.PI_CONNECTING:
+            mode = Mode.PI_CONNECTED
         while True:
             data = tcp_conn.get_json()
             if data is None:

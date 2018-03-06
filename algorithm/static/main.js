@@ -13,6 +13,7 @@ var cardFastestPath = document.getElementById("cardFastestPath");
 var cardExploration = document.getElementById("cardExploration");
 var btnConnect = document.getElementById("btnConnect");
 var btnDisconnect = document.getElementById("btnDisconnect");
+var btnExploreStart = document.getElementById("btnExploreStart");
 var robotPosRow = document.getElementById("robotPosRow");
 var robotPosCol = document.getElementById("robotPosCol");
 var robotHead = document.getElementById("robotHead");
@@ -26,22 +27,28 @@ var floatTable = document.getElementById("floatingArena");
 var cellMovt;
 var cellAni;
 var exploreStatusAni;
+var connectionStatus;
 
 var arenaHeight = 694;
 var cellSize = 33;
 var robotSize = 100;
 
 if (table != null) {
-    for (var x = 0; x < table.rows.length; x++) {
-        for (var y = 0; y < table.rows[x].cells.length; y++) {
+    for (var x = 0; x < table.rows.length - 1; x++) {
+        for (var y = 1; y < table.rows[x].cells.length; y++) {
             table.rows[x].cells[y].onclick = function () {
                 updateCanvas(this);
             };
         }
     }
 }
+
+btnConnect.style.visibility = 'hidden';
+btnDisconnect.style.visibility = 'hidden';
+btnExploreStart.style.visibility = 'hidden';
+
 switchEditMode();
-getMode();
+lockMode();
 moveRobot("");
 
 mdfPart1.oninput = function () { mdfToArray(); };
@@ -201,18 +208,11 @@ function updateExploreStatus() {
     $.get("/get_explore_status", function (data, status) {
         if (data == "N") {
             clearInterval(exploreStatusAni);
-            showSimControls();
-            floatTable.style.visibility = 'hidden';
-            return
+            toShowFloatingTable(false);
+            return;
         }
 
-        hideSimControls();
-
-        floatTable.style.visibility = 'visible';
-        $.get("/get_original_arena", function (data, status) {
-            var original = jQuery.parseJSON(data);
-            drawCanvas(floatTable, original);
-        });
+        toShowFloatingTable(true);
 
         var refreshRate = robotSpeed.value * 500;
         exploreStatusAni = setInterval(getExploreStatus, refreshRate);
@@ -220,8 +220,7 @@ function updateExploreStatus() {
             $.get("/get_explore_status", function (data, status) {
                 if (data == "N") {
                     clearInterval(exploreStatusAni);
-                    showSimControls();
-                    floatTable.style.visibility = 'hidden';
+                    toShowFloatingTable(false);
                 }
                 var obj = jQuery.parseJSON(data);
                 var arena = obj[0];
@@ -234,6 +233,29 @@ function updateExploreStatus() {
         }
     });
 }
+
+
+function toShowFloatingTable(running) {
+    if (tabSimMode.className != "nav-link active")
+        return
+
+    if (running) {
+
+        hideSimControls();
+        floatTable.style.visibility = 'visible';
+        $.get("/get_original_arena", function (data, status) {
+            var original = jQuery.parseJSON(data);
+            drawCanvas(floatTable, original);
+        });
+    }
+    else {
+        if (tabSimMode.className == "nav-link active") {
+            showSimControls();
+            floatTable.style.visibility = 'hidden';
+        }
+    }
+}
+
 
 function setRobotPosition(h, w, d) {
     setActualRobotPosition(arenaHeight - (h * cellSize) - robotSize, cellSize * w, d);
@@ -288,17 +310,13 @@ function mdfToArray() {
     });
 }
 
-function getMode() {
+function lockMode() {
     $.get("/current_mode", function (data, status) {
-        // btnConnect.style.visibility = 'visible';
-        // btnDisconnect.style.visibility = 'hidden';
         if (data == 1) {
             switchSimMode();
         }
         else if (data == 2) {
             switchActualMode();
-            // btnConnect.style.visibility = 'hidden';
-            // btnDisconnect.style.visibility = 'visible';
         }
     });
 }
@@ -316,6 +334,7 @@ function switchEditMode() {
     hideActualControls();
 
     clearInterval(exploreStatusAni);
+    clearInterval(connectionStatus);
     mdfToArray();
     setFopVisible(false);
 }
@@ -333,6 +352,8 @@ function switchSimMode() {
     hideActualControls();
     setFopVisible(true);
 
+    clearInterval(connectionStatus);
+
     updateExploreStatus();
 }
 
@@ -348,6 +369,27 @@ function switchActualMode() {
     hideSimControls();
     showActualControls();
     setFopVisible(true);
+
+    clearInterval(connectionStatus);
+
+    connectionStatus = setInterval(getConnectionStatus, 1000);
+    function getConnectionStatus() {
+        $.get("/current_mode", function (data, status) {
+            btnConnect.style.visibility = 'hidden';
+            btnDisconnect.style.visibility = 'hidden';
+            btnExploreStart.style.visibility = 'hidden';
+            if (data == 0) {
+                btnConnect.style.visibility = 'visible';
+            }
+            else if (data == 2) {
+                btnDisconnect.style.visibility = 'visible';
+                btnExploreStart.style.visibility = 'visible';
+            }
+            else if (data == 4) {
+                btnDisconnect.style.visibility = 'visible';
+            }
+        });
+    }
 
     updateExploreStatus();
 }
@@ -404,14 +446,14 @@ $(document).ready(function () {
     $('#tabSimMode').click(function (e) {
         e.preventDefault();
         switchSimMode();
-        getMode();
+        lockMode();
         return false;
     });
 
     $('#tabActualMode').click(function (e) {
         e.preventDefault();
         switchActualMode();
-        getMode();
+        lockMode();
         return false;
     });
 
