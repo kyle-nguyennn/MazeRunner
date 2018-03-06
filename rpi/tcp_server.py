@@ -37,7 +37,7 @@ class TcpServer():
             time.sleep(1)
         self.lock = True
         try:
-            self.client_conn.send(data.encode('utf-8'))
+            self.client_conn.send((data+"\n").encode('utf-8'))
             print("TcpServer - Sent data: {}".format(data))
         except:
             print("TcpServer - Error sending data: {}".format(data))

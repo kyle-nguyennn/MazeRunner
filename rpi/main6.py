@@ -23,10 +23,12 @@ def run_tcp_server(ip, port):
             data = pc_conn.recv()
             if data is None:
                 break
-            if data[0] == "{":
-                android_queue.put(data)
-            else:
-                arduino_queue.put(data)
+            data_arr = data.splitlines()
+            for data_s in data_arr:
+                if data_s[0] == "{":
+                    android_queue.put(data_s)
+                else:
+                    arduino_queue.put(data_s)
         pc_conn.close_client()
     pc_conn.close_server()
 
@@ -44,10 +46,12 @@ def run_bt_server(channel):
             data = android_conn.recv()
             if data is None:
                 break
-            if data[0] == "{":
-                pc_queue.put(data)
-            else:
-                arduino_queue.put(data)
+            data_arr = data.splitlines()
+            for data_s in data_arr:
+                if data_s[0] == "{":
+                    pc_queue.put(data_s)
+                else:
+                    arduino_queue.put(data_s)
         android_conn.close_client()
     android_conn.close_server()
 
@@ -65,7 +69,9 @@ def run_serial_client(port, baud_rate):
             data = arduino_conn.recv()
             if data is None:
                 break
-            pc_queue.put(data.rstrip())
+            data_arr = data.splitlines()
+            for data_s in data_arr:
+                pc_queue.put(data_s)
         arduino_conn.close_conn()
 
 
