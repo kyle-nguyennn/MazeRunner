@@ -263,19 +263,56 @@ class Explorer():
         for cell in cells:
             h = cell[0]
             w = cell[1]
-            if (self.arena.get(h+1,w-1) == CellType.EMPTY \
-                and self.arena.get(h+1,w) == CellType.EMPTY \
-                and self.arena.get(h+1,w+1) == CellType.EMPTY \
-                or self.arena.get(h+1,w+1) == CellType.EMPTY \
-                and self.arena.get(h,w+1) == CellType.EMPTY \
-                and self.arena.get(h-1,w+1) == CellType.EMPTY \
-                or self.arena.get(h-1,w-1) == CellType.EMPTY \
-                and self.arena.get(h-1,w) == CellType.EMPTY \
-                and self.arena.get(h-1,w+1) == CellType.EMPTY \
-                or self.arena.get(h+1,w-1) == CellType.EMPTY \
-                and self.arena.get(h,w-1) == CellType.EMPTY \
-                and self.arena.get(h-1,w-1) == CellType.EMPTY ):
-                boundaryCells.append(cell)
+            for side in range(4):
+                if side == 0 or side == 2:
+                    x = h+(side-1)
+                    if self.arena.get(x,w) == CellType.EMPTY:
+                        if self.arena.get(x,w-1) == CellType.EMPTY:
+                            if self.arena.get(x,w-2) == CellType.EMPTY:
+                                boundaryCells.append(cell)
+                                break
+                        elif self.arena.get(x,w+1) == CellType.EMPTY:
+                            if self.arena.get(x,w+2) == CellType.EMPTY:
+                                boundaryCells.append(cell)
+                                break
+                        else:
+                            continue                            
+                    # if middle cell not empty, break current direction and search next direction
+                    else:
+                        continue
+                else: # side == 1 or 3
+                    y = w+(side-2)
+                    if self.arena.get(h,y) == CellType.EMPTY:
+                        if self.arena.get(h-1,y) == CellType.EMPTY:
+                            if self.arena.get(h-2,y) == CellType.EMPTY:
+                                boundaryCells.append(cell)
+                                break
+                        elif self.arena.get(h+1,y) == CellType.EMPTY:
+                            if self.arena.get(h+2,y) == CellType.EMPTY:
+                                boundaryCells.append(cell)
+                                break
+                        else:
+                            continue                            
+                    # if middle cell not empty, break current direction and search next direction
+                    else:
+                        continue
+                       
+# =============================================================================
+#             if (self.arena.get(h+1,w-1) == CellType.EMPTY \
+#                 and self.arena.get(h+1,w) == CellType.EMPTY \
+#                 and self.arena.get(h+1,w+1) == CellType.EMPTY \
+#                 or self.arena.get(h+1,w+1) == CellType.EMPTY \
+#                 and self.arena.get(h,w+1) == CellType.EMPTY \
+#                 and self.arena.get(h-1,w+1) == CellType.EMPTY \
+#                 or self.arena.get(h-1,w-1) == CellType.EMPTY \
+#                 and self.arena.get(h-1,w) == CellType.EMPTY \
+#                 and self.arena.get(h-1,w+1) == CellType.EMPTY \
+#                 or self.arena.get(h+1,w-1) == CellType.EMPTY \
+#                 and self.arena.get(h,w-1) == CellType.EMPTY \
+#                 and self.arena.get(h-1,w-1) == CellType.EMPTY ):
+#                 boundaryCells.append(cell)
+# =============================================================================
+        
         return boundaryCells
             
             
@@ -298,7 +335,7 @@ class Explorer():
         
         # only move to explore one of the boundary cells - cell that has at least one side has 3 consecutive empty blocks            
         boundaryCells = self.searchBoundaryCells(reExploreCells)
-        print("boundary cells:",boundaryCells)
+        logging.debug("boundary cells:" + str(boundaryCells))
                     
         # calculate Euclidean distance for each
         for cell in boundaryCells:
@@ -310,6 +347,7 @@ class Explorer():
         cellEuclidean.sort()
         cellEuclidean = list(set(cellEuclidean))
         
+        # pick k number of eucliean nearest cell candidates
         itemNo = 0
         noMore = False
         for dist in cellEuclidean:
@@ -324,7 +362,7 @@ class Explorer():
             if noMore == True:
                 break
             
-        print("targetCells",targetCells)
+        logging.debug("targetCells" + str(targetCells))
         
         potentialPos = []
         for cell in targetCells:
@@ -355,28 +393,37 @@ class Explorer():
                         break
                 else:
                     indexOff += 1
-            cellToMove = (node[0][0],node[1][1],node[2])
+            cellToMove = (node[0][0],node[0][1],node[2])
             (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+# =============================================================================
+#             print("dijkstra startnode:",startnode)
+#             print("dijkstra cellToMove:",cellToMove)
+#             print("dijkstra instr:",instr)
+#             print("dijkstra cost:",cost)
+# =============================================================================
+
+
             node[3] = len(instr)
             updatedNodes.append(node)
-        print("potentialPos: ",updatedNodes)
+        logging.debug("potentialPos: " + str(updatedNodes))
         
         # find the minimum cost in potentialPos 
         # this algo can be optimized later
-        minCost = updatedNodes[0][3]
+        minCost = 1000
         index = 0
         for choice in updatedNodes:
-            if choice[3] < minCost:
+            if choice[3] < minCost and choice[3] != 0:
                 minCost = choice[3]       
         for choice in updatedNodes:
             if choice[3] != minCost:
                 index += 1
             else:
                 break
-            
         cellToMove = (updatedNodes[index][0][0], updatedNodes[index][0][1], updatedNodes[index][2])
-        print("cell to move:",cellToMove)
-        print("start cell:",startnode)
+# =============================================================================
+#         print("cell to move:",cellToMove)
+#         print("start cell:",startnode)
+# =============================================================================
         (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
         logging.debug("Instruction for going to observing cell" + instr)
         logging.debug("Observing point " + str(endNode))       
