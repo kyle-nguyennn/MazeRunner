@@ -12,6 +12,7 @@ class Explorer():
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
+        self.status = ""
         self.arena = Arena()
         #self.robot = [1, 1, 0] # 2d position plus orientation
         ### CONSTANT ####
