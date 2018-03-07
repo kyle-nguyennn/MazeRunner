@@ -299,23 +299,6 @@ class Explorer():
                     # if middle cell not empty, break current direction and search next direction
                     else:
                         continue
-                       
-# =============================================================================
-#             if (self.arena.get(h+1,w-1) == CellType.EMPTY \
-#                 and self.arena.get(h+1,w) == CellType.EMPTY \
-#                 and self.arena.get(h+1,w+1) == CellType.EMPTY \
-#                 or self.arena.get(h+1,w+1) == CellType.EMPTY \
-#                 and self.arena.get(h,w+1) == CellType.EMPTY \
-#                 and self.arena.get(h-1,w+1) == CellType.EMPTY \
-#                 or self.arena.get(h-1,w-1) == CellType.EMPTY \
-#                 and self.arena.get(h-1,w) == CellType.EMPTY \
-#                 and self.arena.get(h-1,w+1) == CellType.EMPTY \
-#                 or self.arena.get(h+1,w-1) == CellType.EMPTY \
-#                 and self.arena.get(h,w-1) == CellType.EMPTY \
-#                 and self.arena.get(h-1,w-1) == CellType.EMPTY ):
-#                 boundaryCells.append(cell)
-# =============================================================================
-        
         return boundaryCells
             
             
@@ -406,7 +389,7 @@ class Explorer():
 # =============================================================================
 
 
-            node[3] = len(instr)
+            node[3] = cost
             updatedNodes.append(node)
         logging.debug("potentialPos: " + str(updatedNodes))
         
@@ -431,73 +414,7 @@ class Explorer():
         logging.debug("Instruction for going to observing cell" + instr)
         logging.debug("Observing point " + str(endNode))       
         return (instr, endNode)
-        
-# =============================================================================
-#         while True:    
-#             # find the nearest one
-#             targetCell = boundaryCells[findArrayIndexMin(cellEuclidean)]
-#             print("target cell:",targetCell)
-#             
-#             
-#             # find its nearest observing point
-#             offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
-#             potentialPos = []
-#             for offset in offsets:
-#                 if self.allEmpty(targetCell[0]+offset[0],targetCell[1]+offset[1]):
-#                     potentialPos.append([targetCell[0]+offset[0],targetCell[1]+offset[1]])
-#             if len(potentialPos) != 0:
-#                 break
-#             else:
-#                 index = findArrayIndexMin(cellEuclidean)
-#                 del cellEuclidean[index]
-#                 del boundaryCells[index]
-# =============================================================================
-            
-# =============================================================================
-#         # calculate Euclidean distance for each
-#         posDistance = []
-#         for cell in potentialPos:
-#             dist = euclidean([robot.robotCenterH,robot.robotCenterW],cell)
-#             posDistance.append(dist)
-#         xToMove, yToMove = potentialPos[findArrayIndexMin(posDistance)]
-#         endingCell = [xToMove,yToMove]
-# 
-#         indexOff = 0
-#         for offset in offsets:
-#             if [endingCell[0]-targetCell[0],endingCell[1]-targetCell[1]] == offset:
-#                 if 0 <= indexOff < 3:
-#                     observeDirection = 0
-#                     break
-#                 elif 3 <= indexOff < 6:
-#                     observeDirection = 1
-#                     break
-#                 elif 6 <= indexOff < 9:
-#                     observeDirection = 2
-#                     break
-#                 else:
-#                     observeDirection = 3
-#                     break
-#             else:
-#                 indexOff += 1
-#                 
-#         print("offset:",offset)
-#         print("observeDirection:",observeDirection)
-#             
-#         cellToMove = (xToMove, yToMove, observeDirection)
-#         logging.debug("Cell to move: " + str(cellToMove))
-#         # use djikstra
-#         startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
-#         
-#         # adding "cost" as the third return value
-#         (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
-#                 logging.debug("Instruction for going to observing cell" + instr)
-#         logging.debug("Observing point " + str(endNode))
-        
-#         return (instr, endNode)
-# =============================================================================
 
-        
-        # need to check robot final head direction
 ###### helper functions #####    
 def findArrayIndexMin(arr):
     return arr.index(min(arr))
