@@ -340,6 +340,7 @@ function switchEditMode() {
     lblStatus.style.visibility = 'hidden';
     floatTable.style.visibility = 'hidden';
     btnStopSim.style.visibility = 'hidden';
+    waypoint.style.visibility = 'hidden';
 
     showEditControls();
     hideSimControls();
@@ -379,6 +380,7 @@ function switchActualMode() {
     lblStatus.style.visibility = 'visible';
     floatTable.style.visibility = 'hidden';
     btnStopSim.style.visibility = 'hidden';
+    waypoint.style.visibility = 'hidden';
 
     hideEditControls();
     hideSimControls();
