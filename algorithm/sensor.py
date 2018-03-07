@@ -87,10 +87,12 @@ class Sensor():
         direction = self.sensor_direction + self.robot_direction
         return direction % 360
     def get_absolute_direction_mod4(self):
-        print("inside sensor: robot direction ", self.robot_direction)
-        print("inside sensor: sensor relative direction ", self.sensor_direction)
-        print("inside sensor: sensor postition ", self.sensor_pos)
-        print("inside sensor: sensor relative postition ", self.relative_pos())
+# =============================================================================
+#         print("inside sensor: robot direction ", self.robot_direction)
+#         print("inside sensor: sensor relative direction ", self.sensor_direction)
+#         print("inside sensor: sensor postition ", self.sensor_pos)
+#         print("inside sensor: sensor relative postition ", self.relative_pos())
+# =============================================================================
         direction = (self.sensor_direction + self.robot_direction) % 360
         return self.direction_mod4(int(direction))
 
