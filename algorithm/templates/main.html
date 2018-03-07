@@ -78,6 +78,8 @@
                             </tbody>
                         </table>
                         <div id="robot-fop">
+                            <div id="waypoint">
+                            </div>
                             <div id="robot">
                                 <div id="robot-heading">
                                 </div>
@@ -137,13 +139,13 @@
                             <div class="form-group row">
                                 <label for="waypointRow" class="col-sm-6 col-form-label">Waypoint Row:</label>
                                 <div class="col-sm-6">
-                                    <input type="number" class="form-control" id="waypointRow" name="waypointRow" min=0 max=19>
+                                    <input type="number" class="form-control" id="waypointRow" name="waypointRow" min=0 max=19 value=9>
                                 </div>
                             </div>
                             <div class="form-group row">
                                 <label for="waypointCol" class="col-sm-6 col-form-label">Waypoint Column:</label>
                                 <div class="col-sm-6">
-                                    <input type="number" class="form-control" id="waypointCol" name="waypointCol" min=0 max=14>
+                                    <input type="number" class="form-control" id="waypointCol" name="waypointCol" min=0 max=14 value=7>
                                 </div>
                             </div>
                             <button type="button" id="btnFastestPath" class="btn btn-primary">Run Simulation</button>

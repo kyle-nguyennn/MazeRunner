@@ -366,30 +366,58 @@ class Explorer():
             for offset in offsets:
                 if [node[0][0]-node[1][0],node[0][1]-node[1][1]] == offset:
                     if 0 <= indexOff < 3:
-                        node[2] = 0
-                        break
+                        if indexOff == 1:
+                            node[2] = [0]
+                            break
+                        else:
+                            node[2] = [0,3]
+                            break
                     elif 3 <= indexOff < 6:
-                        node[2] = 1
-                        break
+                        if indexOff == 4:
+                            node[2] = [1]
+                            break
+                        else:
+                            node[2] = [1,0]
+                            break
                     elif 6 <= indexOff < 9:
-                        node[2] = 2
-                        break
+                        if indexOff == 7:
+                            node[2] = [2]
+                            break
+                        else:
+                            node[2] = [2,1]
+                            break
                     else:
-                        node[2] = 3
-                        break
+                        if indexOff == 10:
+                            node[2] = [3]
+                            break
+                        else:
+                            node[2] = [3,2]
+                            break
                 else:
                     indexOff += 1
-            cellToMove = (node[0][0],node[0][1],node[2])
-            (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+            cellsToMove = []
+            costs = []
+            # find the path of less cost considring both front ahd right direction for same point
+            for direction in node[2]:
+                cellsToMove.append((node[0][0],node[0][1],direction))
+            for cellToMove in cellsToMove:
+                (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
 # =============================================================================
 #             print("dijkstra startnode:",startnode)
 #             print("dijkstra cellToMove:",cellToMove)
 #             print("dijkstra instr:",instr)
 #             print("dijkstra cost:",cost)
 # =============================================================================
-
-
-            node[3] = cost
+                costs.append(cost)
+                minCost = costs[0]
+                index = 0
+                for cost in costs:
+                    if cost < minCost:
+                        minCost = cost
+                        index += 1
+            node[1] = cellsToMove[index] 
+            node[2] = node[2][index]                  
+            node[3] = minCost
             updatedNodes.append(node)
         logging.debug("potentialPos: " + str(updatedNodes))
         
