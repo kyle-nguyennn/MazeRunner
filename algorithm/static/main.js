@@ -22,7 +22,10 @@ var exploreTime = document.getElementById("exploreTime");
 var errorRate = document.getElementById("errorRate");
 var floatTable = document.getElementById("floatingArena");
 var lblStatus = document.getElementById("lblStatus");
-var floatTable = document.getElementById("floatingArena");
+var btnStopSim = document.getElementById("btnStopSim");
+var waypointRow = document.getElementById("waypointRow");
+var waypointCol = document.getElementById("waypointCol");
+var waypoint = document.getElementById("waypoint");
 
 var cellMovt;
 var cellAni;
@@ -50,6 +53,7 @@ btnExploreStart.style.visibility = 'hidden';
 switchEditMode();
 lockMode();
 moveRobot("");
+loadFromList();
 
 mdfPart1.oninput = function () { mdfToArray(); };
 mdfPart2.oninput = function () { mdfToArray(); };
@@ -57,6 +61,8 @@ mdfList.oninput = function () { loadFromList(); };
 robotPosRow.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
 robotPosCol.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
 robotHead.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
+waypointRow.oninput = function () { updateWaypoint(); };
+waypointCol.oninput = function () { updateWaypoint(); };
 
 function loadFromList() {
     var str = mdfList.options[mdfList.selectedIndex].text;
@@ -65,7 +71,6 @@ function loadFromList() {
     mdfPart2.value = mdfParts[1];
     mdfToArray();
 }
-
 
 function updateCanvas(cell) {
     if (document.getElementById("optObstacle").checked) {
@@ -88,7 +93,7 @@ function tableToArray() {
                     mapArr[x][y - 1] = 0;
                 } else if (table.rows[x].cells[y].className == "obstacle") {
                     mapArr[x][y - 1] = 1;
-                } else if (table.rows[x].cells[y].className == "unknown") {
+                } else {
                     mapArr[x][y - 1] = -1;
                 }
             }
@@ -113,13 +118,19 @@ function drawCanvas(display, arena) {
     }
 }
 
-
 function setFopVisible(visible) {
     var fop = document.getElementById("robot-fop");
     if (visible)
         fop.style.visibility = 'visible';
     else
         fop.style.visibility = 'hidden';
+}
+
+function updateWaypoint() {
+    x = parseInt(waypointRow.value);
+    y = parseInt(waypointCol.value);
+    waypoint.style.visibility = 'visible';
+    setWaypointPosition(x, y);
 }
 
 function moveRobot(actions) {
@@ -214,7 +225,7 @@ function updateExploreStatus() {
 
         toShowFloatingTable(true);
         var refreshRate = 200;
-        if (tabSimMode.className != "nav-link active")
+        if (tabSimMode.className == "nav-link active")
             var refreshRate = robotSpeed.value * 500;
         exploreStatusAni = setInterval(getExploreStatus, refreshRate);
         function getExploreStatus() {
@@ -243,6 +254,7 @@ function toShowFloatingTable(running) {
     if (running) {
         hideSimControls();
         floatTable.style.visibility = 'visible';
+        btnStopSim.style.visibility = 'visible';
         $.get("/get_original_arena", function (data, status) {
             var original = jQuery.parseJSON(data);
             drawCanvas(floatTable, original);
@@ -251,6 +263,7 @@ function toShowFloatingTable(running) {
     else {
         showSimControls();
         floatTable.style.visibility = 'hidden';
+        btnStopSim.style.visibility = 'hidden';
     }
 }
 
@@ -264,6 +277,15 @@ function setActualRobotPosition(h, w, d) {
     robot.style.top = h + 'px';
     robot.style.left = w + 'px';
     robot.style.transform = 'rotate(' + d + 'deg)';
+}
+
+function setWaypointPosition(h, w) {
+    setActualWaypointPosition(arenaHeight - ((h + 2) * cellSize) - 1, cellSize * (w + 1));
+}
+
+function setActualWaypointPosition(h, w) {
+    waypoint.style.top = h + 'px';
+    waypoint.style.left = w + 'px';
 }
 
 function normalizeDirection(deg) {
@@ -317,6 +339,7 @@ function switchEditMode() {
 
     lblStatus.style.visibility = 'hidden';
     floatTable.style.visibility = 'hidden';
+    btnStopSim.style.visibility = 'hidden';
 
     showEditControls();
     hideSimControls();
@@ -335,6 +358,8 @@ function switchSimMode() {
 
     lblStatus.style.visibility = 'visible';
     floatTable.style.visibility = 'hidden';
+    btnStopSim.style.visibility = 'hidden';
+    waypoint.style.visibility = 'hidden';
 
     hideEditControls();
     showSimControls();
@@ -353,6 +378,7 @@ function switchActualMode() {
 
     lblStatus.style.visibility = 'visible';
     floatTable.style.visibility = 'hidden';
+    btnStopSim.style.visibility = 'hidden';
 
     hideEditControls();
     hideSimControls();
@@ -477,13 +503,19 @@ $(document).ready(function () {
     });
 
     $("#btnDisconnect").click(function () {
-        $.get("/disconnect_from_pi", function (data, status) {
+        $.get("/disconnect_tcp", function (data, status) {
+        });
+    });
+
+    $("#btnStopSim").click(function () {
+        $.get("/disconnect_tcp", function (data, status) {
         });
     });
 
     $("#btnFastestPath").click(function () {
-        x = $("#waypointRow").val()
-        y = $("#waypointCol").val()
+        x = $("#waypointRow").val();
+        y = $("#waypointCol").val();
+
         data = [tableToArray(), x, y];
         $.ajax({
             type: 'POST',

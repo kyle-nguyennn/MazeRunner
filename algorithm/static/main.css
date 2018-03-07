@@ -93,6 +93,14 @@ td.marker {
     border-radius: 50px;
 }
 
+#waypoint {
+    width: 34px;
+    height: 34px;
+    position: absolute;
+    background-color: #FFEB3B;
+    border: 1px solid #FFFFFF;
+}
+
 #robot-heading {
     display: block;
     border-left: solid 20px transparent;
