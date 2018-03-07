@@ -161,7 +161,6 @@ class Explorer():
                 self.tcp_conn.send_command(instruction)
                 print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
                 print("robot head:",self.robot.robotHead)
-                print("sensor 1 absolute direction", self.robot.sensors[0].get_absolute_direction_mod4())
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()           
         print("Exploration time:",explorationTime)
@@ -267,9 +266,6 @@ class Explorer():
             head1 = head- 1
         else:
             head1 = 3
-        if [self.robot.robotCenterH,self.robot.robotCenterW] == [18,6]:
-            print ([self.robot.robotCenterH,self.robot.robotCenterW] in self.wallCells[head1][0])
-            print ([self.robot.robotCenterH,self.robot.robotCenterW] in self.wallCells[head1][1])
 
         for i in range(r):
             frontCells = self.frontCells[self.robot.robotHead]
@@ -284,14 +280,13 @@ class Explorer():
                     self.alignNow = True
                     break
             elif [h,w] in self.wallCells[head1][i]:
-                if i == 0 \
-                or self.arena.get(h+frontCells[0][i-1][0],w+frontCells[0][i-1][1]) == CellType.EMPTY \
-                and self.arena.get(h+frontCells[2][i-1][0],w+frontCells[2][i-1][1]) == CellType.EMPTY:              
+                if i == 0:              
                     self.alignSensor = ''.join(["CF",str(i)])
                     self.alignNow = True
                     break
             else:                  
-                if self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE :
+                if i == 0 \
+                and self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE :
                     self.alignSensor = ''.join(["CF",str(i)])
                     self.alignNow = True
                     break
@@ -299,7 +294,8 @@ class Explorer():
                     self.alignSensor = ''.join(["CS",str(i)])
                     self.alignNow = True
                     break
-                elif self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][0]) == CellType.OBSTACLE\
+                elif i == 0\
+                and self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][0]) == CellType.OBSTACLE\
                     or self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE:                
                     self.alignSensor = ''.join(["CF",str(i)])
                     self.alignNow = True  
@@ -497,7 +493,6 @@ class Explorer():
         # update all potentialPos values with dijkstra cost
         updatedNodes = []          
         for node in potentialPos:
-            print("node:",node)
 #        for [cellToGo,cellToOb,head,cost] in potentialPos:
             indexOff = 0
             for offset in offsets:
