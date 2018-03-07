@@ -38,9 +38,9 @@ def neighbors(mymap, cur): # cur is (x,y,d)
     for i in range(1,4): # add states can achieved by stand still and turn
         neighbor_pos = (x,y, (d+i)%4)
         if i == 2:
-            moveCost = 2
+            moveCost = 4
         else:
-            moveCost = 1
+            moveCost = 2
         move = {
             1: "R",
             2: "RR",

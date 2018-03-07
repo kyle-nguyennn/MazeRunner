@@ -578,8 +578,6 @@ class Explorer():
         logging.debug("Observing point " + str(endNode))       
         return (instr, endNode)
 
-        
-        # need to check robot final head direction
 ###### helper functions #####    
 def findArrayIndexMin(arr):
     return arr.index(min(arr))
