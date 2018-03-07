@@ -43,11 +43,11 @@ def init_model():
     model.compile(loss="mse", optimizer=sgd, metrics=["accuracy"])
     return model
 
-def model_crossover(model_idx1, model_idx2):
+def model_crossover(model1, model2):
     # return new weights for the 2 models
     global current_pool
-    weights1 = current_pool[model_idx1].get_weights()
-    weights2 = current_pool[model_idx2].get_weights()
+    weights1 = model1.get_weights()
+    weights2 = model2.get_weights()
     weightsnew1 = weights1
     weightsnew2 = weights2
     weightsnew1[0] = weights2[0]
@@ -145,6 +145,39 @@ def computeFitness(discovered, instruction_count, runtime):
 def evolve(fitness):
     global current_pool
     new_weights = []
+    # sort current pool and fitness according to fitness score
+    mixin = []
+    for index in range(len(fitness)):
+        mixin.append((fitness[index], current_pool[index]))
+    mixin.sort(key = lambda x:x[0])
+    q1 = int(pool_size/4)
+    q3 = int(3*pool_size/4)
+    bottom = mixin[0: q1]
+    average = mixin[q1: q3]
+    top = mixin[q3:]
+    # select top 75% to go into next generation
+    for fitness, model in top:
+        new_weights.append(model.get_weights())
+    # range 25-75% cross over
+    for select in range(int(len(average)/2)):
+        parentIdx1 = random.randrange(0, len(average))
+        parentIdx2 = random.randrange(0, len(average))
+        parent1 = average[parentIdx1][1] # second element in the tuple is the model
+        parent2 = average[parentIdx2][1]
+        child1, child2 = model_crossover(parent1, parent2)
+        new_weights.append(child1)
+        new_weights.append(child2)
+    # range 25% mutate
+    for fitness, model in bottom:
+        mutated_weights = model_mutate(model.get_weights())
+        new_weights.append(mutated_weights)
+    # udpate current_pool with new_weights
+    for select in range(len(new_weights)):
+        current_pool[select].set_weights(new_weights[select])
+
+def evolve1(fitness):
+    global current_pool
+    new_weights = []
     total_fitness = 0
     for select in range(pool_size):
         total_fitness += fitness[select]
@@ -173,6 +206,12 @@ def evolve(fitness):
     for select in range(len(new_weights)):
         fitness[select] = -100
         current_pool[select].set_weights(new_weights[select])
+
+def normalizwWithSensorData(robot_pos):
+    x,y,d = robot_pos
+    ratio = 20/8
+    return [x/ratio, y/ratio, d]
+
 
 if __name__ == "__main__":
     maps = db.session.query(MdfStrings).all()
@@ -215,7 +254,7 @@ if __name__ == "__main__":
             while not gameover:
                 sensor_data = getSensorData(arena, robot)
                 discovered += updateMap(sensor_data, knowledge_map, robot)
-                robot_pos = robot.getPositionMod4()
+                robot_pos = normalizwWithSensorData(robot.getPositionMod4())
                 input_nn = np.atleast_2d(np.array(sensor_data + robot_pos))
                 action = predict_action(model, input_nn)
                 instruction_count += 1
