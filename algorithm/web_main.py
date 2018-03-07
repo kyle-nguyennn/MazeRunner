@@ -91,6 +91,7 @@ def fastest_path():
     except ValueError:
         return json.dumps({"Bad input": "please enter numerical values"})
     instructions = getInstructions(array_to_arena(arena_2d), waypoint)
+    print(instructions)
     return json.dumps({"instructions": instructions})
 
 

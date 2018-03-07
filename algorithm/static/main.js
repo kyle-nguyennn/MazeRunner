@@ -25,6 +25,7 @@ var lblStatus = document.getElementById("lblStatus");
 var btnStopSim = document.getElementById("btnStopSim");
 var waypointRow = document.getElementById("waypointRow");
 var waypointCol = document.getElementById("waypointCol");
+var waypoint = document.getElementById("waypoint");
 
 var cellMovt;
 var cellAni;
@@ -52,6 +53,7 @@ btnExploreStart.style.visibility = 'hidden';
 switchEditMode();
 lockMode();
 moveRobot("");
+loadFromList();
 
 mdfPart1.oninput = function () { mdfToArray(); };
 mdfPart2.oninput = function () { mdfToArray(); };
@@ -59,9 +61,8 @@ mdfList.oninput = function () { loadFromList(); };
 robotPosRow.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
 robotPosCol.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
 robotHead.oninput = function () { setRobotPosition(robotPosRow.value, robotPosCol.value, robotHead.value); };
-// waypointRow.oninput = function () { updateWaypoint(); };
-// waypointCol.oninput = function () { updateWaypoint(); };
-
+waypointRow.oninput = function () { updateWaypoint(); };
+waypointCol.oninput = function () { updateWaypoint(); };
 
 function loadFromList() {
     var str = mdfList.options[mdfList.selectedIndex].text;
@@ -126,10 +127,10 @@ function setFopVisible(visible) {
 }
 
 function updateWaypoint() {
-    // mdfToArray();
     x = parseInt(waypointRow.value);
     y = parseInt(waypointCol.value);
-    table.rows[19 - x].cells[y + 1].className = "wayPoint";
+    waypoint.style.visibility = 'visible';
+    setWaypointPosition(x, y);
 }
 
 function moveRobot(actions) {
@@ -278,6 +279,15 @@ function setActualRobotPosition(h, w, d) {
     robot.style.transform = 'rotate(' + d + 'deg)';
 }
 
+function setWaypointPosition(h, w) {
+    setActualWaypointPosition(arenaHeight - ((h + 2) * cellSize) - 1, cellSize * (w + 1));
+}
+
+function setActualWaypointPosition(h, w) {
+    waypoint.style.top = h + 'px';
+    waypoint.style.left = w + 'px';
+}
+
 function normalizeDirection(deg) {
     console.log(deg);
     if (deg < 0)
@@ -349,6 +359,7 @@ function switchSimMode() {
     lblStatus.style.visibility = 'visible';
     floatTable.style.visibility = 'hidden';
     btnStopSim.style.visibility = 'hidden';
+    waypoint.style.visibility = 'hidden';
 
     hideEditControls();
     showSimControls();
@@ -504,8 +515,6 @@ $(document).ready(function () {
     $("#btnFastestPath").click(function () {
         x = $("#waypointRow").val();
         y = $("#waypointCol").val();
-
-        updateWaypoint();
 
         data = [tableToArray(), x, y];
         $.ajax({
