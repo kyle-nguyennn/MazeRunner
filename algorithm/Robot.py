@@ -63,6 +63,10 @@ class Robot():
     def updateSensors(self):
         for sensor in self.sensors:
             sensor.set_robot(self.robotCenterH, self.robotCenterW, self.robotHead*90)
+
+    def getNoseCell(self):
+        
+
     # move front, update center cell coordinates
     def forward(self):
         if (self.robotHead == 0):		
