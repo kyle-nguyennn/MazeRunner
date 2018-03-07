@@ -212,6 +212,9 @@ def normalizwWithSensorData(robot_pos):
     ratio = 20/8
     return [x/ratio, y/ratio, d]
 
+def blendMap(knowledge_map, robot_pos):
+    
+
 
 if __name__ == "__main__":
     maps = db.session.query(MdfStrings).all()
@@ -255,7 +258,8 @@ if __name__ == "__main__":
                 sensor_data = getSensorData(arena, robot)
                 discovered += updateMap(sensor_data, knowledge_map, robot)
                 robot_pos = normalizwWithSensorData(robot.getPositionMod4())
-                input_nn = np.atleast_2d(np.array(sensor_data + robot_pos))
+                # input_nn = np.atleast_2d(np.array(sensor_data + robot_pos))
+                input_nn = blendMap(knowledge_map, robot_pos)
                 action = predict_action(model, input_nn)
                 instruction_count += 1
                 # print("robot pos ", robot_pos)
