@@ -1,0 +1,4 @@
+net architecture: (9,16,4)
+generations: 100
+pool_size: 100
+change fitness function: instruction_count component follow a normal distribution of (130, 43)

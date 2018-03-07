@@ -13,7 +13,7 @@ import matplotlib.pylab as plt
 run_timeout = 0.1 # in seconds ~ 150 instructions in my pc
 generations = 100
 pool_size = 100
-ideal_max_instructions = 140
+ideal_mean_instructions = 130
 current_pool = []
 new_model = True
 model_path = __file__ + "/../model_pool"
@@ -133,6 +133,15 @@ def execute(action, robot, arena):
         return (-1,-1,-1)
     return None
 
+def computeFitness(discovered, instruction_count, runtime):
+    # instruction_count score follow a Gaussian distribution such that mean = ideal_mean_instructions
+    # and 50% lies between (-30, 30) around ideal_mean_instructions
+    from math import e, sqrt, pi
+    def gaussian(x, m=ideal_mean_instructions, s=43):
+        gauss = 1/(sqrt(2*pi)*s)*e**(-0.5*(float(x-m)/s)**2)
+        return gauss
+    return discovered+gaussian(instruction_count)*10000
+
 def evolve(fitness):
     global current_pool
     new_weights = []
@@ -236,7 +245,7 @@ if __name__ == "__main__":
                     min_instructions = instruction_count
             # game over for this model
             # update fitness
-            fitness[modelIndex] = discovered + (run_timeout - runtime) + (ideal_max_instructions - instruction_count)
+            fitness[modelIndex] = computeFitness(discovered, instruction_count, runtime)
         # evolving now
         evolve(fitness)
         discovered_max.append(max_discovered)
