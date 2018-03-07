@@ -360,8 +360,9 @@ class Explorer():
                     # potentialPos: [observingCoords,cellToObserveCoords]
                     potentialPos.append([[cell[0]+offset[0],cell[1]+offset[1]],cell,0,0]) #default head is 0, cost = 0            
         # update all potentialPos values with dijkstra cost
-        updatedNodes = []
+        updatedNodes = []          
         for node in potentialPos:
+            print("node:",node)
 #        for [cellToGo,cellToOb,head,cost] in potentialPos:
             indexOff = 0
             for offset in offsets:
@@ -370,12 +371,18 @@ class Explorer():
                         if indexOff == 1:
                             node[2] = [0]
                             break
+                        elif indexOff == 2:
+                            node[2] = [0,1]
+                            break
                         else:
                             node[2] = [0,3]
                             break
                     elif 3 <= indexOff < 6:
                         if indexOff == 4:
                             node[2] = [1]
+                            break
+                        elif indexOff == 5:
+                            node[2] = [1,2]
                             break
                         else:
                             node[2] = [1,0]
@@ -384,12 +391,18 @@ class Explorer():
                         if indexOff == 7:
                             node[2] = [2]
                             break
+                        elif indexOff == 8:
+                            node[2] = [2,3]
+                            break
                         else:
                             node[2] = [2,1]
                             break
                     else:
                         if indexOff == 10:
                             node[2] = [3]
+                            break
+                        elif indexOff == 11:
+                            node[2] = [3,0]
                             break
                         else:
                             node[2] = [3,2]
