@@ -41,6 +41,13 @@ td.marker {
     text-align: center;
 }
 
+td.wayPoint {
+    border: 1px solid #FFFFFF;
+    height: 32px;
+    width: 32px;
+    background-color: #E91E63;
+}
+
 #arena, #robot-fop {
     width: 529px;
     height: 694px;

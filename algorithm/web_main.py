@@ -135,7 +135,7 @@ def connect_to_pi():
     return "OK"
 
 
-@app.route('/disconnect_from_pi', methods=['GET'])
+@app.route('/disconnect_tcp', methods=['GET'])
 def disconnect_from_pi():
     global tcp_conn
     tcp_conn.close_conn()
