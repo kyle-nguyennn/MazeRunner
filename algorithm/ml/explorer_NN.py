@@ -212,8 +212,14 @@ def normalizwWithSensorData(robot_pos):
     ratio = 20/8
     return [x/ratio, y/ratio, d]
 
-def blendMap(knowledge_map, robot_pos):
-    
+def blendMap(knowledge_map, robot):
+    bodycells = robot.returnBodyCells()
+    m = knowledge_map.get_2d_arr()
+    for i range(len(m)):
+        for j in range(len(m[0])):
+            m[i][j] = m[i][j].value
+    for x,y in bodycells:
+        m[x][y] = 2
 
 
 if __name__ == "__main__":
@@ -259,7 +265,7 @@ if __name__ == "__main__":
                 discovered += updateMap(sensor_data, knowledge_map, robot)
                 robot_pos = normalizwWithSensorData(robot.getPositionMod4())
                 # input_nn = np.atleast_2d(np.array(sensor_data + robot_pos))
-                input_nn = blendMap(knowledge_map, robot_pos)
+                input_nn = blendMap(knowledge_map, robot)
                 action = predict_action(model, input_nn)
                 instruction_count += 1
                 # print("robot pos ", robot_pos)
