@@ -515,7 +515,6 @@ $(document).ready(function () {
     $("#btnFastestPath").click(function () {
         x = $("#waypointRow").val();
         y = $("#waypointCol").val();
-
         data = [tableToArray(), x, y];
         $.ajax({
             type: 'POST',
@@ -525,6 +524,7 @@ $(document).ready(function () {
             success: function (data) {
                 var obj = jQuery.parseJSON(data);
                 switchSimMode();
+                updateWaypoint();
                 moveRobot(obj.instructions);
             }
         });
