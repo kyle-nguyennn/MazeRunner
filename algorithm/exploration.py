@@ -294,9 +294,8 @@ class Explorer():
                     self.alignSensor = ''.join(["CS",str(i)])
                     self.alignNow = True
                     break
-                elif i == 0\
-                and self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][0]) == CellType.OBSTACLE\
-                    or self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE:                
+                elif i == 0 and self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][0]) == CellType.OBSTACLE\
+                    or i == 0 and self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE:                
                     self.alignSensor = ''.join(["CF",str(i)])
                     self.alignNow = True  
                     break
@@ -444,6 +443,7 @@ class Explorer():
         targetCells = []
         robot = self.robot
         noOfPicks = 3
+        
         startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
      
         for x in range(len(self.arena.arena_map)):
@@ -583,8 +583,16 @@ class Explorer():
 #         print("start cell:",startnode)
 # =============================================================================
         (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
-        logging.debug("Instruction for going to observing cell" + instr)
-        logging.debug("Observing point " + str(endNode))       
+        logging.debug("Observing point " + str(endNode)) 
+       
+        # check calibration condition in reExplore
+        sensor = ""
+        self.checkAlign(2)
+        if self.alignNow == True:
+            sensor = self.alignSensor
+            self.align()
+        instr = ''.join([sensor, instr])
+        logging.debug("instruction:"+instr)
         return (instr, endNode)
 
 ###### helper functions #####    
