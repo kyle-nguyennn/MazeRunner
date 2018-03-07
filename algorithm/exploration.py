@@ -50,11 +50,9 @@ class Explorer():
         
 
     def run(self):
-        cnt = 0
         self.tcp_conn.send_command("ES")
         self.update_status("Start exploration")
         while self.robot.robotMode != "done": 
-            cnt += 1 
             sensors = self.tcp_conn.get_string()
             #update map with sensor values
             self.updateMap(sensors)
@@ -77,6 +75,7 @@ class Explorer():
                     endnode = (1,1,0)
                     (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                     # give instruction
+                    self.cnt += len(instructions)
                     self.tcp_conn.send_command(instructions)
                     # update robot states (position and orientation)
                     self.robot.jump(endnode)
@@ -91,6 +90,7 @@ class Explorer():
                         endnode = (1,1,0)
                         (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                         # give instruction
+                        self.cnt += len(instructions)
                         self.tcp_conn.send_command(instructions)
                         # update robot states (position and orientation)
                         self.robot.jump(endnode) # already update sensors inside
@@ -101,6 +101,7 @@ class Explorer():
                         # reexplore, find the fastest path to the nearest unexplored cell
                         (instruction, endnode) = self.reExplore()
                         # give instruction
+                        self.cnt += len(instruction)
                         self.tcp_conn.send_command(instruction)
                         # update robot states
                         self.robot.jump(endnode) # already update sensors inside
@@ -112,6 +113,7 @@ class Explorer():
                 instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
+                self.cnt += len(instruction)
                 self.tcp_conn.send_command(instruction)
                 print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
                 print("robot head:",self.robot.robotHead)
@@ -119,6 +121,7 @@ class Explorer():
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()           
         print("Exploration time:",explorationTime)
+        print("Instruction count:", self.cnt)
         self.update_status("End exploration")
         self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
         self.tcp_conn.send_command("EE")
