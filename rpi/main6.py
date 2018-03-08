@@ -108,7 +108,8 @@ if __name__ == "__main__":
     t1 = threading.Thread(target=run_bt_server, args=(4,))
     t2 = threading.Thread(target=run_tcp_server, args=("0.0.0.0", 77))
     t3 = threading.Thread(target=run_serial_client,
-                          args=("/dev/ttyACM0", 9600))
+                          # args=("/dev/ttyACM0", 9600))
+                          args=("/dev/ttyAMA0", 9600))
     t4 = threading.Thread(target=send_tcp_server)
     t5 = threading.Thread(target=send_bt_server)
     t6 = threading.Thread(target=send_serial_client)
