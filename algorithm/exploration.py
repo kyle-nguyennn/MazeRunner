@@ -118,7 +118,6 @@ class Explorer():
                 self.tcp_conn.send_command(instruction)
                 print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
                 print("robot head:",self.robot.robotHead)
-                print("sensor 1 absolute direction", self.robot.sensors[0].get_absolute_direction_mod4())
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()           
         print("Exploration time:",explorationTime)
@@ -176,7 +175,6 @@ class Explorer():
             offsets = self.robot.visible_offsets(sensor)
             if value > sensor.visible_range:
                 value = sensor.visible_range
-            print(offsets)
             if value <= sensor.visible_range:
                 for i in range(value):
                     x = h + offsets[i][0]
@@ -258,49 +256,77 @@ class Explorer():
     def allEmpty(self,h,w):
         for i in range(h-1,h+2):
             for j in range(w-1,w+2):
-                if self.arena.get(i,j) != CellType.EMPTY:
+                if self.is_valid_point((i,j))==False or self.arena.get(i,j) != CellType.EMPTY:
                     return False
         return True
     
-    def searchBoundaryCells(self,cells):
-        boundaryCells = []
+    def searchObservableCells(self,cells,sensorRange):
+        # search cell which: line withint sensor range all clear, and front row of robot at observing point have 3 empty cells
+        observableCells = []
         for cell in cells:
+            print("exam cells:",cell)
+            appended = False
             h = cell[0]
             w = cell[1]
             for side in range(4):
+                print("direction:",side)
+                if appended == True:
+                    break
                 if side == 0 or side == 2:
-                    x = h+(side-1)
-                    if self.arena.get(x,w) == CellType.EMPTY:
-                        if self.arena.get(x,w-1) == CellType.EMPTY:
-                            if self.arena.get(x,w-2) == CellType.EMPTY:
-                                boundaryCells.append(cell)
-                                break
-                        elif self.arena.get(x,w+1) == CellType.EMPTY:
-                            if self.arena.get(x,w+2) == CellType.EMPTY:
-                                boundaryCells.append(cell)
-                                break
-                        else:
-                            continue                            
-                    # if middle cell not empty, break current direction and search next direction
-                    else:
+                    #check intermediate cells
+                    allClear = True                    
+                    for i in range(1,sensorRange+1):
+                        j = i
+                        if side == 0:
+                            j = j*(-1)
+                        if self.is_valid_point((h+j,w)) == False or self.arena.get(h+j,w) != CellType.EMPTY:  # should UNKNWON be included
+                            print("h,w:",str(h+j),w)
+                            allClear = False
+                            break
+                    if allClear == False: # if allClear at this direction is False, continue loop with a new direction
                         continue
+                    else: # test for body of observing point
+                        j = sensorRange+2
+                        if side == 0:
+                            j = j*(-1)
+                        if not self.allEmpty(h+j,w) and not self.allEmpty(h+j,w+1) and not self.allEmpty(h+j,w-1):
+                            print("center of Ob:",str(h+j),w)
+                            print("not allEmpty")
+                            continue #continue another direction
+                        else:
+                            print("append observable cell:",cell)
+                            observableCells.append(cell)
+                            appended = True
+                            break
+
                 else: # side == 1 or 3
-                    y = w+(side-2)
-                    if self.arena.get(h,y) == CellType.EMPTY:
-                        if self.arena.get(h-1,y) == CellType.EMPTY:
-                            if self.arena.get(h-2,y) == CellType.EMPTY:
-                                boundaryCells.append(cell)
-                                break
-                        elif self.arena.get(h+1,y) == CellType.EMPTY:
-                            if self.arena.get(h+2,y) == CellType.EMPTY:
-                                boundaryCells.append(cell)
-                                break
-                        else:
-                            continue                            
-                    # if middle cell not empty, break current direction and search next direction
-                    else:
+                    #check intermediate cells
+                    for i in range(1,sensorRange+1):
+                        allClear = True
+                        j = i
+                        if side == 1:
+                            j = j*(-1)
+                        if self.is_valid_point((h,w+j)) == False or self.arena.get(h,w+j) != CellType.EMPTY:  # should UNKNWON be included
+                            print("h,w:",str(h+j),w)                            
+                            allClear = False
+                            break
+                    if allClear == False: # if allClear at this direction is False, continue loop with a new direction
                         continue
-        return boundaryCells
+                    else: # test for body of observing point
+                        j = sensorRange+2
+                        if side == 1:
+                            j = j*(-1)
+                        if not self.allEmpty(h,w+j) and not self.allEmpty(h-1,w+j) and not self.allEmpty(h+1,w+j):
+                            print("center of Ob:",str(h+j),w)
+                            print("not allEmpty")
+                            continue #continue another direction
+                        else:
+                            print("append observable cell:",cell)
+                            observableCells.append(cell)
+                            appended = True
+                            break
+            logging.debug("observable cells inside:" + str(observableCells))                                
+        return observableCells
             
             
         
@@ -308,7 +334,7 @@ class Explorer():
             
         # detect all unexplored cells
         reExploreCells = []
-        boundaryCellsDist = []
+        observableCellsDist = []
         cellEuclidean = []
         targetCells = []
         robot = self.robot
@@ -320,92 +346,181 @@ class Explorer():
                 if (self.arena.get(x,y) == CellType.UNKNOWN):
                     reExploreCells.append([x,y])
         
-        # only move to explore one of the boundary cells - cell that has at least one side has 3 consecutive empty blocks            
-        boundaryCells = self.searchBoundaryCells(reExploreCells)
-        logging.debug("boundary cells:" + str(boundaryCells))
-                    
+        layer = 0
+        maxSensor = 2
+        while (layer < maxSensor):         
+            # only move to explore one of the boundary cells - cell that has at least one side has 3 consecutive empty blocks            
+            observableCells = self.searchObservableCells(reExploreCells,layer) # can see up to 3 cells
+            if len(observableCells) != 0: 
+                break
+            else:
+                layer += 1
+
+        if len(observableCells) == 0 and layer >= maxSensor: # no possible observation, go back
+            (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,0), endOrientationImportant=True) 
+            self.robot.robotMode = "done"
+            return (instr, endNode)
+
         # calculate Euclidean distance for each
-        for cell in boundaryCells:
+        for cell in observableCells:
             euclideanDist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
             cellEuclidean.append(euclideanDist)
-            boundaryCellsDist.append((cell,euclideanDist))
+            observableCellsDist.append((cell,euclideanDist))
         
         # sort cellEuclidean distance and remove all duplicates
         cellEuclidean.sort()
         cellEuclidean = list(set(cellEuclidean))
         
-        # pick k number of eucliean nearest cell candidates
+        potentialPos = []
+       # while len(potentialPos) == 0:  
+            # pick k number of eucliean nearest cell candidates
         itemNo = 0
         noMore = False
+        targetCells = []
+        cellList = []
         for dist in cellEuclidean:
-            for cellTup in boundaryCellsDist:
+            for cellTup in observableCellsDist:
                 if cellTup[1] == dist:
                     if itemNo < noOfPicks:
                         targetCells.append(cellTup[0])
                         itemNo += 1
+                        cellList.append(cellTup)
                 if itemNo > noOfPicks:
                     noMore = True
                     break
             if noMore == True:
                 break
-            
+# =============================================================================
+#             for cell in cellList:
+#                 observableCellsDist.remove(cell)
+# =============================================================================
+                        
         logging.debug("targetCells" + str(targetCells))
-        
-        potentialPos = []
         for cell in targetCells:
-            # find its nearest observing point
-            offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2]]
-            for offset in offsets:
-                if self.allEmpty(cell[0]+offset[0],cell[1]+offset[1]):
-                    # potentialPos: [observingCoords,cellToObserveCoords]
-                    potentialPos.append([[cell[0]+offset[0],cell[1]+offset[1]],cell,0,0]) #default head is 0, cost = 0            
+            prevPosLength = len(potentialPos)
+            layer = 0
+            while (prevPosLength == len(potentialPos)):
+                # find its nearest observing point
+                offsets = [[-2,1],[-2,0],[-2,-1],[-1,-2],[0,-2],[1,-2],[2,-1],[2,0],[2,1],[1,2],[0,2],[-1,2], #layer 0
+                           [-3,1],[-3,0],[-3,-1],[-1,-3],[0,-3],[1,-3],[3,-1],[3,0],[3,1],[1,3],[0,3],[-1,3], #layer 1
+                           [-4,1],[-4,0],[-4,-1],[-1,-4],[0,-4],[1,-4],[4,-1],[4,0],[4,1],[1,4],[0,4],[-1,4], #layer 2
+                           [-5,1],[-5,0],[-5,-1],[-1,-5],[0,-5],[1,-5],[5,-1],[5,0],[5,1],[1,5],[0,5],[-1,5]] #layer 3
+                for offset in offsets[:(layer+1)*12]:
+                    print("layer:",layer)
+                    allClear = True
+                    if self.allEmpty(cell[0]+offset[0],cell[1]+offset[1]):
+                        # check for intermediate cells condition
+                        if offset[0] in [-1,0,1]: #check horizontal
+                            if offset[1] < 0: # left
+                                for i in range(offset[1]+2,0):
+                                    if self.is_valid_point((cell[0],cell[1]+i)) == False or self.arena.get(cell[0],cell[1]+i) != CellType.EMPTY:
+                                        allClear = False
+                                        break
+                            else: #right
+                                for i in range(1,offset[1]-1):
+                                    if self.is_valid_point((cell[0],cell[1]+i)) == False or self.arena.get(cell[0],cell[1]+i) != CellType.EMPTY:
+                                        allClear = False
+                                        break                                                                 
+                        elif offset[1] in [-1,0,1]: #check vertical
+                            if offset[0] < 0: # down
+                                for i in range(offset[0]+2,0):
+                                    if self.is_valid_point((cell[0]+i,cell[1])) == False or self.arena.get(cell[0]+i,cell[1]) != CellType.EMPTY:
+                                        allClear = False
+                                        break
+                            else: #up
+                                for i in range(1,offset[0]-1):
+                                    if self.is_valid_point((cell[0]+i,cell[1])) == False or self.arena.get(cell[0]+i,cell[1]) != CellType.EMPTY:
+                                        allClear = False
+                                        break                    
+                    else:
+                        allClear = False
+                    if allClear == True:
+                        # potentialPos: [observingCoords,cellToObserveCoords]
+                        print("cell:",cell)
+                        print("obPoint:",[[cell[0]+offset[0],cell[1]+offset[1]]])
+                        potentialPos.append([[cell[0]+offset[0],cell[1]+offset[1]],cell,0,0]) #default head is 0, cost = 0            
+                if layer < 2:
+                    layer += 1
+                else:
+                    break
+        # sensor range here for reference
+# =============================================================================
+#         rightRange = 2
+#         frontRange = 3
+#         leftRange = 3
+# =============================================================================
+        
         # update all potentialPos values with dijkstra cost
-        updatedNodes = []          
+        updatedNodes = [] 
+
         for node in potentialPos:
-            print("node:",node)
 #        for [cellToGo,cellToOb,head,cost] in potentialPos:
             indexOff = 0
             for offset in offsets:
                 if [node[0][0]-node[1][0],node[0][1]-node[1][1]] == offset:
-                    if 0 <= indexOff < 3:
-                        if indexOff == 1:
+                    if 0 <= indexOff < 3 or 12 <= indexOff < 15 or 24 <= indexOff < 27 or 36 <= indexOff < 39 :
+                        if indexOff in [1,13,25,37]: # front only
                             node[2] = [0]
                             break
-                        elif indexOff == 2:
-                            node[2] = [0,1]
+                        elif indexOff in [2,14,26,38]: # front and left and right
+                            if indexOff != 38:
+                                node[2] = [0,1,3]
+                            else:
+                                node[2] = [0,1]
                             break
                         else:
-                            node[2] = [0,3]
+                            if indexOff != 36:
+                                node[2] = [0,3] # front and right
+                            else:
+                                node[2] = [0]
                             break
-                    elif 3 <= indexOff < 6:
-                        if indexOff == 4:
+                    elif 3 <= indexOff < 6 or 15 <= indexOff < 18 or 27 <= indexOff < 30 or 39 <= indexOff < 42:
+                        if indexOff in [4,16,28,40]:
                             node[2] = [1]
                             break
-                        elif indexOff == 5:
-                            node[2] = [1,2]
+                        elif indexOff in [5,17,29,41]:
+                            if indexOff != 41:
+                                node[2] = [1,2,0]
+                            else:
+                                node[2] = [1,2]
                             break
                         else:
-                            node[2] = [1,0]
+                            if indexOff != 39:
+                                node[2] = [1,0]
+                            else:
+                                node[2] = [1]
                             break
-                    elif 6 <= indexOff < 9:
-                        if indexOff == 7:
+                    elif 6 <= indexOff < 9 or 18 <= indexOff < 21 or 30 <= indexOff < 33 or 42 <= indexOff < 45:
+                        if indexOff in [7,19,31,43]:
                             node[2] = [2]
                             break
-                        elif indexOff == 8:
-                            node[2] = [2,3]
+                        elif indexOff in [8,20,32,44]:
+                            if indexOff != 44:
+                                node[2] = [2,3,1]
+                            else:
+                                node[2] = [2,3]
                             break
                         else:
-                            node[2] = [2,1]
+                            if indexOff != 42:
+                                node[2] = [2,1]
+                            else:
+                                node[2] = [2]
                             break
                     else:
-                        if indexOff == 10:
+                        if indexOff in [10,22,34,46]:
                             node[2] = [3]
                             break
-                        elif indexOff == 11:
-                            node[2] = [3,0]
+                        elif indexOff in [11,23,35,47]:
+                            if indexOff != 46:
+                                node[2] = [3,0,2]
+                            else:
+                                node[2] = [3,0]
                             break
                         else:
-                            node[2] = [3,2]
+                            if indexOff != 45:
+                                node[2] = [3,2]
+                            else:
+                                node[2] = [3]
                             break
                 else:
                     indexOff += 1
@@ -416,12 +531,9 @@ class Explorer():
                 cellsToMove.append((node[0][0],node[0][1],direction))
             for cellToMove in cellsToMove:
                 (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
-# =============================================================================
-#             print("dijkstra startnode:",startnode)
-#             print("dijkstra cellToMove:",cellToMove)
-#             print("dijkstra instr:",instr)
-#             print("dijkstra cost:",cost)
-# =============================================================================
+                print("dijkstra startnode:",startnode)
+                print("dijkstra cellToMove:",cellToMove)
+                print("dijkstra instr:",instr)
                 costs.append(cost)
                 minCost = costs[0]
                 index = 0
