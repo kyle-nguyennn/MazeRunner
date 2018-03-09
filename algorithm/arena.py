@@ -96,3 +96,4 @@ class CellType(Enum):
     UNKNOWN = -1
     EMPTY = 0
     OBSTACLE = 1
+    CONFLICT = 2

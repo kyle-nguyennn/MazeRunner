@@ -113,6 +113,8 @@ function drawCanvas(display, arena) {
                     display.rows[x].cells[y].className = "empty";
                 else if (arena[x][y - 1] == 1)
                     display.rows[x].cells[y].className = "obstacle"
+                else if (arena[x][y - 1] == 2)
+                    display.rows[x].cells[y].className = "conflict"
             }
         }
     }
