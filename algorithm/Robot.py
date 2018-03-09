@@ -103,7 +103,7 @@ class Robot():
         return False
 
     def isAlmostBack(self):
-        if self.robotCenterH <= 6 and self.robotCenterW <= 6:
+        if self.robotCenterH <= 8 and self.robotCenterW <= 6:
             return True
         return False
 

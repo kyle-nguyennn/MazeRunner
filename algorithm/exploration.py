@@ -396,7 +396,7 @@ class Explorer():
             h = cell[0]
             w = cell[1]
             for side in range(4):
-                print("direction:",side)
+                #print("direction:",side)
                 if appended == True:
                     break
                 if side == 0 or side == 2:
@@ -407,7 +407,7 @@ class Explorer():
                         if side == 0:
                             j = j*(-1)
                         if self.is_valid_point((h+j,w)) == False or self.arena.get(h+j,w) != CellType.EMPTY:  # should UNKNWON be included
-                            print("h,w:",str(h+j),w)
+                            #print("h,w:",str(h+j),w)
                             allClear = False
                             break
                     if allClear == False: # if allClear at this direction is False, continue loop with a new direction
@@ -417,11 +417,11 @@ class Explorer():
                         if side == 0:
                             j = j*(-1)
                         if not self.allEmpty(h+j,w) and not self.allEmpty(h+j,w+1) and not self.allEmpty(h+j,w-1):
-                            print("center of Ob:",str(h+j),w)
-                            print("not allEmpty")
+                            #print("center of Ob:",str(h+j),w)
+                            #print("not allEmpty")
                             continue #continue another direction
                         else:
-                            print("append observable cell:",cell)
+                            #print("append observable cell:",cell)
                             observableCells.append(cell)
                             appended = True
                             break
@@ -434,7 +434,7 @@ class Explorer():
                         if side == 1:
                             j = j*(-1)
                         if self.is_valid_point((h,w+j)) == False or self.arena.get(h,w+j) != CellType.EMPTY:  # should UNKNWON be included
-                            print("h,w:",str(h+j),w)                            
+                            #print("h,w:",str(h+j),w)                            
                             allClear = False
                             break
                     if allClear == False: # if allClear at this direction is False, continue loop with a new direction
@@ -444,11 +444,11 @@ class Explorer():
                         if side == 1:
                             j = j*(-1)
                         if not self.allEmpty(h,w+j) and not self.allEmpty(h-1,w+j) and not self.allEmpty(h+1,w+j):
-                            print("center of Ob:",str(h+j),w)
-                            print("not allEmpty")
+                            #print("center of Ob:",str(h+j),w)
+                            #print("not allEmpty")
                             continue #continue another direction
                         else:
-                            print("append observable cell:",cell)
+                            #print("append observable cell:",cell)
                             observableCells.append(cell)
                             appended = True
                             break
@@ -534,7 +534,7 @@ class Explorer():
                            [-4,1],[-4,0],[-4,-1],[-1,-4],[0,-4],[1,-4],[4,-1],[4,0],[4,1],[1,4],[0,4],[-1,4], #layer 2
                            [-5,1],[-5,0],[-5,-1],[-1,-5],[0,-5],[1,-5],[5,-1],[5,0],[5,1],[1,5],[0,5],[-1,5]] #layer 3
                 for offset in offsets[:(layer+1)*12]:
-                    print("layer:",layer)
+                    #print("layer:",layer)
                     allClear = True
                     if self.allEmpty(cell[0]+offset[0],cell[1]+offset[1]):
                         # check for intermediate cells condition
@@ -564,8 +564,8 @@ class Explorer():
                         allClear = False
                     if allClear == True:
                         # potentialPos: [observingCoords,cellToObserveCoords]
-                        print("cell:",cell)
-                        print("obPoint:",[[cell[0]+offset[0],cell[1]+offset[1]]])
+                        #print("cell:",cell)
+                        #print("obPoint:",[[cell[0]+offset[0],cell[1]+offset[1]]])
                         potentialPos.append([[cell[0]+offset[0],cell[1]+offset[1]],cell,0,0]) #default head is 0, cost = 0            
                 if layer < 2:
                     layer += 1
@@ -659,9 +659,11 @@ class Explorer():
                 cellsToMove.append((node[0][0],node[0][1],direction))
             for cellToMove in cellsToMove:
                 (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
-                print("dijkstra startnode:",startnode)
-                print("dijkstra cellToMove:",cellToMove)
-                print("dijkstra instr:",instr)
+# =============================================================================
+#                 print("dijkstra startnode:",startnode)
+#                 print("dijkstra cellToMove:",cellToMove)
+#                 print("dijkstra instr:",instr)
+# =============================================================================
                 costs.append(cost)
                 minCost = costs[0]
                 index = 0

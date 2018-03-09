@@ -33,6 +33,13 @@ td.empty {
     background-color: #8BC34A;
 }
 
+td.conflict {
+    border: 1px solid #FFFFFF;
+    height: 32px;
+    width: 32px;
+    background-color: #9C27B0;
+}
+
 td.marker {
     border: 1px solid #FFFFFF;
     height: 32px;
