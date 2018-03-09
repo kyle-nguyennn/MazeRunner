@@ -26,19 +26,15 @@ class SerialClient():
         if not data:
             return None
         data_s = data.decode('utf-8')
-        print("SerialClient - Received data: {}".format(data_s))
+        print("SerialClient - Received data: {}".format(data_s), end='')
         return data_s
 
     def send(self, data):
-        while self.lock:
-            time.sleep(1)
-        self.lock = True
         try:
             self.client_conn.write((data+"\n").encode('utf-8'))
             print("SerialClient - Sent data: {}".format(data))
         except:
             print("SerialClient - Error sending data: {}".format(data))
-        self.lock = False
 
     def close_conn(self):
         try:

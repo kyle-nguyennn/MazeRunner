@@ -38,19 +38,15 @@ class BtServer():
         if len(data) == 0:
             return None
         data_s = data.decode('utf-8')
-        print("BtServer - Received data: {}".format(data_s))
+        print("BtServer - Received data: {}".format(data_s), end='')
         return data_s
 
     def send(self, data):
-        while self.lock:
-            time.sleep(1)
-        self.lock = True
         try:
             self.client_conn.send((data+"\r\n").encode('utf-8'))
             print("BtServer - Sent data: {}".format(data))
         except:
             print("BtServer - Error sending data: {}".format(data))
-        self.lock = False
 
     def close_client(self):
         try:
