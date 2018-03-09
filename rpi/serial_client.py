@@ -26,7 +26,7 @@ class SerialClient():
         if not data:
             return None
         data_s = data.decode('utf-8')
-        print("SerialClient - Received data: {}".format(data_s), end='')
+        print("SerialClient - Received data: {}".format(data_s))
         return data_s
 
     def send(self, data):

@@ -94,11 +94,11 @@ if __name__ == "__main__":
     t3 = threading.Thread(target=run_serial_client,
                           args=(arduino_conn, pc_queue, running))
 
-    t4 = threading.Thread(target=send_tcp_server),
-                          args = (pc_conn, pc_queue, running))
-    t5=threading.Thread(target = send_bt_server),
+    t4 = threading.Thread(target=send_tcp_server,
+                          args=(pc_conn, pc_queue, running))
+    t5 = threading.Thread(target=send_bt_server,
                           args=(android_conn, android_queue, running))
-    t6=threading.Thread(target=send_serial_client),
+    t6 = threading.Thread(target=send_serial_client,
                           args=(arduino_conn, arduino_queue, running))
     # t1.setDaemon(True)
     # t2.setDaemon(True)
@@ -116,9 +116,9 @@ if __name__ == "__main__":
     try:
         time.sleep(1)
         raw_input("Press Enter / Ctrl-C to quit. \n")
-        running=False
+        running = False
     except KeyboardInterrupt:
-        running=False
+        running = False
 
     t1.join()
     t2.join()

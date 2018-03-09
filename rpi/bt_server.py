@@ -38,7 +38,7 @@ class BtServer():
         if len(data) == 0:
             return None
         data_s = data.decode('utf-8')
-        print("BtServer - Received data: {}".format(data_s), end='')
+        print("BtServer - Received data: {}".format(data_s))
         return data_s
 
     def send(self, data):

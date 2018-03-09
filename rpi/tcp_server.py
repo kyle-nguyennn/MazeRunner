@@ -29,7 +29,7 @@ class TcpServer():
         if not data:
             return None
         data_s = data.decode('utf-8')
-        print("TcpServer - Received data: {}".format(data_s), end='')
+        print("TcpServer - Received data: {}".format(data_s))
         return data_s
 
     def send(self, data):
