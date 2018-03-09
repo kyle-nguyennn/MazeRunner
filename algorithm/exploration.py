@@ -255,31 +255,34 @@ class Explorer():
         for i in range(len(sensorValues)):
             self.markCells(i, int(sensorValues[i]))
         self.updateExploredArea()
-    # check whether the 3 consecutive cells in front are empty
+
     def checkAlign(self,r):
         head = int(self.robot.robotHead)
         if head > 0:
             head1 = head- 1
         else:
             head1 = 3
-
+            
         for i in range(r):
             frontCells = self.frontCells[self.robot.robotHead]
             rightCells = self.rightCells[self.robot.robotHead]
             h = self.robot.robotCenterH
             w = self.robot.robotCenterW
-            if [h,w] in self.wallCells[head][i]:
+
+            if [h,w] in self.wallCells[head1][i]:
+                if i == 0:              
+                    self.alignSensor = ''.join(["CF",str(i)])
+                    self.alignNow = True
+                    break
+                
+            elif [h,w] in self.wallCells[head][i]:
                 if i == 0 \
                 or self.arena.get(h+rightCells[0][i-1][0],w+rightCells[0][i-1][1]) == CellType.EMPTY \
                 and self.arena.get(h+rightCells[1][i-1][0],w+rightCells[1][i-1][1]) == CellType.EMPTY:
                     self.alignSensor = ''.join(["CS",str(i)])
                     self.alignNow = True
                     break
-            elif [h,w] in self.wallCells[head1][i]:
-                if i == 0:              
-                    self.alignSensor = ''.join(["CF",str(i)])
-                    self.alignNow = True
-                    break
+                
             else:                  
                 if i == 0 \
                 and self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE :
@@ -290,11 +293,14 @@ class Explorer():
                     self.alignSensor = ''.join(["CS",str(i)])
                     self.alignNow = True
                     break
-                elif i == 0 and self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][0]) == CellType.OBSTACLE\
-                    or i == 0 and self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE:                
-                    self.alignSensor = ''.join(["CF",str(i)])
-                    self.alignNow = True  
-                    break
+                # dun use center and side front sensor to calibrate first
+# =============================================================================
+#                 elif i == 0 and self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][0]) == CellType.OBSTACLE\
+#                     or i == 0 and self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE:                
+#                     self.alignSensor = ''.join(["CF",str(i)])
+#                     self.alignNow = True  
+#                     break
+# =============================================================================
                 else:
                     continue
         
@@ -332,7 +338,24 @@ class Explorer():
         bodyCells = self.robot.returnBodyCells()
         for cell in bodyCells:
             self.arena.set(cell[0],cell[1],CellType.EMPTY)
+        
+        head = int(self.robot.robotHead)
+            
+        frontCells = self.frontCells[self.robot.robotHead]
+        h = self.robot.robotCenterH
+        w = self.robot.robotCenterW
+        
         self.alignCnt += 1 # increment alignment counter
+        
+        # check front condition, do calibration immediately
+        if [h,w] in self.wallCells[head][0][0] and head >= 2 \
+        or [h,w] in self.wallCells[head][0][-1] and head < 2\
+        or self.is_valid_point((h+frontCells[0][0][0],w+frontCells[0][0][1])) and self.is_valid_point((h+frontCells[2][0][0],w+frontCells[2][0][1]))\
+        and self.arena.get(h+frontCells[0][0][0],w+frontCells[0][0][1]) == self.arena.get(h+frontCells[2][0][0],w+frontCells[2][0][1]) == CellType.OBSTACLE:             
+            self.alignSensor = ''.join(["CF",str(0)])
+            self.alignNow = True
+            self.alignCnt = 0
+        
         if self.alignCnt == self.alignLimit:
             # if just reach alignLimit, then use block0 to calibrate on only (more accurate)
             self.checkAlign(1)  
