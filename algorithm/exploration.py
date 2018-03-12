@@ -8,12 +8,13 @@ from tcp_client import TcpClient
 import json
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9,alignLimit = 2):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9,alignLimit = 2,needReExplore = False):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
         self.status = ""
         self.arena = Arena()
+        self.needReExplore = needReExplore
         #self.robot = [1, 1, 0] # 2d position plus orientation
         ### CONSTANT ####
         self.MAX_SHORT_SENSOR = 3
@@ -131,33 +132,47 @@ class Explorer():
                     continue
             else:
                 if self.reachGoal:
-                       # shall we delete this first condition now?
-                    if explorationTime > self.timeThreshold and \
-                        not self.robot.isAlmostBack() and \
-                        self.robot.robotMode != 'reExplore':
-                        # find way back to start zone using fastest path algo (djikstra)
-                        startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
-                        endnode = (1,1,0)
-                        (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
-                        # give instruction
-                        self.cnt += len(instructions)
-                        self.tcp_conn.send_command(instructions)
-                        # update robot states (position and orientation)
-                        self.robot.jump(endnode) # already update sensors inside
-                        continue
-                    if self.robot.isAlmostBack() and self.exploredArea < 300*self.areaPercentage:
-                        self.robot.robotMode = 'reExplore'
-                    if self.robot.robotMode == 'reExplore':
-                        # reexplore, find the fastest path to the nearest unexplored cell
-                        (instructions, endnode) = self.reExplore()
-                        # give instruction
-                        self.cnt += len(instructions)
-                        self.tcp_conn.send_command(instructions)
-                        # update robot states
-                        self.robot.jump(endnode) # already update sensors inside
-
-                        print("comeplete a re-reploration")
-                        continue
+                    if self.needReExplore == False:
+                        # use wall hugging to return back to start zone
+                        if self.robot.robotCenterH == self.robot.robotCenterW == 1:
+                            #check direction
+                            if self.robot.robotHead != 0:
+                                startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
+                                (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,0), endOrientationImportant=True)
+                                self.tcp_conn.send_command(instructions)
+                                self.robot.robotMode = "done"
+                                continue
+                            else:
+                                self.robot.robotMode = "done"
+                                break
+                            
+                    else:   #need reExplore
+                        if explorationTime > self.timeThreshold and \
+                            not self.robot.isAlmostBack() and \
+                            self.robot.robotMode != 'reExplore':
+                            # find way back to start zone using fastest path algo (djikstra)
+                            startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
+                            endnode = (1,1,0)
+                            (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
+                            # give instruction
+                            self.cnt += len(instructions)
+                            self.tcp_conn.send_command(instructions)
+                            # update robot states (position and orientation)
+                            self.robot.jump(endnode) # already update sensors inside
+                            continue
+                        if self.robot.isAlmostBack() and self.exploredArea < 300*self.areaPercentage:
+                            self.robot.robotMode = 'reExplore'
+                        if self.robot.robotMode == 'reExplore':
+                            # reexplore, find the fastest path to the nearest unexplored cell
+                            (instructions, endnode) = self.reExplore()
+                            # give instruction
+                            self.cnt += len(instructions)
+                            self.tcp_conn.send_command(instructions)
+                            # update robot states
+                            self.robot.jump(endnode) # already update sensors inside
+    
+                            print("comeplete a re-reploration")
+                            continue
 
                 #if havent reach any of above continue statements, just wall hugging
                 instruction = self.wallHugging()
