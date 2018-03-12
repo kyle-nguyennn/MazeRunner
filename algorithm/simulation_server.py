@@ -95,12 +95,13 @@ class SimulatorServer():
             command = self.get_command()
             if command == None or command == "EE":
                 self.close_conn()
-            elif command[0] == "C":
-                pass
+			  # AQ deleted
             elif command == "N":
                 self.send_data(self.getReadings())
                 pass
             else:
+                if command[0] == "C":
+                    command = command[3:]
                 for char in command:
                     self.move_robot(char)
                     time.sleep(self.speed)

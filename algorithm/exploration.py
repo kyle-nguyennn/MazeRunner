@@ -8,7 +8,7 @@ from tcp_client import TcpClient
 import json
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9,alignLimit = 2):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -27,6 +27,13 @@ class Explorer():
         self.areaPercentage = pArea # percentage we want the robot to explore up to
         self.reachGoal = False
         self.startTime = time.time()
+        self.alignCnt = 0 # counter for robot alignment
+        self.alignLimit = alignLimit
+        self.alignNow = False
+        self.reReadSensor = False
+        self.readingConflict = False
+        self.conflictCells = []
+        self.alignSensor = "" # CF(front), CS(right)
         self.robot = Robot(
             'exploring', robot_pos[2]/90, robot_pos[0], robot_pos[1])
         self.checkingRight = False
@@ -37,10 +44,10 @@ class Explorer():
                     3:[[[-1,-2],[-1,-3],[-1,-4]],[[0,-2],[0,-3],[0,-4]],[[1,-2],[1,-3],[1,-4]]]
             }
         # only keep top right and bottom right lines
-        self.rightCells = {0:[[[1,2],[1,3],[1,4]],[[-1,2],[-1,3],[-1,4]]],
-                    1:[[[-2,1],[-3,1],[-4,1]],[[-2,-1],[-3,-1],[-4,-1]]],
-                    2:[[[-1,-2],[-1,-3],[-1,-4]],[[1,-2],[1,-3],[1,-4]]],
-                    3:[[[2,-1],[3,-1],[4,-1]],[[2,1],[3,1],[4,1]]]
+        self.rightCells = {0:[[[1,2],[1,3],[1,4]],[[-1,2],[-1,3],[-1,4]],[[0,2],[0,3],[0,4]]],
+                    1:[[[-2,1],[-3,1],[-4,1]],[[-2,-1],[-3,-1],[-4,-1]],[[-2,0],[-3,0],[-4,0]]],
+                    2:[[[-1,-2],[-1,-3],[-1,-4]],[[1,-2],[1,-3],[1,-4]],[[0,-2],[0,-3],[0,-4]]],
+                    3:[[[2,-1],[3,-1],[4,-1]],[[2,1],[3,1],[4,1]],[[2,0],[3,0],[4,0]]]
             }
         # only keep top left lines, detect up to the 6 cells in front
         self.leftCells = {0:[[1,-2],[1,-3],[1,-4],[1,-5],[1,-6],[1,-7]],
@@ -48,20 +55,56 @@ class Explorer():
                     2:[[-1,2],[-1,3],[-1,4],[-1,5],[-1,6],[-1,7]],
                     3:[[-2,-1],[-3,-1],[-4,-1],[-5,-1],[-6,-1],[-7,-1]]
                 }
+        # positions in wallCells are for calibration
+        self.wallCells = {0:[[],[]],
+                    1:[[],[]],
+                    2:[[],[]],
+                    3:[[],[]]
+                }
+        for i in range(1,19):
+            self.wallCells[0][0].append([i,13])
+            self.wallCells[2][0].append([i,1])
+            if 2 <= i <= 17:
+                self.wallCells[0][1].append([i,12])
+                self.wallCells[2][1].append([i,2]) 
+                if 2 <= i <= 12:
+                    self.wallCells[1][1].append([2,i])
+                    self.wallCells[3][1].append([17,i])
+            if 1 <= i <= 13:
+                self.wallCells[1][0].append([1,i])
+                self.wallCells[3][0].append([18,i])
         
 
     def run(self):
+        cnt = 0
         self.tcp_conn.send_command("ES")
         self.update_status("Start exploration")
         while self.robot.robotMode != "done": 
-            sensors = self.tcp_conn.get_string()
-            #update map with sensor values
+            cnt += 1 
+            sensors = self.tcp_conn.get_string()           
             self.updateMap(sensors)
+            
+# =============================================================================
+#             print("conflict cells:",self.conflictCells)
+#             
+#             # conflict solving
+#             if self.reReadSensor == True:
+#                 self.tcp_conn.send_command("N")
+# =============================================================================
+                
+# =============================================================================
+#             else:    
+#                 #update map with sensor values
+#                 self.updateMap(sensors)
+#                 # sensor conflict solving if conflictCells contains cells
+#                 if len(self.conflictCells) != 0:
+#                     self.readingConflict = True
+#                     self.tcp_conn.send_command("N")
+#                 else:
+#                     self.readingConflict = False
+# =============================================================================
+                
             explorationTime = time.time() - self.startTime
-            # if hard deadline reached: just break
-            if explorationTime > self.timeLimit:
-                self.robot.robotMode = "break"
-                break
             #check reachgoal
             if self.robot.robotCenterH == 18 and self.robot.robotCenterW == 13:
                 self.reachGoal = True
@@ -83,6 +126,7 @@ class Explorer():
                     continue
             else:
                 if self.reachGoal:
+                       # shall we delete this first condition now?
                     if explorationTime > self.timeThreshold and \
                         not self.robot.isAlmostBack() and \
                         self.robot.robotMode != 'reExplore':
@@ -96,14 +140,14 @@ class Explorer():
                         # update robot states (position and orientation)
                         self.robot.jump(endnode) # already update sensors inside
                         continue
-                    if self.robot.isAlmostBack() and self.exploredArea < 300:
+                    if self.robot.isAlmostBack() and self.exploredArea < 300*self.areaPercentage:
                         self.robot.robotMode = 'reExplore'
                     if self.robot.robotMode == 'reExplore':
                         # reexplore, find the fastest path to the nearest unexplored cell
-                        (instruction, endnode) = self.reExplore()
+                        (instructions, endnode) = self.reExplore()
                         # give instruction
-                        self.cnt += len(instruction)
-                        self.tcp_conn.send_command(instruction)
+                        self.cnt += len(instructions)
+                        self.tcp_conn.send_command(instructions)
                         # update robot states
                         self.robot.jump(endnode) # already update sensors inside
 
@@ -114,7 +158,6 @@ class Explorer():
                 instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
-                self.cnt += len(instruction)
                 self.tcp_conn.send_command(instruction)
                 print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
                 print("robot head:",self.robot.robotHead)
@@ -180,22 +223,82 @@ class Explorer():
                     x = h + offsets[i][0]
                     y = w + offsets[i][1]
                     if self.is_valid_point((x,y)):
-#                        logging.debug("Empty coordinate " + str(x) +" " + str(y))
+# =============================================================================
+#                         logging.debug("Empty coordinate " + str(x) +" " + str(y))
+# =============================================================================
                         realTimeMap.set(x, y, CellType.EMPTY)
                 if value < sensor.visible_range:
                     x = h + offsets[value][0]
                     y = w + offsets[value][1]
                     if self.is_valid_point((x,y)):
-#                        logging.debug("Obstacle coordinate " + str(x) + " " + str(y))
-                        realTimeMap.set(x, y, CellType.OBSTACLE)
+# =============================================================================
+#                         logging.debug("Obstacle coordinate " + str(x) + " " + str(y)) 
+# =============================================================================
+
+# for conflict solving
+# =============================================================================
+#                         if realTimeMap.get(x,y) == CellType.EMPTY \
+#                         and [x,y] not in self.conflictCells:
+#                             self.reReadSensor = True
+#                             self.conflictCells.append([x,y])
+#                         else:
+#                             realTimeMap.set(x,y,CellType.OBSTACLE)
+#                             if [x,y] in self.conflictCells:
+#                                 self.conflictCells.remove([x,y])
+# =============================================================================
+                                
+                        realTimeMap.set(x,y,CellType.OBSTACLE)                       
+                                
         self.updateExploredArea()
+        
     def updateMap(self, sensorValues):
-        # sensorValue = "AAAAAA"
-        # F1,F2,F3,R1,R2,L1
         for i in range(len(sensorValues)):
             self.markCells(i, int(sensorValues[i]))
         self.updateExploredArea()
-    # check whether the 3 consecutive cells in front are empty
+
+    def checkAlign(self,r):
+        self.alignNow = False
+        self.alignSensor = ''
+        head = int(self.robot.robotHead)
+        if head > 0:
+            head1 = head- 1
+        else:
+            head1 = 3
+            
+        for i in range(r):
+            frontCells = self.frontCells[self.robot.robotHead]
+            rightCells = self.rightCells[self.robot.robotHead]
+            h = self.robot.robotCenterH
+            w = self.robot.robotCenterW
+
+            # check curner cell conditoin, if corner cell, just do two 
+            if [h,w] in self.wallCells[head1][i] \
+            and [h,w] in self.wallCells[head][i]:
+                self.alignSensor = ''.join(["CF",str(i),"CS",str(i)])
+                self.alignNow = True
+                break
+                
+            # check front condition
+            if [h,w] in self.wallCells[head1][i] \
+            or self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE :
+               self.alignSensor = ''.join(["CF",str(i)])
+               self.alignNow = True
+            
+            # check right condition
+            print("check right condition:",[h,w] in self.wallCells[head][i])
+            if self.alignCnt > self.alignLimit:
+                if [h,w] in self.wallCells[head][i] \
+                or self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE:
+                    self.alignSensor = ''.join(["CS",str(i)])
+                    self.alignNow = True
+                    self.alignCnt = 0
+            
+            if len(self.alignSensor) == 0:
+                continue
+            else:
+                break
+            
+            
     def checkFront(self):
         robot = self.robot
         frontCells = robot.frontCells
@@ -217,41 +320,86 @@ class Explorer():
                 return "false"
             elif (self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.UNKNOWN):
                 return "unknown"
-        print("check right true")
         return "true"
     def wallHugging(self): # return instruction
         # mark current body cells as empty
         # actually might not need, just put here first
+        sensor = "" 
         bodyCells = self.robot.returnBodyCells()
         for cell in bodyCells:
             self.arena.set(cell[0],cell[1],CellType.EMPTY)
+        
+# =============================================================================
+#         head = int(self.robot.robotHead)
+#             
+#         frontCells = self.frontCells[self.robot.robotHead]
+#         h = self.robot.robotCenterH
+#         w = self.robot.robotCenterW
+#         
+#         self.alignCnt += 1 # increment alignment counter
+#         
+#         # check front condition, do calibration immediately
+#         if [h,w] in self.wallCells[head][0][0] and head >= 2 \
+#         or [h,w] in self.wallCells[head][0][-1] and head < 2\
+#         or self.is_valid_point((h+frontCells[0][0][0],w+frontCells[0][0][1])) and self.is_valid_point((h+frontCells[2][0][0],w+frontCells[2][0][1]))\
+#         and self.arena.get(h+frontCells[0][0][0],w+frontCells[0][0][1]) == self.arena.get(h+frontCells[2][0][0],w+frontCells[2][0][1]) == CellType.OBSTACLE:             
+#             self.alignSensor = ''.join(["CF",str(0)])
+#             self.alignNow = True
+#             self.alignCnt = 0
+# =============================================================================
+
+        self.checkAlign(1)
+        self.alignCnt += 1
+        
         if (self.checkingRight == False):
             # decide turn-right condition
-            if (self.checkRight() == "true"):
+            if (self.checkRight() == "true"):                    
+                if self.alignNow == True:
+                    sensor = self.alignSensor
+                # for every turn, calibrate
+                else:
+                    self.alignCnt = 9
+                    self.checkAlign(1)
+                    sensor = self.alignSensor
                 self.robot.rotateRight()
                 self.robot.forward()
                 self.update_status("Turning right")
-                return ("RF")
+                return (''.join([sensor,"RF"]))
             
             elif (self.checkRight() == "unknown"):
+                
+                if self.alignNow == True:
+                    sensor = self.alignSensor
+                # for every turn, calibrate
+                else:
+                    self.alignCnt = 9
+                    self.checkAlign(1)
+                    sensor = self.alignSensor
                 self.robot.rotateRight()
                 self.update_status("Checking right")  
                 self.checkingRight = True
-                return ("R")
-            else:
-                print("right has obstacle")
+                return (''.join([sensor,"R"]))
                                   
         # alr enter checkingRight now, so update status as False again
         self.checkingRight = False
         # decide front condition
         if (self.checkFront()):
             self.robot.forward()
-            self.update_status("Moving forward")  
-            return ("F")
+            self.update_status("Moving forward")
+            if self.alignNow == True:
+                sensor = self.alignSensor
+            return (''.join([sensor,"F"]))
         else:
+            if self.alignNow == True:
+                sensor = self.alignSensor
+             # for every turn, calibrate
+            else:
+                self.alignCnt = 9
+                self.checkAlign(1)
+                sensor = self.alignSensor
+            self.update_status("Turning left") 
             self.robot.rotateLeft()
-            self.update_status("Turning left")  
-            return ("L")
+            return (''.join([sensor,"L"]))
         
     def allEmpty(self,h,w):
         for i in range(h-1,h+2):
@@ -339,6 +487,7 @@ class Explorer():
         targetCells = []
         robot = self.robot
         noOfPicks = 3
+        
         startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
      
         for x in range(len(self.arena.arena_map)):
@@ -567,8 +716,15 @@ class Explorer():
 #         print("start cell:",startnode)
 # =============================================================================
         (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
-        logging.debug("Instruction for going to observing cell" + instr)
-        logging.debug("Observing point " + str(endNode))       
+        logging.debug("Observing point " + str(endNode)) 
+       
+        # check calibration condition in reExplore
+        sensor = ""
+        self.checkAlign(2)
+        if self.alignNow == True:
+            sensor = self.alignSensor
+        instr = ''.join([sensor, instr])
+        logging.debug("instruction:"+instr)
         return (instr, endNode)
 
 ###### helper functions #####    
