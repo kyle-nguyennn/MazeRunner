@@ -81,7 +81,12 @@ class Explorer():
         self.update_status("Start exploration")
         while self.robot.robotMode != "done": 
             cnt += 1 
-            sensors = self.tcp_conn.get_string()           
+            sensors = self.tcp_conn.get_string()
+            # sensor check
+            if len(sensors) != 6 or sensors.isdigit()==False:
+                print("sensor reading from Arduino is wrong")
+                self.tcp_conn.send_command("N")
+                continue                
             self.updateMap(sensors)
             
 # =============================================================================

@@ -33,15 +33,11 @@ class TcpServer():
         return data_s
 
     def send(self, data):
-        while self.lock:
-            time.sleep(1)
-        self.lock = True
         try:
             self.client_conn.send((data+"\n").encode('utf-8'))
             print("TcpServer - Sent data: {}".format(data))
         except:
             print("TcpServer - Error sending data: {}".format(data))
-        self.lock = False
 
     def close_client(self):
         try:
