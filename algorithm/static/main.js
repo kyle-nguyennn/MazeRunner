@@ -14,6 +14,7 @@ var cardExploration = document.getElementById("cardExploration");
 var btnConnect = document.getElementById("btnConnect");
 var btnDisconnect = document.getElementById("btnDisconnect");
 var btnExploreStart = document.getElementById("btnExploreStart");
+var btnFastestpathStart = document.getElementById("btnFastestpathStart");
 var robotPosRow = document.getElementById("robotPosRow");
 var robotPosCol = document.getElementById("robotPosCol");
 var robotHead = document.getElementById("robotHead");
@@ -49,6 +50,7 @@ if (table != null) {
 btnConnect.style.visibility = 'hidden';
 btnDisconnect.style.visibility = 'hidden';
 btnExploreStart.style.visibility = 'hidden';
+btnFastestpathStart.style.visibility = 'hidden';
 
 switchEditMode();
 lockMode();
@@ -397,12 +399,14 @@ function switchActualMode() {
             btnConnect.style.visibility = 'hidden';
             btnDisconnect.style.visibility = 'hidden';
             btnExploreStart.style.visibility = 'hidden';
+            btnFastestpathStart.style.visibility = 'hidden';
             if (data == 0) {
                 btnConnect.style.visibility = 'visible';
             }
             else if (data == 2) {
                 btnDisconnect.style.visibility = 'visible';
                 btnExploreStart.style.visibility = 'visible';
+                btnFastestpathStart.style.visibility = 'visible';
             }
             else if (data == 4) {
                 btnDisconnect.style.visibility = 'visible';
@@ -552,6 +556,13 @@ $(document).ready(function () {
             switchActualMode();
         });
     });
+
+    $("#btnFastestpathStart").click(function () {
+        $.get("/fastestpath_start", function (data, status) {
+            switchActualMode();
+        });
+    });
+
 });
 
 $(function () {
