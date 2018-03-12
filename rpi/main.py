@@ -88,7 +88,7 @@ if __name__ == "__main__":
     android_queue = Queue.Queue()
     arduino_queue = Queue.Queue()
 
-    pc_conn = TcpServer("0.0.0.0", 77)
+    pc_conn = TcpServer("192.168.7.1", 77)
     android_conn = BtServer(4)
     arduino_conn = SerialClient("/dev/ttyACM0", 9600)
     # arduino_conn = SerialClient("/dev/ttyAMA0", 9600)
