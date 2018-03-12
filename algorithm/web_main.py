@@ -249,7 +249,8 @@ def handle_request(data):
                                 request["robotPos"]])
         explore_thread.start()
     elif request["command"] == "beginFastest":
-        tcp_conn.send_command(getInstructions(None,  request["wayPoint"]))
+        fp_arena = explore_algo.get_arena()
+        tcp_conn.send_command(getInstructions(fp_arena,  request["wayPoint"]))
     elif request["command"] == "autoStart":
         explore_algo.set_update(True)
     elif request["command"] == "autoStop":

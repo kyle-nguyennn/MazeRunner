@@ -95,7 +95,6 @@ class SimulatorServer():
             command = self.get_command()
             if command == None or command == "EE":
                 self.close_conn()
-			  # AQ deleted
             elif command == "N":
                 self.send_data(self.getReadings())
                 pass
