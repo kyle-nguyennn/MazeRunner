@@ -285,6 +285,7 @@ class Explorer():
                self.alignNow = True
             
             # check right condition
+            print("check right condition:",[h,w] in self.wallCells[head][i])
             if self.alignCnt > self.alignLimit:
                 if [h,w] in self.wallCells[head][i] \
                 or self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE:
@@ -353,20 +354,30 @@ class Explorer():
         if (self.checkingRight == False):
             # decide turn-right condition
             if (self.checkRight() == "true"):                    
-                self.robot.rotateRight()
-                self.robot.forward()
-                self.update_status("Turning right")
                 if self.alignNow == True:
                     sensor = self.alignSensor
                 # for every turn, calibrate
+                else:
+                    self.alignCnt = 9
+                    self.checkAlign(1)
+                    sensor = self.alignSensor
+                self.robot.rotateRight()
+                self.robot.forward()
+                self.update_status("Turning right")
                 return (''.join([sensor,"RF"]))
             
             elif (self.checkRight() == "unknown"):
+                
+                if self.alignNow == True:
+                    sensor = self.alignSensor
+                # for every turn, calibrate
+                else:
+                    self.alignCnt = 9
+                    self.checkAlign(1)
+                    sensor = self.alignSensor
                 self.robot.rotateRight()
                 self.update_status("Checking right")  
                 self.checkingRight = True
-                if self.alignNow == True:
-                    sensor = self.alignSensor
                 return (''.join([sensor,"R"]))
                                   
         # alr enter checkingRight now, so update status as False again
@@ -379,10 +390,15 @@ class Explorer():
                 sensor = self.alignSensor
             return (''.join([sensor,"F"]))
         else:
-            self.robot.rotateLeft()
-            self.update_status("Turning left") 
             if self.alignNow == True:
                 sensor = self.alignSensor
+             # for every turn, calibrate
+            else:
+                self.alignCnt = 9
+                self.checkAlign(1)
+                sensor = self.alignSensor
+            self.update_status("Turning left") 
+            self.robot.rotateLeft()
             return (''.join([sensor,"L"]))
         
     def allEmpty(self,h,w):
