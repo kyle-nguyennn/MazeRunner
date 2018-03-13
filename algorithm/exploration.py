@@ -1,6 +1,7 @@
 from arena import Arena,CellType
 from Robot import Robot
 from random import randint
+import datetime
 import time, socket, logging, sys
 import race
 from race import dijkstra
@@ -9,11 +10,13 @@ import json
 from operator import itemgetter
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9,alignLimit = 3,needReExplore = False):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=260, pArea=0.9, alignLimit=3, needReExplore=False, logging_enabled=True):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
         self.status = ""
+        self.logging_enabled = logging_enabled
+        self.log_filename = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + ".log"
         self.arena = Arena()
         self.needReExplore = needReExplore
         #self.robot = [1, 1, 0] # 2d position plus orientation
@@ -84,15 +87,17 @@ class Explorer():
         cnt = 0
         self.innerMap =  [[0 for y in range(15)]
                           for x in range(20)]
-        self.tcp_conn.send_command("ES")
-        self.update_status("Start exploration")
+        self.update_all("ES", "Start exploration")
         while self.robot.robotMode != "done": 
             cnt += 1 
             sensors = self.tcp_conn.get_string()
+            if self.logging_enabled:
+                log_file = open(self.log_filename, "a+")
+                log_file.write("Received: " + sensors + "\n")
+                log_file.close()
             # sensor check
             if len(sensors) != 6 or sensors.isdigit()==False:
-                print("sensor reading from Arduino is wrong")
-                self.tcp_conn.send_command("N")
+                self.update_all("N", "Rechecking sensor reading from Arduino")
                 continue                
             self.updateMap(sensors)
                             
@@ -112,7 +117,7 @@ class Explorer():
                     (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                     # give instruction
                     self.cnt += len(instructions)
-                    self.tcp_conn.send_command(instructions)
+                    self.update_all(instructions, "Going back to start zone")
                     # update robot states (position and orientation)
                     self.robot.jump(endnode)
                     continue
@@ -125,7 +130,7 @@ class Explorer():
                             if self.robot.robotHead != 0:
                                 startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
                                 (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,0), endOrientationImportant=True)
-                                self.tcp_conn.send_command(instructions)
+                                self.update_all(instructions, "Going back to start zone")
                                 self.robot.robotMode = "done"
                                 continue
                             else:
@@ -142,7 +147,7 @@ class Explorer():
                             (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                             # give instruction
                             self.cnt += len(instructions)
-                            self.tcp_conn.send_command(instructions)
+                            self.update_all(instructions, "Going back to start zone")
                             # update robot states (position and orientation)
                             self.robot.jump(endnode) # already update sensors inside
                             continue
@@ -153,7 +158,7 @@ class Explorer():
                             (instructions, endnode) = self.reExplore()
                             # give instruction
                             self.cnt += len(instructions)
-                            self.tcp_conn.send_command(instructions)
+                            self.update_all(instructions, "Navigating to nearest unexplored cell")
                             # update robot states
                             self.robot.jump(endnode) # already update sensors inside
     
@@ -164,7 +169,7 @@ class Explorer():
                 instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
-                self.tcp_conn.send_command(instruction)
+                self.update_all(instruction, "Performing right wall hugging exploration")
                 print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
                 print("robot head:",self.robot.robotHead)
                 if self.reachGoal == False:
@@ -175,9 +180,8 @@ class Explorer():
             self.wellGuess(count)
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
-        self.update_status("End exploration")
         self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
-        self.tcp_conn.send_command("EE")
+        self.update_all("EE", "End exploration")
 
     def wellGuess(self,count):
         if count > 30: # more obstacles than expected
@@ -226,7 +230,17 @@ class Explorer():
     def get_robot(self):
         if self.robot.robotMode == "done":
             return None
-        return self.robot.getPosition()            
+        return self.robot.getPosition()       
+
+    def update_all(self, command, status):
+        if self.logging_enabled:
+            log_file = open(self.log_filename, "a+")
+            log_file.write("Robot: " + str(self.robot.getPosition()) + "\n")
+            log_file.write("Map: \n" + self.arena.display_str())
+            log_file.write("Sent: " + command + "\n")
+            log_file.close()
+        self.tcp_conn.send_command(command)
+        self.update_status(status)
 
     def update_status(self, status):
         self.status = status
@@ -437,7 +451,6 @@ class Explorer():
                     sensor = self.alignSensor
                 self.robot.rotateRight()
                 self.robot.forward()
-                self.update_status("Turning right")
                 return (''.join([sensor,"RF"]))
             
             elif (self.checkRight() == "unknown"):
@@ -451,7 +464,6 @@ class Explorer():
                     sensor = self.alignSensor
                 self.robot.rotateRight()
                 self.isPrevTurn = True
-                self.update_status("Checking right")  
                 self.checkingRight = True
                 return (''.join([sensor,"R"]))
                                   
@@ -460,7 +472,6 @@ class Explorer():
         # decide front condition
         if (self.checkFront()):
             self.robot.forward()
-            self.update_status("Moving forward")
             if self.alignNow == True:
                 sensor = self.alignSensor
             return (''.join([sensor,"F"]))
@@ -472,7 +483,6 @@ class Explorer():
                 self.alignCnt = 9
                 self.checkAlign(1)
                 sensor = self.alignSensor
-            self.update_status("Turning left") 
             self.robot.rotateLeft()
             self.isPrevTurn = True
             return (''.join([sensor,"L"]))

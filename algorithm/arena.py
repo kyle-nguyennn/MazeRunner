@@ -79,11 +79,21 @@ class Arena():
         return self.arena_map
 
     def print(self):
+        print(self.display_str())
+
+    def display_str(self):
+        map_str = ""
         for x in range(len(self.arena_map)):
             for y in range(len(self.arena_map[x])):
-                print(self.arena_map[len(self.arena_map)-1-x]
-                      [y].value, end=" ")
-            print()
+                cell_value = self.arena_map[len(self.arena_map)-1-x][y].value
+                cell_str = ""
+                if cell_value < 0:
+                    cell_str = str(cell_value) + " "
+                else:
+                    cell_str = " " + str(cell_value) + " "
+                map_str += cell_str + " "
+            map_str += "\n"
+        return map_str
 
     def get(self, h, w):
         return self.arena_map[h][w]
