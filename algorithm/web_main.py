@@ -36,7 +36,7 @@ class MdfStrings(db.Model):
         self.part2 = part2
 
     def __repr__(self):
-        return '<MdfStrings %r>' % self.part1 + " | " + self.part2
+        return '<OrgUnit %r>' % self.part1 + " | " + self.part2
 
 
 mode = Mode.NONE
@@ -118,24 +118,18 @@ def exploration_sim():
     return "Simulation server started."
 
 
-@app.route('/exploration_start', methods=['POST'])
+@app.route('/exploration_start', methods=['GET'])
 def exploration_start():
-    data = json.loads(request.data)
-    explore_thread = Thread(target=start_exploration_algo, args=[
-                            [int(data[0]), int(data[1]), int(data[2])]])
+    explore_thread = Thread(target=start_exploration_algo, args=[[1, 1, 0]])
     explore_thread.start()
     return "Exploration started."
 
-
-@app.route('/fastestpath_start', methods=['POST'])
+@app.route('/fastestpath_start', methods=['GET'])
 def fastestpath_start():
     global explore_algo
-    data = json.loads(request.data)
     fp_arena = explore_algo.get_arena()
-    waypoint = (int(data[0]), int(data[1]))
-    tcp_conn.send_command(getInstructions(fp_arena, waypoint))
+    tcp_conn.send_command(getInstructions(fp_arena,  request["wayPoint"]))
     return "Fastest path started."
-
 
 @app.route('/connect_to_pi', methods=['GET'])
 def connect_to_pi():

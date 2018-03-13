@@ -552,30 +552,14 @@ $(document).ready(function () {
     });
 
     $("#btnExploreStart").click(function () {
-        data = [robotPosRow.value, robotPosCol.value, robotHead.value];
-        $.ajax({
-            type: 'POST',
-            data: JSON.stringify(data),
-            contentType: 'application/json',
-            url: '/exploration_start',
-            success: function (data) {
-                switchActualMode();
-            }
+        $.get("/exploration_start", function (data, status) {
+            switchActualMode();
         });
     });
 
     $("#btnFastestpathStart").click(function () {
-        x = $("#waypointRow").val();
-        y = $("#waypointCol").val();
-        data = [x, y];
-        $.ajax({
-            type: 'POST',
-            data: JSON.stringify(data),
-            contentType: 'application/json',
-            url: '/fastestpath_start',
-            success: function (data) {
-                switchActualMode();
-            }
+        $.get("/fastestpath_start", function (data, status) {
+            switchActualMode();
         });
     });
 
