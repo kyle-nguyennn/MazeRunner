@@ -16,8 +16,6 @@ def run_tcp_server(pc_conn, android_queue, arduino_queue, running):
                 break
             data_arr = data.splitlines()
             for data_s in data_arr:
-                if len(data_s) == 0:
-                    continue
                 if data_s[0] == "{":
                     android_queue.put(data_s)
                 else:
@@ -36,8 +34,6 @@ def run_bt_server(android_conn, pc_queue, arduino_queue, running):
                 break
             data_arr = data.splitlines()
             for data_s in data_arr:
-                if len(data_s) == 0:
-                    continue
                 if data_s[0] == "{":
                     pc_queue.put(data_s)
                 else:
@@ -57,8 +53,6 @@ def run_serial_client(arduino_conn, pc_queue, running):
                 break
             data_arr = data.splitlines()
             for data_s in data_arr:
-                if len(data_s) == 0:
-                    continue
                 pc_queue.put(data_s)
         arduino_conn.close_conn()
 
