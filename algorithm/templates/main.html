@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>MazeRunner Simulation</title>
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <!-- Custom styles for this template -->
+    <link rel="stylesheet" href="/static/jquery-ui.min.css">
+    <link rel="stylesheet" href="/static/main.css">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <a class="navbar-brand" href="/">MazeRunner Simulation</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarDefault" aria-controls="navbarDefault"
+            aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarDefault">
+        </div>
+    </nav>
+    <main role="main" class="container">
+        <div class="row">
+            <div class="col-12">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a id="tabEditMode" class="nav-link active" href="#">Edit Mode</a>
+                    </li>
+                    <li class="nav-item">
+                        <a id="tabSimMode" class="nav-link" href="#">Simulation Mode</a>
+                    </li>
+                    <li class="nav-item">
+                        <a id="tabActualMode" class="nav-link" href="#">Actual Mode</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <div id="editOptions" class="row row-m-t">
+                    <div class="col-12">
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="optMode" id="optObstacle" checked="checked">Obstacle</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="optMode" id="optEmpty">Empty</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="optMode" id="optUnknown">Unknown</label>
+                        </div>
+                    </div>
+                </div>
+                <label id="lblStatus">Robot Status: </label>
+                <div class="row row-m-t">
+                    <div class="col-12">
+                        <table id="arena">
+                            <tbody>
+                                {% for x in range(0, 20) %}
+                                <tr>
+                                    <td class="marker">{{ 19-x }}</td>
+                                    {% for y in range(0, 15) %}
+                                    <td class="empty">&nbsp;</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td class="marker">&nbsp;</td>
+                                    {% for y in range(0, 15) %}
+                                    <td class="marker">{{ y }}</td>
+                                    {% endfor %}
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div id="robot-fop">
+                            <div id="waypoint">
+                            </div>
+                            <div id="robot">
+                                <div id="robot-heading">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div id="cardConnect">
+                    <br />
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">PI Connection</h5>
+                            <button type="button" id="btnConnect" class="btn btn-primary">Connect</button>
+                            <button type="button" id="btnDisconnect" class="btn btn-danger">Disconnect</button>
+                            <br/>
+                            <br/>
+                            <button type="button" id="btnExploreStart" class="btn btn-info">Start Exploration</button>
+                            <button type="button" id="btnFastestpathStart" class="btn btn-info">Start Fastest Path</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="cardArena">
+                    <br />
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Load / Save Arena</h5>
+                            <div class="form-group">
+                                <label for="mdfList">Load Arena:</label>
+                                <select class="form-control" id="mdfList">
+                                    {% for mdf_string in mdf_strings %}
+                                    <option>{{ mdf_string.part1 + "|" + mdf_string.part2 }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="mdfPart1">Map Descriptor Part 1:</label>
+                                <input type="text" class="form-control" id="mdfPart1" name="mdfPart1">
+                            </div>
+                            <div class="form-group">
+                                <label for="mdfPart2">Map Descriptor Part 2:</label>
+                                <input type="text" class="form-control" id="mdfPart2" name="mdfPart2">
+                            </div>
+                            <button type="button" id="btnSaveArena" class="btn btn-primary">Save Arena</button>
+                            <button type="button" id="btnDeleteArena" class="btn btn-danger">Delete Arena</button>
+                            <!-- <button type="button" id="btnLoadArena" class="btn btn-primary">Load Arena</button>
+                        <button type="button" id="btnExportArena" class="btn btn-secondary">Export Arena</button> -->
+                        </div>
+                    </div>
+                </div>
+                <div id="cardFastestPath">
+                    <br />
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Fastest Path Simulation</h5>
+                            <div class="form-group row">
+                                <label for="waypointRow" class="col-sm-6 col-form-label">Waypoint Row:</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="waypointRow" name="waypointRow" min=0 max=19 value=9>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="waypointCol" class="col-sm-6 col-form-label">Waypoint Column:</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="waypointCol" name="waypointCol" min=0 max=14 value=7>
+                                </div>
+                            </div>
+                            <button type="button" id="btnFastestPath" class="btn btn-primary">Run Simulation</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="cardExploration">
+                    <br />
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Exploration Simulation</h5>
+                            <div class="form-group row">
+                                <label for="robotPosRow" class="col-sm-6 col-form-label">Robot Position (Row):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="robotPosRow" name="robotPosRow" min=1 max=18 value=1>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="robotPosCol" class="col-sm-6 col-form-label">Robot Position (Column):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="robotPosCol" name="robotPosCol" min=1 max=13 value=1>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="robotHead" class="col-sm-6 col-form-label">Robot Heading (Degree):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="robotHead" name="robotHead" step=90 min=0 max=270 value=0>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="robotSpeed" class="col-sm-6 col-form-label">Robot Move Speed (Seconds):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="robotSpeed" name="robotSpeed" step="any" min=0 value=1>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="exploreTime" class="col-sm-6 col-form-label">Exploration Time Limit (Seconds):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="exploreTime" name="exploreTime" min=0 value=60>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="explorePercent" class="col-sm-6 col-form-label">Eploration Coverage (%):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="explorePercent" name="explorePercent" min=0 max=100 value=100>
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <label for="errorRate" class="col-sm-6 col-form-label">Sensor Error Rate (%):</label>
+                                <div class="col-sm-6">
+                                    <input type="number" class="form-control" id="errorRate" name="errorRate" min=0 max=100 value=20>
+                                </div>
+                            </div>
+                            <button type="button" id="btnExploration" class="btn btn-primary">Run Simulation</button>
+                        </div>
+                    </div>
+                </div>
+                <table id="floatingArena">
+                    <tbody>
+                        {% for x in range(0, 20) %}
+                        <tr>
+                            <td class="marker">{{ 19-x }}</td>
+                            {% for y in range(0, 15) %}
+                            <td class="empty">&nbsp;</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                        <tr>
+                            <td class="marker">&nbsp;</td>
+                            {% for y in range(0, 15) %}
+                            <td class="marker">{{ y }}</td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+                <center>
+                    <button type="button" id="btnStopSim" class="btn btn-danger">Stop Simulation</button>
+                </center>
+            </div>
+        </div>
+    </main>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/static/jquery-3.3.1.min.js"></script>
+    <script src="/static/jquery-ui.min.js"></script>
+    <script src="/static/popper.min.js"></script>
+    <script src="/static/bootstrap.min.js"></script>
+    <script src="/static/main.js"></script>
+</body>
+
+</html>
