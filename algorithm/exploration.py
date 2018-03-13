@@ -6,6 +6,7 @@ import race
 from race import dijkstra
 from tcp_client import TcpClient
 import json
+from operator import itemgetter
 
 class Explorer():
     def __init__(self, tcp_conn, robot_pos, buffer_size=1024,tBack=20,tThresh=260,pArea=0.9,alignLimit = 3,needReExplore = False):
@@ -94,27 +95,7 @@ class Explorer():
                 self.tcp_conn.send_command("N")
                 continue                
             self.updateMap(sensors)
-            
-# =============================================================================
-#             print("conflict cells:",self.conflictCells)
-#             
-#             # conflict solving
-#             if self.reReadSensor == True:
-#                 self.tcp_conn.send_command("N")
-# =============================================================================
-                
-# =============================================================================
-#             else:    
-#                 #update map with sensor values
-#                 self.updateMap(sensors)
-#                 # sensor conflict solving if conflictCells contains cells
-#                 if len(self.conflictCells) != 0:
-#                     self.readingConflict = True
-#                     self.tcp_conn.send_command("N")
-#                 else:
-#                     self.readingConflict = False
-# =============================================================================
-                
+                            
             explorationTime = time.time() - self.startTime
             #check reachgoal
             if self.robot.robotCenterH == 18 and self.robot.robotCenterW == 13:
@@ -189,17 +170,50 @@ class Explorer():
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()
         # before exploration end, check innerMap
-        count = self.countExploredArea()
-        if count > 30:
-            pass
-        elif count < 30:
-            pass
-        #else, just nice, finish.
+        count = self.countObstacles()
+        if count != 30:
+            self.wellGuess(count)
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
         self.update_status("End exploration")
         self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
         self.tcp_conn.send_command("EE")
+
+    def wellGuess(self,count):
+        if count > 30: # more obstacles than expected
+            obstacles = []
+            for h in range(20):
+                for w in range(15):
+                    if self.arena.get(h,w) == CellType.OBSTACLE:
+                        score = self.innerMap[h][w]
+                        obstacles.append([h,w,score])
+            sortedObstacles = sorted(obstacles,key=itemgetter(2))
+            throwNumber = 30-count
+            throwCells = sortedObstacles[throwNumber:]
+            for cell in throwCells:
+                self.arena.set(cell[0],cell[1],CellType.EMPTY)
+                        
+        else: # less than expected
+            candidateCells = []
+            for h in range(20):
+                for w in range(15):
+                    if self.arena.get(h,w) != CellType.OBSTACLE:
+                        score = self.innerMap[h][w]
+                        if score < 0:
+                            candidateCells.append([h,w,score])
+            sortedCandidates = sorted(candidateCells,key=itemgetter(2))
+            addNumber = 30 - count           
+            addCells = sortedCandidates[:addNumber]
+            # it might be still less than 30, but it's fine.
+            for cell in addCells:
+                self.arena.set(cell[0],cell[1],CellType.OBSTACLE)
+                
+        # clean up all other non-obstacles to EMPTY
+        for row in self.arena:
+            for cell in row:
+                if cell != CellType.OBSTACLE:
+                       cell = CellType.EMPTY
+            
 
     def is_valid_point(self, point):
         x = point[0]
@@ -237,13 +251,14 @@ class Explorer():
                     count += 1
         self.exploredArea = count
         
-    def countExploredArea(self):   
+    def countObstacles(self):   
         count = 0
         for row in self.arena.get_2d_arr():
             for cell in row:
-                if (cell == CellType.EMPTY or cell == CellType.OBSTACLE ):
+                if (cell == CellType.OBSTACLE ):
                     count += 1
         return count
+    
     # given inputs, find corresponding cell coordinates needed to be marked as enum EMPTY or OBSTACLE
     def markCells(self, sensorIndex, value):
         w = self.robot.robotCenterW
@@ -263,8 +278,10 @@ class Explorer():
                     if self.is_valid_point((x,y)):
                         if i < 2:
                             self.innerMap[x][y] += 1
-                        elif 2 <= i <= 3:
-                            self.innerMap[x][y] += 0.5
+                        elif i == 2:
+                            self.innerMap[x][y] += 0.7
+                        elif i == 3:
+                            self.innerMappx[x][y] += 0.5
                         else:
                             self.innerMap[x][y] += 0.3
 # =============================================================================
@@ -276,8 +293,10 @@ class Explorer():
                 if self.is_valid_point((x,y)):
                     if value < 2:
                         self.innerMap[x][y] -= 1
-                    elif value <= i <= 3:
-                        self.innerMap[x][y] -= 0.5
+                    elif value == 2:
+                        self.innerMap[x][y] -= 0.7
+                    elif value == 3:
+                        self.innerMappx[x][y] -= 0.5
                     else:
                         self.innerMap[x][y] -= 0.3
                                 
@@ -289,12 +308,14 @@ class Explorer():
         for row in self.innerMap:
             w = 0
             for cell in row:
-                if cell >= 1:
+                if h > 16 and w > 11: #at goal zone
                     self.arena.set(h,w,CellType.EMPTY)
-                elif 0 < cell < 1:
-                    self.arena.set(h,w,CellType.CONFLICT)
+                elif cell >= 1:
+                    self.arena.set(h,w,CellType.EMPTY)
                 elif cell == 0:
                     self.arena.set(h,w,CellType.UNKNOWN)
+                elif -1 < cell < 1 :
+                    self.arena.set(h,w,CellType.CONFLICT)
                 else:
                     self.arena.set(h,w,CellType.OBSTACLE)
                 w += 1
@@ -788,4 +809,3 @@ def findArrayIndexMin(arr):
             
 def euclidean(pos1,pos2):
     return abs(pos1[1]-pos2[1])+abs(pos1[0]-pos2[0])
-
