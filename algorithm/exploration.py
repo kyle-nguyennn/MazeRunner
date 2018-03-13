@@ -187,7 +187,14 @@ class Explorer():
                 print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
                 print("robot head:",self.robot.robotHead)
                 if self.reachGoal == False:
-                    self.reachGoal = self.robot.isInGoal()           
+                    self.reachGoal = self.robot.isInGoal()
+        # before exploration end, check innerMap
+        count = self.countExploredArea()
+        if count > 30:
+            pass
+        elif count < 30:
+            pass
+        #else, just nice, finish.
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
         self.update_status("End exploration")
@@ -226,15 +233,21 @@ class Explorer():
         count = 0
         for row in self.arena.get_2d_arr():
             for cell in row:
-                if (cell != CellType.UNKNOWN):
+                if (cell == CellType.EMPTY or cell == CellType.OBSTACLE ):
                     count += 1
         self.exploredArea = count
+        
+    def countExploredArea(self):   
+        count = 0
+        for row in self.arena.get_2d_arr():
+            for cell in row:
+                if (cell == CellType.EMPTY or cell == CellType.OBSTACLE ):
+                    count += 1
+        return count
     # given inputs, find corresponding cell coordinates needed to be marked as enum EMPTY or OBSTACLE
     def markCells(self, sensorIndex, value):
         w = self.robot.robotCenterW
         h = self.robot.robotCenterH
-        head = self.robot.robotHead
-        realTimeMap = self.arena
         # if withint the map range, then mark. Otherwise discard the reading
         if (0 <= w <= 13 and 0 <= h <= 18):
             # sensorIndex = 0..5 corresponding to F1,F2,F3,R1,R2,L1
@@ -257,28 +270,35 @@ class Explorer():
 # =============================================================================
 #                         logging.debug("Empty coordinate " + str(x) +" " + str(y))
 # =============================================================================
-                        realTimeMap.set(x, y, CellType.EMPTY)
-                if value < sensor.visible_range:
-                    x = h + offsets[value][0]
-                    y = w + offsets[value][1]
-                    if self.is_valid_point((x,y)):
-                        if i < 2:
-                            self.innerMap[x][y] -= 1
-                        elif 2 <= i <= 3:
-                            self.innerMap[x][y] -= 0.5
-                        else:
-                            self.innerMap[x][y] -= 0.3
+            if value < sensor.visible_range:
+                x = h + offsets[value][0]
+                y = w + offsets[value][1]
+                if self.is_valid_point((x,y)):
+                    if value < 2:
+                        self.innerMap[x][y] -= 1
+                    elif value <= i <= 3:
+                        self.innerMap[x][y] -= 0.5
+                    else:
+                        self.innerMap[x][y] -= 0.3
                                 
-                        realTimeMap.set(x,y,CellType.OBSTACLE)                       
-        for x in self.innerMap:
-            for y in x:
-                if 
-                        
-        self.updateExploredArea()
         
     def updateMap(self, sensorValues):
         for i in range(len(sensorValues)):
             self.markCells(i, int(sensorValues[i]))
+        h = 0
+        for row in self.innerMap:
+            w = 0
+            for cell in row:
+                if cell >= 1:
+                    self.arena.set(h,w,CellType.EMPTY)
+                elif 0 < cell < 1:
+                    self.arena.set(h,w,CellType.CONFLICT)
+                elif cell == 0:
+                    self.arena.set(h,w,CellType.UNKNOWN)
+                else:
+                    self.arena.set(h,w,CellType.OBSTACLE)
+                w += 1
+            h += 1
         self.updateExploredArea()
 
     def checkAlign(self,r):
@@ -352,8 +372,8 @@ class Explorer():
         sensor = "" 
         bodyCells = self.robot.returnBodyCells()
         for cell in bodyCells:
-            self.arena.set(cell[0],cell[1],CellType.EMPTY)
-        
+            # if robot was on this cell, it confirms to be empty
+            self.innerMap[cell[0]][cell[1]] += 99        
 # =============================================================================
 #         head = int(self.robot.robotHead)
 #             
@@ -378,6 +398,11 @@ class Explorer():
         self.isPrevTurn = False
         self.checkAlign(1)
         self.alignCnt += 1
+        
+        # if face wall, shouldn't turn right to prevent inifinite loop
+        #find wall cells
+        # check if 3 rows*3 cols on the right is alr explored
+        # if is, then directly turn left
         
         if (self.checkingRight == False):
             # decide turn-right condition
