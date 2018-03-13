@@ -34,6 +34,8 @@ class Explorer():
         self.reReadSensor = False
         self.readingConflict = False
         self.conflictCells = []
+        self.isPrevTurn = False
+        self.isPrevRight = False
         self.alignSensor = "" # CF(front), CS(right)
         self.robot = Robot(
             'exploring', robot_pos[2]/90, robot_pos[0], robot_pos[1])
@@ -368,6 +370,9 @@ class Explorer():
 #             self.alignCnt = 0
 # =============================================================================
 
+        if self.isPrevTurn == True:
+            self.alignCnt = 9 
+        self.isPrevTurn = False
         self.checkAlign(1)
         self.alignCnt += 1
         
@@ -396,6 +401,7 @@ class Explorer():
                     self.checkAlign(1)
                     sensor = self.alignSensor
                 self.robot.rotateRight()
+                self.isPrevTurn = True
                 self.update_status("Checking right")  
                 self.checkingRight = True
                 return (''.join([sensor,"R"]))
@@ -419,6 +425,7 @@ class Explorer():
                 sensor = self.alignSensor
             self.update_status("Turning left") 
             self.robot.rotateLeft()
+            self.isPrevTurn = True
             return (''.join([sensor,"L"]))
         
     def allEmpty(self,h,w):
