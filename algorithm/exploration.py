@@ -209,10 +209,10 @@ class Explorer():
                 self.arena.set(cell[0],cell[1],CellType.OBSTACLE)
                 
         # clean up all other non-obstacles to EMPTY
-        for row in self.arena:
-            for cell in row:
-                if cell != CellType.OBSTACLE:
-                       cell = CellType.EMPTY
+        for h in range(20):
+            for w in range(15):
+                if self.arena.get(h,w) != CellType.OBSTACLE:
+                       self.arena.set(h,w,CellType.EMPTY)
             
 
     def is_valid_point(self, point):
@@ -281,7 +281,7 @@ class Explorer():
                         elif i == 2:
                             self.innerMap[x][y] += 0.7
                         elif i == 3:
-                            self.innerMappx[x][y] += 0.5
+                            self.innerMap[x][y] += 0.5
                         else:
                             self.innerMap[x][y] += 0.3
 # =============================================================================
@@ -296,7 +296,7 @@ class Explorer():
                     elif value == 2:
                         self.innerMap[x][y] -= 0.7
                     elif value == 3:
-                        self.innerMappx[x][y] -= 0.5
+                        self.innerMap[x][y] -= 0.5
                     else:
                         self.innerMap[x][y] -= 0.3
                                 
