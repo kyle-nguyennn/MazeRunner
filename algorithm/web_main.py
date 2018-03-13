@@ -124,12 +124,14 @@ def exploration_start():
     explore_thread.start()
     return "Exploration started."
 
+
 @app.route('/fastestpath_start', methods=['GET'])
 def fastestpath_start():
     global explore_algo
     fp_arena = explore_algo.get_arena()
-    tcp_conn.send_command(getInstructions(fp_arena,  request["wayPoint"]))
+    tcp_conn.send_command(getInstructions(fp_arena, [1, 1]))
     return "Fastest path started."
+
 
 @app.route('/connect_to_pi', methods=['GET'])
 def connect_to_pi():
