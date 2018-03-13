@@ -34,6 +34,7 @@ class Explorer():
         self.reReadSensor = False
         self.readingConflict = False
         self.conflictCells = []
+        self.innerMap = []
         self.isPrevTurn = False
         self.isPrevRight = False
         self.alignSensor = "" # CF(front), CS(right)
@@ -80,6 +81,8 @@ class Explorer():
 
     def run(self):
         cnt = 0
+        self.innerMap =  [[0 for y in range(15)]
+                          for x in range(20)]
         self.tcp_conn.send_command("ES")
         self.update_status("Start exploration")
         while self.robot.robotMode != "done": 
@@ -245,6 +248,12 @@ class Explorer():
                     x = h + offsets[i][0]
                     y = w + offsets[i][1]
                     if self.is_valid_point((x,y)):
+                        if i < 2:
+                            self.innerMap[x][y] += 1
+                        elif 2 <= i <= 3:
+                            self.innerMap[x][y] += 0.5
+                        else:
+                            self.innerMap[x][y] += 0.3
 # =============================================================================
 #                         logging.debug("Empty coordinate " + str(x) +" " + str(y))
 # =============================================================================
@@ -253,24 +262,18 @@ class Explorer():
                     x = h + offsets[value][0]
                     y = w + offsets[value][1]
                     if self.is_valid_point((x,y)):
-# =============================================================================
-#                         logging.debug("Obstacle coordinate " + str(x) + " " + str(y)) 
-# =============================================================================
-
-# for conflict solving
-# =============================================================================
-#                         if realTimeMap.get(x,y) == CellType.EMPTY \
-#                         and [x,y] not in self.conflictCells:
-#                             self.reReadSensor = True
-#                             self.conflictCells.append([x,y])
-#                         else:
-#                             realTimeMap.set(x,y,CellType.OBSTACLE)
-#                             if [x,y] in self.conflictCells:
-#                                 self.conflictCells.remove([x,y])
-# =============================================================================
+                        if i < 2:
+                            self.innerMap[x][y] -= 1
+                        elif 2 <= i <= 3:
+                            self.innerMap[x][y] -= 0.5
+                        else:
+                            self.innerMap[x][y] -= 0.3
                                 
                         realTimeMap.set(x,y,CellType.OBSTACLE)                       
-                                
+        for x in self.innerMap:
+            for y in x:
+                if 
+                        
         self.updateExploredArea()
         
     def updateMap(self, sensorValues):
