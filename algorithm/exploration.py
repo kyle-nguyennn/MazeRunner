@@ -402,9 +402,10 @@ class Explorer():
                 count = 0
                 for leftCell in self.leftAllCells[head]:
                     if index == 0 or index == 3 or index ==6:
-                        if self.is_valid_point(leftCell) and self.arena.get(leftCell[0],leftCell[1]) == CellType.OBSTACLE:
+                        if self.is_valid_point([leftCell[0]+h,leftCell[1]+w]) and self.arena.get(leftCell[0]+h,leftCell[1]+w) == CellType.OBSTACLE:
                             count += 1
                     index += 1
+                print("count",count)
                 if count >= 3: # 3 block on left for calibration
                     self.alignSensor = ''.join(["LCF",str(i),"R"])
                     self.alignNow = True                
