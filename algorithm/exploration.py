@@ -10,7 +10,7 @@ import json
 from operator import itemgetter
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=0.9, alignLimit=2, needReExplore=True, logging_enabled=True):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, alignLimit=2, needReExplore=True, logging_enabled=True):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -27,7 +27,7 @@ class Explorer():
         self.exploredArea = 0
         self.cnt = 0 # no. of instruction executed
         self.goBackTime = tBack # seconds for it to go back Start from any position
-        self.timeThreshold = 330 # user-input time to terminate exploration
+        self.timeThreshold = tThresh # user-input time to terminate exploration
         self.timeLimit = 360
         self.areaPercentage = pArea # percentage we want the robot to explore up to
         self.reachGoal = False
@@ -637,7 +637,7 @@ class Explorer():
      
         for x in range(len(self.arena.arena_map)):
             for y in range(len(self.arena.arena_map[x])):
-                if (self.arena.get(x,y) == CellType.UNKNOWN):
+                if (self.arena.get(x,y) == CellType.UNKNOWN or self.arena.get(x,y) == CellType.CONFLICT):
                     reExploreCells.append([x,y])
         
         layer = 0
