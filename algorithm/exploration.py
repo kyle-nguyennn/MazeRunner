@@ -39,6 +39,7 @@ class Explorer():
         self.readingConflict = False
         self.conflictCells = []
         self.innerMap = []
+        self.turnList = []
         self.isPrevTurn = False
         self.isPrevRight = False
         self.alignSensor = "" # CF(front), CS(right)
@@ -162,7 +163,7 @@ class Explorer():
                             # update robot states
                             self.robot.jump(endnode) # already update sensors inside
     
-                            print("comeplete a re-reploration")
+                            print("comeplete a re-exploration")
                             continue
 
                 #if havent reach any of above continue statements, just wall hugging
@@ -199,15 +200,24 @@ class Explorer():
                         
         else: # less than expected
             candidateCells = []
+            unexploredCells = []
             for h in range(20):
                 for w in range(15):
                     if self.arena.get(h,w) != CellType.OBSTACLE:
                         score = self.innerMap[h][w]
                         if score < 0:
                             candidateCells.append([h,w,score])
+                        elif score == 0:
+                            unexploredCells.append([h,w,score])
             sortedCandidates = sorted(candidateCells,key=itemgetter(2))
             addNumber = 30 - count           
             addCells = sortedCandidates[:addNumber]
+            # if the number is still less than 30, check unexplored cells
+            if count + len(addCells) < 30:
+                # if plus unexplored cells, still less: most likely unexplored cells are obstacles
+                if count+len(addCells)+len(unexploredCells) <= 30:
+                    for cell in unexploredCells:
+                        addCells.append(cell)
             # it might be still less than 30, but it's fine.
             for cell in addCells:
                 self.arena.set(cell[0],cell[1],CellType.OBSTACLE)
@@ -322,7 +332,7 @@ class Explorer():
         for row in self.innerMap:
             w = 0
             for cell in row:
-                if h > 16 and w > 11: #at goal zone
+                if h > 16 and w > 11 and self.reachGoal: #at goal zone
                     self.arena.set(h,w,CellType.EMPTY)
                 elif cell >= 1:
                     self.arena.set(h,w,CellType.EMPTY)
@@ -391,16 +401,32 @@ class Explorer():
         return True                   
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self):
+                
+        # if face wall, shouldn't turn right if all its right side on that wall is explored; to prevent inifinite loop
+        # find wall cells
+        # check if all cells (3 rows) on the right is alr explored
+        # if is, then directly turn left
         robot = self.robot
         rightCells = robot.rightCells
+        
+        h = robot.robotCenterH
+        w = robot.robotCenterW
+        
         for cell in rightCells[robot.robotHead]:
             if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 \
                 or robot.robotCenterW+cell[1] < 0 or robot.robotCenterH+cell[0] < 0 \
                 or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.OBSTACLE):
                 return "false"
-            elif (self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.UNKNOWN):
+            elif (self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.UNKNOWN \
+                  or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.CONFLICT):
                 return "unknown"
+
+        # before return true, check infinite loop
+        if len(self.turnList)>= 4 and [h,w] == self.turnList[-4]\
+        or self.turnList.count([h,w]) > 2:
+            return "false"
         return "true"
+    
     def wallHugging(self): # return instruction
         # mark current body cells as empty
         # actually might not need, just put here first
@@ -434,11 +460,6 @@ class Explorer():
         self.checkAlign(1)
         self.alignCnt += 1
         
-        # if face wall, shouldn't turn right to prevent inifinite loop
-        #find wall cells
-        # check if 3 rows*3 cols on the right is alr explored
-        # if is, then directly turn left
-        
         if (self.checkingRight == False):
             # decide turn-right condition
             if (self.checkRight() == "true"):                    
@@ -450,6 +471,7 @@ class Explorer():
                     self.checkAlign(1)
                     sensor = self.alignSensor
                 self.robot.rotateRight()
+                self.turnList.append([self.robot.robotCenterH,self.robot.robotCenterW])
                 self.robot.forward()
                 return (''.join([sensor,"RF"]))
             
@@ -463,6 +485,7 @@ class Explorer():
                     self.checkAlign(1)
                     sensor = self.alignSensor
                 self.robot.rotateRight()
+                self.turnList.append([self.robot.robotCenterH,self.robot.robotCenterW])
                 self.isPrevTurn = True
                 self.checkingRight = True
                 return (''.join([sensor,"R"]))
