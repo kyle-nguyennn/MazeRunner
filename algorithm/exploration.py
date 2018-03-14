@@ -10,7 +10,7 @@ import json
 from operator import itemgetter
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=260, pArea=0.9, alignLimit=3, needReExplore=False, logging_enabled=True):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=0.9, alignLimit=3, needReExplore=True, logging_enabled=True):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -64,6 +64,16 @@ class Explorer():
                     2:[[-1,2],[-1,3],[-1,4],[-1,5],[-1,6],[-1,7]],
                     3:[[-2,-1],[-3,-1],[-4,-1],[-5,-1],[-6,-1],[-7,-1]]
                 }
+        self.leftAllCells = {0:[[1,-2],[1,-3],[1,-4],[0,-2],[0,-3],[0,-4],[-1,-2],[-1,-3],[-1,-4]],
+                             1:[[2,1],[3,1],[4,1],[2,0],[3,0],[4,0],[2,-1],[3,-1],[4,-1]],
+                             2:[[-1,2],[-1,3],[-1,4],[0,2],[0,3],[0,4],[1,2],[1,3],[1,4]],
+                             3:[[-2,-1],[-3,-1],[-4,-1],[-2,0],[-3,0],[-4,0],[-2,1],[-3,1],[-4,1]]
+                }
+        self.frontLeftCells = {0:[[2,-2],[2,-3],[2,-4]],
+                               1:[[2,2],[3,2],[4,2]],
+                               2:[[-2,2],[-2,3],[-2,4]],
+                               3:[[-2,-2],[-3,-2],[-4,-2]]
+                }
         # positions in wallCells are for calibration
         self.wallCells = {0:[[],[]],
                     1:[[],[]],
@@ -114,7 +124,7 @@ class Explorer():
                 else:
                     # find the way back to start zone using djikstra
                     startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
-                    endnode = (1,1,0)
+                    endnode = (1,1,2) # face backwards, can calibrate CF and CS
                     (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                     # give instruction
                     self.cnt += len(instructions)
@@ -139,9 +149,10 @@ class Explorer():
                                 break
                             
                     else:   #need reExplore
-                        if explorationTime > self.timeThreshold and \
-                            not self.robot.isAlmostBack() and \
-                            self.robot.robotMode != 'reExplore':
+                        if explorationTime > self.timeThreshold:
+                            # and not self.robot.isAlmostBack():
+                            # and self.robot.robotMode != 'reExplore':
+                            
                             # find way back to start zone using fastest path algo (djikstra)
                             startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
                             endnode = (1,1,0)
@@ -152,7 +163,8 @@ class Explorer():
                             # update robot states (position and orientation)
                             self.robot.jump(endnode) # already update sensors inside
                             continue
-                        if self.robot.isAlmostBack() and self.exploredArea < 300*self.areaPercentage:
+                        # if less than 5 mins now, can go for exploration
+                        if self.robot.isAlmostBack() and self.exploredArea < 300*self.areaPercentage and explorationTime < 300:
                             self.robot.robotMode = 'reExplore'
                         if self.robot.robotMode == 'reExplore':
                             # reexplore, find the fastest path to the nearest unexplored cell
@@ -435,24 +447,6 @@ class Explorer():
         for cell in bodyCells:
             # if robot was on this cell, it confirms to be empty
             self.innerMap[cell[0]][cell[1]] += 99        
-# =============================================================================
-#         head = int(self.robot.robotHead)
-#             
-#         frontCells = self.frontCells[self.robot.robotHead]
-#         h = self.robot.robotCenterH
-#         w = self.robot.robotCenterW
-#         
-#         self.alignCnt += 1 # increment alignment counter
-#         
-#         # check front condition, do calibration immediately
-#         if [h,w] in self.wallCells[head][0][0] and head >= 2 \
-#         or [h,w] in self.wallCells[head][0][-1] and head < 2\
-#         or self.is_valid_point((h+frontCells[0][0][0],w+frontCells[0][0][1])) and self.is_valid_point((h+frontCells[2][0][0],w+frontCells[2][0][1]))\
-#         and self.arena.get(h+frontCells[0][0][0],w+frontCells[0][0][1]) == self.arena.get(h+frontCells[2][0][0],w+frontCells[2][0][1]) == CellType.OBSTACLE:             
-#             self.alignSensor = ''.join(["CF",str(0)])
-#             self.alignNow = True
-#             self.alignCnt = 0
-# =============================================================================
 
         if self.isPrevTurn == True:
             self.alignCnt = 9 
@@ -499,16 +493,33 @@ class Explorer():
                 sensor = self.alignSensor
             return (''.join([sensor,"F"]))
         else:
-            if self.alignNow == True:
-                sensor = self.alignSensor
-             # for every turn, calibrate
-            else:
-                self.alignCnt = 9
-                self.checkAlign(1)
-                sensor = self.alignSensor
+            skipSteps = False
+# =============================================================================
+#             skipSteps = True
+#             for cell1 in self.leftAllCells[self.robot.robotHead]:
+#                 if self.is_valid_point([cell1[0],cell1[1]]) and self.arena.get(cell1[0],cell1[1]) != CellType.EMPTY:
+#                     skipSteps = False
+#                     print("false empty")
+#                     break
+#             if skipSteps == True:
+#                 for cell2 in self.frontLeftCells[self.robot.robotHead]:
+#                     if self.is_valid_point([cell2[0],cell2[1]]) and self.arena.get(cell2[0],cell2[1]) != CellType.OBSTACLE:
+#                         skipSteps = False
+#                         print("false obstacle")
+#                         break
+#              # for every turn, calibrate
+#             else:
+# =============================================================================
+            self.alignCnt = 9
+            self.checkAlign(1)
+            sensor = self.alignSensor
             self.robot.rotateLeft()
             self.isPrevTurn = True
-            return (''.join([sensor,"L"]))
+            if skipSteps == False:
+                return (''.join([sensor,"L"]))
+            else:
+                self.alignCnt += 3
+                return (''.join([sensor,"LFFF"])) 
         
     def allEmpty(self,h,w):
         for i in range(h-1,h+2):
