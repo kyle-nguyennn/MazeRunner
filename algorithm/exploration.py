@@ -10,7 +10,7 @@ import json
 from operator import itemgetter
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=0.9, alignLimit=3, needReExplore=True, logging_enabled=True):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=0.9, alignLimit=2, needReExplore=True, logging_enabled=True):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -138,9 +138,9 @@ class Explorer():
                         # use wall hugging to return back to start zone
                         if self.robot.robotCenterH == self.robot.robotCenterW == 1:
                             #check direction
-                            if self.robot.robotHead != 0:
+                            if self.robot.robotHead != 2:
                                 startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
-                                (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,0), endOrientationImportant=True)
+                                (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,2), endOrientationImportant=True)
                                 self.update_all(instructions, "Going back to start zone")
                                 self.robot.robotMode = "done"
                                 continue
@@ -394,7 +394,22 @@ class Explorer():
                     self.alignSensor = ''.join(["CS",str(i)])
                     self.alignNow = True
                     self.alignCnt = 0
+                    
+            if len(self.alignSensor) == 0:
+                # check left wall, do possible calibration
+                print("check left condition:")
+                index = 0
+                count = 0
+                for leftCell in self.leftAllCells[head]:
+                    if index == 0 or index == 3 or index ==6:
+                        if self.is_valid_point(leftCell) and self.arena.get(leftCell[0],leftCell[1]) == CellType.OBSTACLE:
+                            count += 1
+                    index += 1
+                if count >= 3: # 3 block on left for calibration
+                    self.alignSensor = ''.join(["LCF",str(i),"R"])
+                    self.alignNow = True                
             
+            # if still no wall to calibrate
             if len(self.alignSensor) == 0:
                 continue
             else:
