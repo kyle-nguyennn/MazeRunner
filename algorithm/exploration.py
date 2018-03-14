@@ -32,7 +32,9 @@ class Explorer():
         self.areaPercentage = pArea # percentage we want the robot to explore up to
         self.reachGoal = False
         self.startTime = time.time()
-        self.alignCnt = 0 # counter for robot alignment
+        self.alignCntR = 0 # counter for robot alignment
+        self.alignCntL = 0
+        self.alignCnt = 0
         self.alignLimit = alignLimit
         self.alignNow = False
         self.reReadSensor = False
@@ -378,6 +380,7 @@ class Explorer():
             and [h,w] in self.wallCells[head][i]:
                 self.alignSensor = ''.join(["CF",str(i),"CS",str(i)])
                 self.alignNow = True
+                self.alignCnt = 0
                 break
                 
             # check front condition
@@ -388,27 +391,29 @@ class Explorer():
             
             # check right condition
             print("check right condition:",[h,w] in self.wallCells[head][i])
-            if self.alignCnt > self.alignLimit:
+            if self.alignCntR > self.alignLimit:
                 if [h,w] in self.wallCells[head][i] \
                 or self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE:
                     self.alignSensor = ''.join(["CS",str(i)])
                     self.alignNow = True
+                    self.alignCntR = 0
                     self.alignCnt = 0
                     
             if len(self.alignSensor) == 0:
-                # check left wall, do possible calibration
-                print("check left condition:")
-                index = 0
-                count = 0
-                for leftCell in self.leftAllCells[head]:
-                    if index == 0 or index == 3 or index ==6:
-                        if self.is_valid_point([leftCell[0]+h,leftCell[1]+w]) and self.arena.get(leftCell[0]+h,leftCell[1]+w) == CellType.OBSTACLE:
-                            count += 1
-                    index += 1
-                print("count",count)
-                if count >= 3: # 3 block on left for calibration
-                    self.alignSensor = ''.join(["LCF",str(i),"R"])
-                    self.alignNow = True                
+                if self.alignCntL > 2:
+                    # check left wall, do possible calibration
+                    index = 0
+                    count = 0
+                    for leftCell in self.leftAllCells[head]:
+                        if index == 0 or index == 3 or index ==6:
+                            if self.is_valid_point([leftCell[0]+h,leftCell[1]+w]) and self.arena.get(leftCell[0]+h,leftCell[1]+w) == CellType.OBSTACLE:
+                                count += 1
+                        index += 1
+                    print("count",count)
+                    if count >= 3: # 3 block on left for calibration
+                        self.alignSensor = ''.join(["LCF",str(i),"R"])
+                        self.alignNow = True 
+                        self.alignCntL = 0
             
             # if still no wall to calibrate
             if len(self.alignSensor) == 0:
@@ -465,10 +470,11 @@ class Explorer():
             self.innerMap[cell[0]][cell[1]] += 99        
 
         if self.isPrevTurn == True:
-            self.alignCnt = 9 
+            self.alignCntR = 9 
         self.isPrevTurn = False
         self.checkAlign(1)
-        self.alignCnt += 1
+        self.alignCntR += 1
+        self.alignCntL += 1
         
         if (self.checkingRight == False):
             # decide turn-right condition
@@ -477,7 +483,7 @@ class Explorer():
                     sensor = self.alignSensor
                 # for every turn, calibrate
                 else:
-                    self.alignCnt = 9
+                    self.alignCntR = 9
                     self.checkAlign(1)
                     sensor = self.alignSensor
                 self.robot.rotateRight()
@@ -491,7 +497,7 @@ class Explorer():
                     sensor = self.alignSensor
                 # for every turn, calibrate
                 else:
-                    self.alignCnt = 9
+                    self.alignCntR = 9
                     self.checkAlign(1)
                     sensor = self.alignSensor
                 self.robot.rotateRight()
@@ -526,7 +532,7 @@ class Explorer():
 #              # for every turn, calibrate
 #             else:
 # =============================================================================
-            self.alignCnt = 9
+            self.alignCntR = 9
             self.checkAlign(1)
             sensor = self.alignSensor
             self.robot.rotateLeft()
@@ -534,7 +540,7 @@ class Explorer():
             if skipSteps == False:
                 return (''.join([sensor,"L"]))
             else:
-                self.alignCnt += 3
+                self.alignCntR += 3
                 return (''.join([sensor,"LFFF"])) 
         
     def allEmpty(self,h,w):
