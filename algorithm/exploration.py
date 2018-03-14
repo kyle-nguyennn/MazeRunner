@@ -27,7 +27,7 @@ class Explorer():
         self.exploredArea = 0
         self.cnt = 0 # no. of instruction executed
         self.goBackTime = tBack # seconds for it to go back Start from any position
-        self.timeThreshold = tThresh # user-input time to terminate exploration
+        self.timeThreshold = 330 # user-input time to terminate exploration
         self.timeLimit = 360
         self.areaPercentage = pArea # percentage we want the robot to explore up to
         self.reachGoal = False
