@@ -124,6 +124,8 @@ class Explorer():
                     self.robot.robotMode = "done"
                     break
                 else:
+                    print("time",explorationTime)
+                    print("areaExplore",self.exploredArea)
                     # find the way back to start zone using djikstra
                     startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
                     endnode = (1,1,2) # face backwards, can calibrate CF and CS
@@ -152,6 +154,7 @@ class Explorer():
                             
                     else:   #need reExplore
                         if explorationTime > self.timeThreshold:
+                            print("time2",explorationTime)
                             # and not self.robot.isAlmostBack():
                             # and self.robot.robotMode != 'reExplore':
                             
