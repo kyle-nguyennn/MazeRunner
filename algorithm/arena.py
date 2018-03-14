@@ -46,7 +46,7 @@ class Arena():
 
         for x in range(len(map)):
             for y in range(len(map[x])):
-                if map[x][y] == CellType.UNKNOWN:
+                if map[x][y] == CellType.UNKNOWN or map[x][y] == CellType.CONFLICT:
                     bitStr += "0"
                 else:
                     bitStr += "1"

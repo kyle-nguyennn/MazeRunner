@@ -215,18 +215,8 @@ def start_simulation_server(arena_obj, robot_pos, speed, error_rate):
     mode = Mode.NONE
 
 
-def start_exploration_algo(robot_pos):
-    global mode
-    global tcp_conn
+def start_exploration_algo():
     global explore_algo
-    global explore_time_limit
-    global explore_coverage
-    if mode == Mode.SIM_SERVER:
-        explore_algo = Explorer(
-            tcp_conn, robot_pos, tThresh=explore_time_limit, pArea=(explore_coverage/100))
-    elif mode == Mode.PI_CONNECTED:
-        explore_algo = Explorer(tcp_conn, robot_pos)
-        mode = Mode.EXPLORE_RUNNING
     explore_algo.run()
 
 
@@ -251,11 +241,24 @@ def connect_tcp_client(ip, port):
 def handle_request(data):
     global tcp_conn
     global explore_algo
+    global mode
+    global explore_time_limit
+    global explore_coverage
+
     request = json.loads(data)
     if request["command"] == "beginExplore":
-        explore_thread = Thread(target=start_exploration_algo, args=[
-                                request["robotPos"]])
+
+        if mode == Mode.SIM_SERVER:
+            explore_algo = Explorer(
+                tcp_conn, request["robotPos"], tThresh=explore_time_limit, pArea=(explore_coverage/100))
+
+        elif mode == Mode.PI_CONNECTED:
+            explore_algo = Explorer(tcp_conn, request["robotPos"])
+            mode = Mode.EXPLORE_RUNNING
+
+        explore_thread = Thread(target=start_exploration_algo)
         explore_thread.start()
+
     elif request["command"] == "beginFastest":
         fp_arena = explore_algo.get_arena()
         tcp_conn.send_command(getInstructions(fp_arena,  request["wayPoint"]))
