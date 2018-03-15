@@ -230,6 +230,11 @@ class Explorer():
             throwCells = sortedObstacles[throwNumber:]
             for cell in throwCells:
                 self.arena.set(cell[0],cell[1],CellType.EMPTY)
+            # put all other as empty
+            for row in self.arena.get_2d_arr():
+                for cell in row:
+                    if cell != CellType.OBSTACLE:
+                        cell = CellType.EMPTY
                         
         else: # less than expected
             candidateCells = []
@@ -245,12 +250,14 @@ class Explorer():
             sortedCandidates = sorted(candidateCells,key=itemgetter(2))
             addNumber = 30 - count           
             addCells = sortedCandidates[:addNumber]
-            # if the number is still less than 30, check unexplored cells
-            if count + len(addCells) < 30:
-                # if plus unexplored cells, still less: most likely unexplored cells are obstacles
-                if count+len(addCells)+len(unexploredCells) <= 30:
-                    for cell in unexploredCells:
-                        addCells.append(cell)
+# =============================================================================           
+#             if the number is still less than 30, check unexplored cells
+#                if count + len(addCells) < 30: 
+#                 # if plus unexplored cells, still less: most likely unexplored cells are obstacles
+#                 if count+len(addCells)+len(unexploredCells) <= 30:
+#                     for cell in unexploredCells:
+#                         addCells.append(cell)
+# =============================================================================
             # it might be still less than 30, but it's fine.
             for cell in addCells:
                 self.arena.set(cell[0],cell[1],CellType.OBSTACLE)
@@ -258,7 +265,7 @@ class Explorer():
         # clean up all other non-obstacles to EMPTY
         for h in range(20):
             for w in range(15):
-                if self.arena.get(h,w) != CellType.OBSTACLE:
+                if self.arena.get(h,w) != CellType.OBSTACLE or self.arena.get(h,w) != CellType.UNKNOWN:
                        self.arena.set(h,w,CellType.EMPTY)
             
 
