@@ -99,9 +99,14 @@ class SimulatorServer():
                 self.send_data(self.getReadings())
                 pass
             else:
-                if command[0] == "C":
-                    command = command[3:]
+                skip_count = 0
                 for char in command:
+                    if char == "C":
+                        skip_count = 2
+                        continue
+                    if skip_count > 0:
+                        skip_count -= 1
+                        continue                        
                     self.move_robot(char)
                     time.sleep(self.speed)
                 self.send_data(self.getReadings())
