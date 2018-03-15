@@ -10,7 +10,7 @@ import json
 from operator import itemgetter
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, alignLimit=2, needReExplore=True, logging_enabled=True):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, alignLimit=2, needReExplore=False, logging_enabled=True):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -349,6 +349,11 @@ class Explorer():
         for row in self.innerMap:
             w = 0
             for cell in row:
+# =============================================================================
+#                 if h > 16 and w > 11 and cell <= -1: #detect goal zone wrongly to obstacle, need to fix all previous
+#                     self.robot.robotMode = "inspect"
+# =============================================================================
+                
                 if h > 16 and w > 11 and self.reachGoal: #at goal zone
                     self.arena.set(h,w,CellType.EMPTY)
                 elif cell >= 1:
@@ -363,6 +368,12 @@ class Explorer():
             h += 1
         self.updateExploredArea()
 
+    def are_valid_points(self,cells):
+        for cell in cells:
+            if not self.is_valid_point(cell):
+                return False
+        return True
+    
     def checkAlign(self,r):
         self.alignNow = False
         self.alignSensor = ''
@@ -391,9 +402,9 @@ class Explorer():
             or self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE :
                self.alignSensor = ''.join(["CF",str(i)])
                self.alignNow = True
+               self.alignCnt = 0
             
             # check right condition
-            print("check right condition:",[h,w] in self.wallCells[head][i])
             if self.alignCntR > self.alignLimit:
                 if [h,w] in self.wallCells[head][i] \
                 or self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE:
@@ -417,6 +428,29 @@ class Explorer():
                         self.alignSensor = ''.join(["LCF",str(i),"R"])
                         self.alignNow = True 
                         self.alignCntL = 0
+                        
+            # if all cannot fulfill, use two blocks to calibrate
+            if len(self.alignSensor) == 0:
+                if self.alignCnt > 2:
+                    if self.are_valid_points([[h+rightCells[0][i][0],w+rightCells[0][i][1]],[h+rightCells[1][i][0],w+rightCells[1][i][1]],[h+rightCells[2][i][0],w+rightCells[2][i][1]]])\
+                    and self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == CellType.OBSTACLE :
+                        self.alignSensor = ''.join(["CS",str(i)])
+                        self.alignNow = True
+                        self.alignCnt = 0
+                        self.alignCntR = 0
+                    elif self.are_valid_points([[h+frontCells[0][i][0],w+frontCells[0][i][1]],[h+frontCells[1][i][0],w+frontCells[1][i][1]],[h+frontCells[2][i][0],w+frontCells[2][i][1]]])\
+                    and (self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == CellType.OBSTACLE \
+                    or self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE):
+                        self.alignSensor = ''.join(["CF",str(i)])
+                        self.alignNow = True
+                        self.alignCnt = 0
+                    elif self.are_valid_points([[h+rightCells[0][i][0],w+rightCells[0][i][1]],[h+rightCells[1][i][0],w+rightCells[1][i][1]],[h+rightCells[2][i][0],w+rightCells[2][i][1]]])\
+                    and (self.arena.get(h+rightCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE \
+                    or self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE) :
+                        self.alignSensor = ''.join(["RCF",str(i),"L"])
+                        self.alignNow = True
+                        self.alignCnt = 0
+                        self.alignCntR = 0
             
             # if still no wall to calibrate
             if len(self.alignSensor) == 0:
@@ -438,10 +472,6 @@ class Explorer():
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self):
                 
-        # if face wall, shouldn't turn right if all its right side on that wall is explored; to prevent inifinite loop
-        # find wall cells
-        # check if all cells (3 rows) on the right is alr explored
-        # if is, then directly turn left
         robot = self.robot
         rightCells = robot.rightCells
         
@@ -478,6 +508,7 @@ class Explorer():
         self.checkAlign(1)
         self.alignCntR += 1
         self.alignCntL += 1
+        self.alignCnt += 1
         
         if (self.checkingRight == False):
             # decide turn-right condition
@@ -517,34 +548,43 @@ class Explorer():
             if self.alignNow == True:
                 sensor = self.alignSensor
             return (''.join([sensor,"F"]))
-        else:
-            skipSteps = False
+
+        skipSteps = False
+        
+        # haven't debug yet, leave it first
 # =============================================================================
-#             skipSteps = True
+#         skipSteps = True
+#         h = self.robot.robotCenterH
+#         w = self.robot.robotCenterW
+#         for cell in self.frontCells[self.robot.robotHead]:
+#             if not self.is_valid_point(cell[0]) or self.arena.get(cell[0][0]+h,cell[0][1]+w) != CellType.EMPTY:
+#                 skipSteps = False
+#                 break
+#         if skipSteps == True:
 #             for cell1 in self.leftAllCells[self.robot.robotHead]:
-#                 if self.is_valid_point([cell1[0],cell1[1]]) and self.arena.get(cell1[0],cell1[1]) != CellType.EMPTY:
+#                 if self.is_valid_point([cell1[0]+h,cell1[1]+w]) and self.arena.get(cell1[0]+h,cell1[1]+w) != CellType.EMPTY:
 #                     skipSteps = False
 #                     print("false empty")
 #                     break
-#             if skipSteps == True:
-#                 for cell2 in self.frontLeftCells[self.robot.robotHead]:
-#                     if self.is_valid_point([cell2[0],cell2[1]]) and self.arena.get(cell2[0],cell2[1]) != CellType.OBSTACLE:
-#                         skipSteps = False
-#                         print("false obstacle")
-#                         break
-#              # for every turn, calibrate
-#             else:
+#         if skipSteps == True:
+#             for cell2 in self.frontLeftCells[self.robot.robotHead]:
+#                 if self.is_valid_point([cell2[0]+h,cell2[1]+w]) and self.arena.get(cell2[0]+h,cell2[1]+w) != CellType.OBSTACLE:
+#                     skipSteps = False
+#                     print("false obstacle")
+#                     break
 # =============================================================================
-            self.alignCntR = 9
-            self.checkAlign(1)
-            sensor = self.alignSensor
-            self.robot.rotateLeft()
-            self.isPrevTurn = True
-            if skipSteps == False:
-                return (''.join([sensor,"L"]))
-            else:
-                self.alignCntR += 3
-                return (''.join([sensor,"LFFF"])) 
+        
+        # for every turn, calibrate
+        self.alignCntR = 9
+        self.checkAlign(1)
+        sensor = self.alignSensor
+        self.robot.rotateLeft()
+        self.isPrevTurn = True
+        if skipSteps == False:
+            return (''.join([sensor,"L"]))
+        else:
+            self.alignCntR += 3
+            return (''.join([sensor,"LCS0FFF"])) 
         
     def allEmpty(self,h,w):
         for i in range(h-1,h+2):
@@ -865,7 +905,7 @@ class Explorer():
        
         # check calibration condition in reExplore
         sensor = ""
-        self.checkAlign(2)
+        self.checkAlign(1)
         if self.alignNow == True:
             sensor = self.alignSensor
         instr = ''.join([sensor, instr])
