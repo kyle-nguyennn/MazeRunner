@@ -120,7 +120,12 @@ def exploration_sim():
 
 @app.route('/exploration_start', methods=['GET'])
 def exploration_start():
-    explore_thread = Thread(target=start_exploration_algo, args=[[1, 1, 0]])
+    global tcp_conn
+    global explore_algo
+    global mode
+    explore_algo = Explorer(tcp_conn, [1, 1, 0])
+    mode = Mode.EXPLORE_RUNNING
+    explore_thread = Thread(target=start_exploration_algo)
     explore_thread.start()
     return "Exploration started."
 
