@@ -477,6 +477,7 @@ class Explorer():
                 self.alignSensor = ''.join(["CF",str(i),"CS",str(i)])
                 self.alignNow = True
                 self.alignCnt = 0
+                self.alignCntR = 0
                 break
                 
             # check front condition
@@ -496,7 +497,7 @@ class Explorer():
                     self.alignCnt = 0
                     
             if len(self.alignSensor) == 0:
-                if self.alignCntL > 2:
+                if self.alignCntL > 2 and self.alignCnt > 2:
                     # check left wall, do possible calibration
                     index = 0
                     count = 0
@@ -510,29 +511,32 @@ class Explorer():
                         self.alignSensor = ''.join(["LCF",str(i),"R"])
                         self.alignNow = True 
                         self.alignCntL = 0
+                        self.alignCnt = 0
                         
             # if all cannot fulfill, use two blocks to calibrate
-            if len(self.alignSensor) == 0:
-                if self.alignCnt > 2:
-                    if self.are_valid_points([[h+rightCells[0][i][0],w+rightCells[0][i][1]],[h+rightCells[1][i][0],w+rightCells[1][i][1]],[h+rightCells[2][i][0],w+rightCells[2][i][1]]])\
-                    and self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == CellType.OBSTACLE :
-                        self.alignSensor = ''.join(["CS",str(i)])
-                        self.alignNow = True
-                        self.alignCnt = 0
-                        self.alignCntR = 0
-                    elif self.are_valid_points([[h+frontCells[0][i][0],w+frontCells[0][i][1]],[h+frontCells[1][i][0],w+frontCells[1][i][1]],[h+frontCells[2][i][0],w+frontCells[2][i][1]]])\
-                    and (self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == CellType.OBSTACLE \
-                    or self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE):
-                        self.alignSensor = ''.join(["CF",str(i)])
-                        self.alignNow = True
-                        self.alignCnt = 0
-                    elif self.are_valid_points([[h+rightCells[0][i][0],w+rightCells[0][i][1]],[h+rightCells[1][i][0],w+rightCells[1][i][1]],[h+rightCells[2][i][0],w+rightCells[2][i][1]]])\
-                    and (self.arena.get(h+rightCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE \
-                    or self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE) :
-                        self.alignSensor = ''.join(["RCF",str(i),"L"])
-                        self.alignNow = True
-                        self.alignCnt = 0
-                        self.alignCntR = 0
+# =============================================================================
+#             if len(self.alignSensor) == 0:
+#                 if self.alignCnt > 2:
+#                     if self.are_valid_points([[h+rightCells[0][i][0],w+rightCells[0][i][1]],[h+rightCells[1][i][0],w+rightCells[1][i][1]],[h+rightCells[2][i][0],w+rightCells[2][i][1]]])\
+#                     and self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == CellType.OBSTACLE :
+#                         self.alignSensor = ''.join(["CS",str(i)])
+#                         self.alignNow = True
+#                         self.alignCnt = 0
+#                         self.alignCntR = 0
+#                     elif self.are_valid_points([[h+frontCells[0][i][0],w+frontCells[0][i][1]],[h+frontCells[1][i][0],w+frontCells[1][i][1]],[h+frontCells[2][i][0],w+frontCells[2][i][1]]])\
+#                     and (self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == CellType.OBSTACLE \
+#                     or self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE):
+#                         self.alignSensor = ''.join(["CF",str(i)])
+#                         self.alignNow = True
+#                         self.alignCnt = 0
+#                     elif self.are_valid_points([[h+rightCells[0][i][0],w+rightCells[0][i][1]],[h+rightCells[1][i][0],w+rightCells[1][i][1]],[h+rightCells[2][i][0],w+rightCells[2][i][1]]])\
+#                     and (self.arena.get(h+rightCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE \
+#                     or self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE) :
+#                         self.alignSensor = ''.join(["RCF",str(i),"L"])
+#                         self.alignNow = True
+#                         self.alignCnt = 0
+#                         self.alignCntR = 0
+# =============================================================================
             
             # if still no wall to calibrate
             if len(self.alignSensor) == 0:
