@@ -202,8 +202,7 @@ class Explorer():
         
         # before exploration end, check innerMap
         count = self.countObstacles()
-        if count != 30:
-            self.wellGuess(count)
+        self.wellGuess(count)
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
         self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
@@ -213,7 +212,13 @@ class Explorer():
         self.robot.jump((1,1,0))
 
     def wellGuess(self,count):
-        if count > 30: # more obstacles than expected
+        if count == 30:
+            for row in self.arena.get_2d_arr():
+                for cell in row:
+                    if cell != CellType.OBSTACLE:
+                        cell = CellType.EMPTY
+                    
+        elif count > 30: # more obstacles than expected
             obstacles = []
             for h in range(20):
                 for w in range(15):
@@ -328,14 +333,46 @@ class Explorer():
                     x = h + offsets[i][0]
                     y = w + offsets[i][1]
                     if self.is_valid_point((x,y)):
-                        if i < 2:
-                            self.innerMap[x][y] += 1
-                        elif i == 2:
-                            self.innerMap[x][y] += 0.7
-                        elif i == 3:
-                            self.innerMap[x][y] += 0.5
+                        # front-two-side weightage
+                        if sensorIndex == 0 or sensorIndex == 2:
+                            if i < 2:
+                                self.innerMap[x][y] += 1
+                            elif i == 2:
+                                self.innerMap[x][y] += 0.7
+                            elif i == 3:
+                                self.innerMap[x][y] += 0.5
+                            else:
+                                self.innerMap[x][y] += 0.2
+                        # front-middle weightage
+                        elif sensorIndex == 1:
+                            if i < 1:
+                                self.innerMap[x][y] += 1
+                            elif i == 1:
+                                self.innerMap[x][y] += 0.7
+                            elif i == 2:
+                                self.innerMap[x][y] += 0.5
+                            else:
+                                self.innerMap[x][y] += 0.2
+                        # side sensor weightage
+                        elif sensorIndex > 3:
+                            if i < 1:
+                                self.innerMap[x][y] += 1
+                            elif i == 1:
+                                self.innerMap[x][y] += 0.7
+                            elif i == 2:
+                                self.innerMap[x][y] += 0.5
+                            else:
+                                self.innerMap[x][y] += 0.2
+                        # long range weightage
                         else:
-                            self.innerMap[x][y] += 0.3
+                            if i < 3:
+                                self.innerMap[x][y] += 1
+                            elif i == 3:
+                                self.innerMap[x][y] += 0.7
+                            elif i == 4:
+                                self.innerMap[x][y] += 0.5
+                            else:
+                                self.innerMap[x][y] += 0.3
 # =============================================================================
 #                         logging.debug("Empty coordinate " + str(x) +" " + str(y))
 # =============================================================================
@@ -343,14 +380,46 @@ class Explorer():
                 x = h + offsets[value][0]
                 y = w + offsets[value][1]
                 if self.is_valid_point((x,y)):
-                    if value < 2:
-                        self.innerMap[x][y] -= 1
-                    elif value == 2:
-                        self.innerMap[x][y] -= 0.7
-                    elif value == 3:
-                        self.innerMap[x][y] -= 0.5
-                    else:
-                        self.innerMap[x][y] -= 0.3
+                    # front-two-side weightage
+                        if sensorIndex == 0 or sensorIndex == 2:
+                            if value < 2:
+                                self.innerMap[x][y] -= 1
+                            elif value == 2:
+                                self.innerMap[x][y] -= 0.7
+                            elif value == 3:
+                                self.innerMap[x][y] -= 0.5
+                            else:
+                                self.innerMap[x][y] -= 0.2
+                        # front-middle weightage
+                        elif sensorIndex == 1:
+                            if value < 1:
+                                self.innerMap[x][y] -= 1
+                            elif value == 1:
+                                self.innerMap[x][y] -= 0.7
+                            elif value == 2:
+                                self.innerMap[x][y] -= 0.5
+                            else:
+                                self.innerMap[x][y] -= 0.2
+                        # side sensor weightage
+                        elif sensorIndex > 3:
+                            if value < 1:
+                                self.innerMap[x][y] -= 1
+                            elif value == 1:
+                                self.innerMap[x][y] -= 0.7
+                            elif value == 2:
+                                self.innerMap[x][y] -= 0.5
+                            else:
+                                self.innerMap[x][y] -= 0.2
+                        # long range weightage
+                        else:
+                            if value < 3:
+                                self.innerMap[x][y] -= 1
+                            elif value == 3:
+                                self.innerMap[x][y] -= 0.7
+                            elif value == 4:
+                                self.innerMap[x][y] -= 0.5
+                            else:
+                                self.innerMap[x][y] -= 0.3
                                 
         
     def updateMap(self, sensorValues):
