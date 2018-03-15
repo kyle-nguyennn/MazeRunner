@@ -205,11 +205,12 @@ class Explorer():
         self.wellGuess(count)
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
-        self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
-        self.update_all("EE", "End exploration")
         
         self.tcp_conn.send_command("CF0CS0RCF0R")
         self.robot.jump((1,1,0))
+        
+        self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
+        self.update_all("EE", "End exploration")
 
     def wellGuess(self,count):
         if count == 30:
@@ -372,11 +373,11 @@ class Explorer():
                                 self.innerMap[x][y] += 0.2
                         # long range weightage
                         else:
-                            if i < 3:
+                            if i < 2:
                                 self.innerMap[x][y] += 1
-                            elif i == 3:
+                            elif i == 2:
                                 self.innerMap[x][y] += 0.7
-                            elif i == 4:
+                            elif i == 3:
                                 self.innerMap[x][y] += 0.5
                             else:
                                 self.innerMap[x][y] += 0.3
