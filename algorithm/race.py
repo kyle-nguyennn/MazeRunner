@@ -96,8 +96,8 @@ def dijkstra(mymap, start, end, endOrientationImportant = False):
         compareEndUntil = -1
     while True:
         cur, curCost = popMin(costs)    # get the item with min cost and remove it from the dict
-        # if end == (18, 13, 0):
-        #     print("in djikstra: cur ", cur, curCost)
+        #if end == (18, 13, 0):
+            #print("in djikstra: cur ", cur, curCost)
         if cur[:compareEndUntil] == end[:compareEndUntil]:
             # store the final minimal cost if needed
             # trace back the path here
@@ -109,8 +109,17 @@ def dijkstra(mymap, start, end, endOrientationImportant = False):
                 path.insert(0, p)
                 temp = p[0]
             ins = ""
+            count = 0
             for item in path:
-                ins += item[1]
+                sensor = checkAlign(1,item[0],mymap)
+                if count < 3:
+                    sensor = ''
+                ins += ''.join([sensor,item[1]])
+                if len(sensor) != 0:
+                    count = 0
+                else:
+                    count += 1
+            # check all calibration possibilities
             return (ins, cur, curCost)
         for neighbor in neighbors(mymap, cur):
             neighborPos, moveCost, move = neighbor
@@ -142,6 +151,99 @@ def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
     print("In getInstruction: reached goal")
     print(instruction1+instruction2)
     return instruction1+instruction2
+
+def checkAlign(r,position,mymap):
+    frontCells = {0:[[[2,-1],[3,-1],[4,-1]],[[2,0],[3,0],[4,0]],[[2,1],[3,1],[4,1]]],
+                    1:[[[1,2],[1,3],[1,4]],[[0,2],[0,3],[0,4]],[[-1,2],[-1,3],[-1,4]]],
+                    2:[[[-2,1],[-3,1],[-4,1]],[[-2,0],[-3,0],[-4,0]],[[-2,-1],[-3,-1],[-4,-1]]],
+                    3:[[[-1,-2],[-1,-3],[-1,-4]],[[0,-2],[0,-3],[0,-4]],[[1,-2],[1,-3],[1,-4]]]
+            }
+        # only keep top right and bottom right lines
+    rightCells = {0:[[[1,2],[1,3],[1,4]],[[-1,2],[-1,3],[-1,4]],[[0,2],[0,3],[0,4]]],
+                    1:[[[-2,1],[-3,1],[-4,1]],[[-2,-1],[-3,-1],[-4,-1]],[[-2,0],[-3,0],[-4,0]]],
+                    2:[[[-1,-2],[-1,-3],[-1,-4]],[[1,-2],[1,-3],[1,-4]],[[0,-2],[0,-3],[0,-4]]],
+                    3:[[[2,-1],[3,-1],[4,-1]],[[2,1],[3,1],[4,1]],[[2,0],[3,0],[4,0]]]
+            }
+    leftAllCells = {0:[[1,-2],[1,-3],[1,-4],[0,-2],[0,-3],[0,-4],[-1,-2],[-1,-3],[-1,-4]],
+                             1:[[2,1],[3,1],[4,1],[2,0],[3,0],[4,0],[2,-1],[3,-1],[4,-1]],
+                             2:[[-1,2],[-1,3],[-1,4],[0,2],[0,3],[0,4],[1,2],[1,3],[1,4]],
+                             3:[[-2,-1],[-3,-1],[-4,-1],[-2,0],[-3,0],[-4,0],[-2,1],[-3,1],[-4,1]]
+                }
+        # positions in wallCells are for calibration
+    wallCells = {0:[[],[]],
+                    1:[[],[]],
+                    2:[[],[]],
+                    3:[[],[]]
+                }
+    for i in range(1,19):
+        wallCells[0][0].append([i,13])
+        wallCells[2][0].append([i,1])
+        if 2 <= i <= 17:
+            wallCells[0][1].append([i,12])
+            wallCells[2][1].append([i,2]) 
+            if 2 <= i <= 12:
+                wallCells[1][1].append([2,i])
+                wallCells[3][1].append([17,i])
+        if 1 <= i <= 13:
+            wallCells[1][0].append([1,i])
+            wallCells[3][0].append([18,i])
+    alignSensor = ''
+    head = int(position[2])
+    if head > 0:
+        head1 = head- 1
+    else:
+        head1 = 3
+        
+    for i in range(r):
+        frontCells = frontCells[head]
+        rightCells = rightCells[head]
+        h = position[0]
+        w = position[1]
+        
+        if [h,w] == [18,13]:
+            return ''
+        # check curner cell conditoin, if corner cell, just do two 
+        if [h,w] in wallCells[head1][i] \
+        and [h,w] in wallCells[head][i]:
+            alignSensor = ''.join(["CF",str(i),"CS",str(i)])
+            return alignSensor
+            
+        # check front condition
+        if [h,w] in wallCells[head1][i] \
+        or mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == CellType.OBSTACLE :
+           alignSensor = ''.join(["CF",str(i)])
+           return alignSensor
+        
+        # check right condition
+        if [h,w] in wallCells[head][i] \
+        or mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == CellType.OBSTACLE:
+            alignSensor = ''.join(["CS",str(i)])
+            return alignSensor
+                
+        if len(alignSensor) == 0:
+            # check left wall, do possible calibration
+            index = 0
+            count = 0
+            for leftCell in leftAllCells[head]:
+                if index == 0 or index == 3 or index ==6:
+                    if is_valid_point([leftCell[0]+h,leftCell[1]+w]) and mymap[leftCell[0]+h][leftCell[1]+w] == CellType.OBSTACLE:
+                        count += 1
+                index += 1
+            if count >= 3: # 3 block on left for calibration
+                alignSensor = ''.join(["LCF",str(i),"R"])
+                return alignSensor
+        # if still no wall to calibrate
+        if len(alignSensor) == 0:
+            continue
+        else:
+            break
+    return alignSensor
+
+def is_valid_point(point):
+    x = point[0]
+    y = point[1]
+    return (x >= 0 and x <20 and y >= 0 and y < 15)
+            
 
 if __name__ == "__main__":
     #map = readInput()
