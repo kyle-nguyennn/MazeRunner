@@ -119,7 +119,8 @@ class Explorer():
             if self.robot.robotCenterH == 18 and self.robot.robotCenterW == 13:
                 self.reachGoal = True
             # if reach time limit
-            if self.timeThreshold < explorationTime or self.exploredArea >= 300*self.areaPercentage:
+            if self.timeThreshold < explorationTime:
+            #or self.exploredArea >= 300*self.areaPercentage:
                 if self.robot.isInStartZone():
                     self.robot.robotMode = "done"
                     break
@@ -160,7 +161,7 @@ class Explorer():
                             
                             # find way back to start zone using fastest path algo (djikstra)
                             startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
-                            endnode = (1,1,0)
+                            endnode = (1,1,2)
                             (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                             # give instruction
                             self.cnt += len(instructions)
@@ -192,6 +193,13 @@ class Explorer():
                 print("robot head:",self.robot.robotHead)
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()
+        if self.robot.robotHead != 2 :
+                startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
+                endnode = (1,1,2) # face backwards, can calibrate CF and CS
+                (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
+                self.update_all(instructions, "Changing head direction to South")
+                self.robot.jump(endnode)
+        
         # before exploration end, check innerMap
         count = self.countObstacles()
         if count != 30:
@@ -200,6 +208,9 @@ class Explorer():
         print("Instruction count:", self.cnt)
         self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
         self.update_all("EE", "End exploration")
+        
+        self.tcp_conn.send_command("CF0CS0RCF0R")
+        self.robot.jump((1,1,0))
 
     def wellGuess(self,count):
         if count > 30: # more obstacles than expected
@@ -693,7 +704,7 @@ class Explorer():
                 layer += 1
 
         if len(observableCells) == 0 and layer >= maxSensor: # no possible observation, go back
-            (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,0), endOrientationImportant=True) 
+            (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,2), endOrientationImportant=True) 
             self.robot.robotMode = "done"
             return (instr, endNode)
 
