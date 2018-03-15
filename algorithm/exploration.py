@@ -574,8 +574,8 @@ class Explorer():
                 return "unknown"
 
         # before return true, check infinite loop
-        if len(self.turnList)>= 4 and [h,w] == self.turnList[-4]\
-        or self.turnList.count([h,w]) > 2:
+        if (len(self.turnList)>= 4 and [h,w] == self.turnList[-4])\
+        or self.turnList.count([h,w]) > 3:
             return "false"
         return "true"
     
