@@ -11,7 +11,7 @@ def detectCollision(mymap, pos, robotsize=(3,3)): #take care of robot size in he
         if p[0] < 0 or p[0] >= len(mymap) or p[1] < 0 or p[1] >= len(mymap[0]):
             return True
         # there is obstacle at p
-        if mymap[p[0]][p[1]] != CellType.EMPTY: 
+        if mymap[p[0]][p[1]] != CellType.EMPTY:
             return True
     return False
 
@@ -134,7 +134,7 @@ def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
     instruction = ""
     mymap = map.get_2d_arr()
     waypoint = (waypoint[0], waypoint[1], 0) # padding 0 at the 3rd position to make it work with djikstra
-    mymap[waypoint[0]][waypoint[1]] = 0 # cuz waypoint is marked as -1
+    mymap[waypoint[0]][waypoint[1]] = CellType.EMPTY # cuz waypoint is marked as -1
     (instruction1, endpoint1, totalCost) = dijkstra(mymap, (1, 1, dir), waypoint, endOrientationImportant = False)
     print("In getInstruction: reached waypoint", endpoint1)
     (instruction2, endpoint2, totalCost) = dijkstra(mymap, endpoint1, (18,13, 0), endOrientationImportant = False)
