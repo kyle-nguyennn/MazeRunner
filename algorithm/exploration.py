@@ -356,6 +356,8 @@ class Explorer():
                 
                 if h > 16 and w > 11 and self.reachGoal: #at goal zone
                     self.arena.set(h,w,CellType.EMPTY)
+                if h < 3 and w < 3:
+                    self.arena.set(h,w,CellType.EMPTY)
                 elif cell >= 1:
                     self.arena.set(h,w,CellType.EMPTY)
                 elif cell == 0:
