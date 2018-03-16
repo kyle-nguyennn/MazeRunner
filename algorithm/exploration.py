@@ -266,7 +266,7 @@ class Explorer():
         # clean up all other non-obstacles to EMPTY
         for h in range(20):
             for w in range(15):
-                if self.arena.get(h,w) != CellType.OBSTACLE or self.arena.get(h,w) != CellType.UNKNOWN:
+                if self.arena.get(h,w) != CellType.OBSTACLE and self.arena.get(h,w) != CellType.UNKNOWN:
                        self.arena.set(h,w,CellType.EMPTY)
             
 
