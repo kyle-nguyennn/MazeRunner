@@ -411,7 +411,7 @@ class Explorer():
             if value < sensor.visible_range:
                 x = h + offsets[value][0]
                 y = w + offsets[value][1]
-                if self.is_valid_point((x,y)):
+                if self.is_valid_point((x,y)) and not (12 <= y <= 14 and 17 <= x <= 19): # goal zone cannot deduct
                     # front-two-side weightage
                         if sensorIndex == 0 or sensorIndex == 2:
                             if value < 2:
@@ -636,7 +636,7 @@ class Explorer():
         bodyCells = self.robot.returnBodyCells()
         for cell in bodyCells:
             # if robot was on this cell, it confirms to be empty
-            self.innerMap[cell[0]][cell[1]] += 0
+            self.innerMap[cell[0]][cell[1]] += 2
 
         if self.isPrevTurn == True:
             self.alignCntR = 9 
