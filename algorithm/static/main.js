@@ -162,7 +162,10 @@ function moveRobot(actions) {
             var posD = currentD;
 
             var action = actions.charAt(step);
-            if (action == 'F') {
+            if (action == 'C') {
+                step +=2;
+            }
+            else if (action == 'F') {
                 if (currentD == 0)
                     posH = currentH - cellSize;
                 else if (currentD == 90)

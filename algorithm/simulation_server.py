@@ -101,13 +101,12 @@ class SimulatorServer():
             else:
                 skip_count = 0
                 for char in command:
-                    if char == "C":
-                        skip_count = 2
-                        continue
                     if skip_count > 0:
                         skip_count -= 1
-                        continue                        
-                    self.move_robot(char)
+                    elif char == "C":
+                        skip_count = 2
+                    else:
+                        self.move_robot(char)
                     time.sleep(self.speed)
                 self.send_data(self.getReadings())
 
