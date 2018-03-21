@@ -198,12 +198,12 @@ class Explorer():
                 self.update_all(instructions, "Changing head direction to South")
                 self.robot.jump(endnode)
 
-        # if self.logging_enabled:
-        #     log_file = open(self.log_filename, "a+")
-        #     log_file.write("Prob map before any processing: \n" + self.innerMapToStr())
-        #     log_file.close()
-        # before exploration end, check innerMap
-        print(self.innerMapToStr())
+        if self.logging_enabled:
+            log_file = open(self.log_filename, "a+")
+            log_file.write("Prob map before any processing: \n" + self.innerMapToStr())
+            log_file.close()
+
+        #before exploration end, check innerMap
         count = self.countObstacles()
         self.wellGuess(count)
         print("Exploration time:",explorationTime)
@@ -343,12 +343,10 @@ class Explorer():
         for h in range(20):
             row_str = ''
             for w in range(15):
-                value = self.innerMap[h][w]
-                row_str = row_str.join(str(value))
-            row_str = row_str.join('\n')
-            print(row_str)
-            map_str = map_str.join(row_str)
-            print(map_str)
+                value = round(self.innerMap[h][w],1)
+                row_str = ''.join([row_str,str(value),'  '])
+            row_str = ''.join([row_str,'\n'])
+            map_str = ''.join([map_str,row_str])
         return map_str
     
     # given inputs, find corresponding cell coordinates needed to be marked as enum EMPTY or OBSTACLE
@@ -635,7 +633,7 @@ class Explorer():
         bodyCells = self.robot.returnBodyCells()
         for cell in bodyCells:
             # if robot was on this cell, it confirms to be empty
-            self.innerMap[cell[0]][cell[1]] += 99        
+            self.innerMap[cell[0]][cell[1]] += 0
 
         if self.isPrevTurn == True:
             self.alignCntR = 9 
