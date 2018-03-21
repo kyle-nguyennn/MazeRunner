@@ -133,8 +133,10 @@ def exploration_start():
 @app.route('/fastestpath_start', methods=['GET'])
 def fastestpath_start():
     global explore_algo
+    global fp_instructions
     fp_arena = explore_algo.get_arena()
     tcp_conn.send_command(getInstructions(fp_arena, [1, 1]))
+    fp_instructions = getInstructions(fp_arena, [1, 1])
     return "Fastest path started."
 
 
@@ -188,6 +190,16 @@ def get_explore_status():
         result = [arena_2d, explore_algo.get_inner_map(), explore_algo.get_robot(),
                   explore_algo.current_status()]
     return json.dumps(result)
+
+
+@app.route('/get_fastest_path_status', methods=['GET'])
+def get_fastest_path_status():
+    global fp_instructions
+    if fp_instructions == None:
+        return "N"
+    json_inst = json.dumps({"instructions": fp_instructions})
+    fp_instructions = None
+    return json_inst
 
 
 @app.route('/get_original_arena', methods=['GET'])
@@ -249,6 +261,7 @@ def handle_request(data):
     global mode
     global explore_time_limit
     global explore_coverage
+    global fp_instructions
 
     request = json.loads(data)
     if request["command"] == "beginExplore":
@@ -267,6 +280,8 @@ def handle_request(data):
     elif request["command"] == "beginFastest":
         fp_arena = explore_algo.get_arena()
         tcp_conn.send_command(getInstructions(fp_arena,  request["wayPoint"]))
+        fp_instructions = getInstructions(fp_arena,  request["wayPoint"])
+
     elif request["command"] == "autoStart":
         explore_algo.set_update(True)
     elif request["command"] == "autoStop":
