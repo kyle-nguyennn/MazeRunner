@@ -39,15 +39,15 @@ class Explorer():
         self.alignNow = False
         self.reReadSensor = False
         self.readingConflict = False
-        self.conflictCells = []
         self.innerMap = []
         self.turnList = []
         self.isPrevTurn = False
         self.isPrevRight = False
+        self.climbCnt = 0
+        self.delayRight = 0
         self.alignSensor = "" # CF(front), CS(right)
         self.robot = Robot(
             'exploring', robot_pos[2]/90, robot_pos[0], robot_pos[1])
-        self.checkingRight = False
 
         self.frontCells = {0:[[[2,-1],[3,-1],[4,-1]],[[2,0],[3,0],[4,0]],[[2,1],[3,1],[4,1]]],
                     1:[[[1,2],[1,3],[1,4]],[[0,2],[0,3],[0,4]],[[-1,2],[-1,3],[-1,4]]],
@@ -189,8 +189,6 @@ class Explorer():
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
                 self.update_all(instruction, "Performing right wall hugging exploration")
-                print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
-                print("robot head:",self.robot.robotHead)
                 if self.reachGoal == False:
                     self.reachGoal = self.robot.isInGoal()
         if self.robot.robotHead != 2 :
@@ -199,8 +197,13 @@ class Explorer():
                 (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
                 self.update_all(instructions, "Changing head direction to South")
                 self.robot.jump(endnode)
-        
+
+        # if self.logging_enabled:
+        #     log_file = open(self.log_filename, "a+")
+        #     log_file.write("Prob map before any processing: \n" + self.innerMapToStr())
+        #     log_file.close()
         # before exploration end, check innerMap
+        print(self.innerMapToStr())
         count = self.countObstacles()
         self.wellGuess(count)
         print("Exploration time:",explorationTime)
@@ -334,6 +337,19 @@ class Explorer():
                 if (cell == CellType.OBSTACLE ):
                     count += 1
         return count
+
+    def innerMapToStr(self):
+        map_str = ''
+        for h in range(20):
+            row_str = ''
+            for w in range(15):
+                value = self.innerMap[h][w]
+                row_str = row_str.join(str(value))
+            row_str = row_str.join('\n')
+            print(row_str)
+            map_str = map_str.join(row_str)
+            print(map_str)
+        return map_str
     
     # given inputs, find corresponding cell coordinates needed to be marked as enum EMPTY or OBSTACLE
     def markCells(self, sensorIndex, value):
@@ -364,20 +380,16 @@ class Explorer():
                                 self.innerMap[x][y] += 0.2
                         # front-middle weightage
                         elif sensorIndex == 1:
-                            if i < 1:
+                            if i < 2:
                                 self.innerMap[x][y] += 1
-                            elif i == 1:
-                                self.innerMap[x][y] += 0.7
                             elif i == 2:
                                 self.innerMap[x][y] += 0.5
                             else:
                                 self.innerMap[x][y] += 0.2
                         # side sensor weightage
                         elif sensorIndex > 3:
-                            if i < 1:
+                            if i < 2:
                                 self.innerMap[x][y] += 1
-                            elif i == 1:
-                                self.innerMap[x][y] += 0.7
                             elif i == 2:
                                 self.innerMap[x][y] += 0.5
                             else:
@@ -411,31 +423,27 @@ class Explorer():
                                 self.innerMap[x][y] -= 0.2
                         # front-middle weightage
                         elif sensorIndex == 1:
-                            if value < 1:
+                            if value < 2:
                                 self.innerMap[x][y] -= 1
-                            elif value == 1:
-                                self.innerMap[x][y] -= 0.7
                             elif value == 2:
                                 self.innerMap[x][y] -= 0.5
                             else:
                                 self.innerMap[x][y] -= 0.2
                         # side sensor weightage
                         elif sensorIndex > 3:
-                            if value < 1:
+                            if value < 2:
                                 self.innerMap[x][y] -= 1
-                            elif value == 1:
-                                self.innerMap[x][y] -= 0.7
                             elif value == 2:
                                 self.innerMap[x][y] -= 0.5
                             else:
                                 self.innerMap[x][y] -= 0.2
                         # long range weightage
                         else:
-                            if value < 3:
+                            if value < 2:
                                 self.innerMap[x][y] -= 1
-                            elif value == 3:
+                            elif value == 2:
                                 self.innerMap[x][y] -= 0.7
-                            elif value == 4:
+                            elif value == 3:
                                 self.innerMap[x][y] -= 0.5
                             else:
                                 self.innerMap[x][y] -= 0.3
@@ -575,26 +583,48 @@ class Explorer():
         print("check front true")
         return True                   
     # check whether the 3 consecutive cells on robot right are empty
-    def checkRight(self):
+    def checkRight(self,layer):
                 
         robot = self.robot
-        rightCells = robot.rightCells
+        rightCells = self.rightCells[robot.robotHead]
         
         h = robot.robotCenterH
         w = robot.robotCenterW
         
-        for cell in rightCells[robot.robotHead]:
-            if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 \
-                or robot.robotCenterW+cell[1] < 0 or robot.robotCenterH+cell[0] < 0 \
-                or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.OBSTACLE):
-                return "false"
-            elif (self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.UNKNOWN \
-                  or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.CONFLICT):
-                return "unknown"
+        for cell in rightCells:
+            for r in range(layer):
+                if (robot.robotCenterW+cell[0][1] > 14 or robot.robotCenterH+cell[0][0] > 19 \
+                    or robot.robotCenterW+cell[0][1] < 0 or robot.robotCenterH+cell[0][0] < 0 \
+                    or self.arena.get(robot.robotCenterH+cell[0][0],robot.robotCenterW+cell[0][1]) == CellType.OBSTACLE):
+                    return "false"
+                elif (self.arena.get(robot.robotCenterH+cell[0][0],robot.robotCenterW+cell[0][1]) == CellType.UNKNOWN \
+                      or self.arena.get(robot.robotCenterH+cell[0][0],robot.robotCenterW+cell[0][1]) == CellType.CONFLICT):
+                    return "unknown"
 
+        # this part is to determine staircase condition
+        stairs = True
+        # if all level 1 right cells are empty, check level 2
+        for cell in rightCells:
+            # staircase only happen if bottom right is block and middle and front right is empty
+            if cell == rightCells[1]:
+                if not self.is_valid_point([robot.robotCenterH+cell[1][0],robot.robotCenterW+cell[1][1]]) \
+                or self.arena.get(robot.robotCenterH+cell[1][0],robot.robotCenterW+cell[1][1]) != CellType.OBSTACLE:
+                    stairs = False
+                    break
+            else:
+                if not self.is_valid_point([robot.robotCenterH+cell[1][0],robot.robotCenterW+cell[1][1]]) \
+                or self.arena.get(robot.robotCenterH+cell[1][0],robot.robotCenterW+cell[1][1]) != CellType.EMPTY:
+                    stairs = False
+                    break
+                
+        if stairs == True:
+            return "stairs"
+        
         # before return true, check infinite loop
+        # the loop breaking algo here is bug-free,but can be improved. not finalized
         if (len(self.turnList)>= 4 and [h,w] == self.turnList[-4])\
         or self.turnList.count([h,w]) > 3:
+            print("loop false")
             return "false"
         return "true"
     
@@ -614,10 +644,16 @@ class Explorer():
         self.alignCntR += 1
         self.alignCntL += 1
         self.alignCnt += 1
-        
-        if (self.checkingRight == False):
+        print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
+        print("robot head:",self.robot.robotHead)        
+        print("staricase climb counter",self.climbCnt)
+
+        print("prevRight:",self.isPrevRight)
+
+        if (self.isPrevRight == False and (self.climbCnt == 0 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
             # decide turn-right condition
-            if (self.checkRight() == "true"):                    
+            if (self.checkRight(1) == "true"):  
+                print("check right true here")                  
                 if self.alignNow == True:
                     sensor = self.alignSensor
                 # for every turn, calibrate
@@ -627,11 +663,13 @@ class Explorer():
                     sensor = self.alignSensor
                 self.robot.rotateRight()
                 self.turnList.append([self.robot.robotCenterH,self.robot.robotCenterW])
-                self.robot.forward()
-                return (''.join([sensor,"RF"]))
+                #self.robot.forward()
+                self.isPrevTurn = True
+                self.isPrevRight = True
+                return (''.join([sensor,"R"])) #previously RF here
             
-            elif (self.checkRight() == "unknown"):
-                
+            elif (self.checkRight(1) == "unknown"):
+                print("right unknown")
                 if self.alignNow == True:
                     sensor = self.alignSensor
                 # for every turn, calibrate
@@ -642,17 +680,41 @@ class Explorer():
                 self.robot.rotateRight()
                 self.turnList.append([self.robot.robotCenterH,self.robot.robotCenterW])
                 self.isPrevTurn = True
-                self.checkingRight = True
+                self.isPrevRight = True
                 return (''.join([sensor,"R"]))
-                                  
-        # alr enter checkingRight now, so update status as False again
-        self.checkingRight = False
+            
+            elif (self.checkRight(1) == "stairs"):
+                self.climbCnt = 2
+                self.delayRight = 1
+
+        self.isPrevRight = False # same, reset
         # decide front condition
         if (self.checkFront()):
             self.robot.forward()
             if self.alignNow == True:
                 sensor = self.alignSensor
+            if self.delayRight == 1:
+                self.delayRight = 0
+            elif self.climbCnt > 0: # if delayRight == 0 and climbCnt > 0
+                self.climbCnt -= 1
             return (''.join([sensor,"F"]))
+
+        if self.climbCnt == 2: # and checkFront() == False implicitly
+            if self.alignNow == True:
+                sensor = self.alignSensor
+            # for every turn, calibrate
+            else:
+                self.alignCntR = 9
+                self.checkAlign(1)
+                sensor = self.alignSensor
+            self.robot.rotateRight()
+            self.turnList.append([self.robot.robotCenterH,self.robot.robotCenterW])
+            #self.robot.forward()
+            self.climbCnt = 0
+            self.isPrevRight = True
+            self.isPrevTurn = True
+            return (''.join([sensor,"R"])) # if checkRight return "stairs", means at least at immediate right side of the robot is empty; otherwise it won't go into check stairs case; so can safely turn right here
+            # previously RF here
 
         skipSteps = False
         
@@ -684,6 +746,7 @@ class Explorer():
         self.checkAlign(1)
         sensor = self.alignSensor
         self.robot.rotateLeft()
+        self.climbCnt = 0
         self.isPrevTurn = True
         if skipSteps == False:
             return (''.join([sensor,"L"]))
