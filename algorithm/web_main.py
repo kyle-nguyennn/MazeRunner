@@ -182,10 +182,10 @@ def get_explore_status():
             return "N"
     arena_2d = arena_to_array(explore_algo.get_arena())
     if mode == Mode.SIM_SERVER:
-        result = [arena_2d, sim_server.get_robot(
+        result = [arena_2d, explore_algo.get_inner_map(), sim_server.get_robot(
         ), explore_algo.current_status()]
     elif mode == Mode.EXPLORE_RUNNING:
-        result = [arena_2d, explore_algo.get_robot(),
+        result = [arena_2d, explore_algo.get_inner_map(), explore_algo.get_robot(),
                   explore_algo.current_status()]
     return json.dumps(result)
 

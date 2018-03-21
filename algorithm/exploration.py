@@ -292,6 +292,9 @@ class Explorer():
     def get_arena(self):
         return self.arena
 
+    def get_inner_map(self):
+        return self.innerMap
+
     def get_robot(self):
         if self.robot.robotMode == "done":
             return None

@@ -122,6 +122,17 @@ function drawCanvas(display, arena) {
     }
 }
 
+function drawCanvasValues(display, arena_values) {
+    if (display != null) {
+        for (var x = 0; x < display.rows.length - 1; x++) {
+            for (var y = 1; y < display.rows[x].cells.length; y++) {
+                var num = arena_values[(display.rows.length - 2) - x][y - 1];
+                display.rows[x].cells[y].innerHTML = parseFloat(Math.round(num * 100) / 100).toFixed(1);
+            }
+        }
+    }
+}
+
 function setFopVisible(visible) {
     var fop = document.getElementById("robot-fop");
     if (visible)
@@ -163,7 +174,7 @@ function moveRobot(actions) {
 
             var action = actions.charAt(step);
             if (action == 'C') {
-                step +=2;
+                step += 2;
             }
             else if (action == 'F') {
                 if (currentD == 0)
@@ -243,10 +254,12 @@ function updateExploreStatus() {
                 }
                 var obj = jQuery.parseJSON(data);
                 var arena = obj[0];
-                var robot = obj[1];
-                var status = obj[2];
+                var innerMap = obj[1];
+                var robot = obj[2];
+                var status = obj[3];
                 lblStatus.textContent = "Robot Status: " + status;
                 drawCanvas(table, arena);
+                drawCanvasValues(table, innerMap);
                 setRobotPosition(robot[0], robot[1], robot[2]);
             });
         }
