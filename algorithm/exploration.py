@@ -213,44 +213,55 @@ class Explorer():
         self.update_all("EE", "End exploration")
 
     def wellGuess(self,count):
-        if count == 30:
-            for row in self.arena.get_2d_arr():
-                for cell in row:
-                    if cell != CellType.OBSTACLE:
-                        cell = CellType.EMPTY
-                    
-        elif count > 30: # more obstacles than expected
-            obstacles = []
-            for h in range(20):
-                for w in range(15):
-                    if self.arena.get(h,w) == CellType.OBSTACLE:
-                        score = self.innerMap[h][w]
-                        obstacles.append([h,w,score])
-            sortedObstacles = sorted(obstacles,key=itemgetter(2))
-            throwNumber = 30-count
-            throwCells = sortedObstacles[throwNumber:]
-            for cell in throwCells:
-                self.arena.set(cell[0],cell[1],CellType.EMPTY)
-            # put all other as empty
-            for row in self.arena.get_2d_arr():
-                for cell in row:
-                    if cell != CellType.OBSTACLE:
-                        cell = CellType.EMPTY
-                        
-        else: # less than expected
-            candidateCells = []
-            unexploredCells = []
-            for h in range(20):
-                for w in range(15):
-                    if self.arena.get(h,w) != CellType.OBSTACLE:
-                        score = self.innerMap[h][w]
-                        if score < 0:
-                            candidateCells.append([h,w,score])
-                        elif score == 0:
-                            unexploredCells.append([h,w,score])
-            sortedCandidates = sorted(candidateCells,key=itemgetter(2))
-            addNumber = 30 - count           
-            addCells = sortedCandidates[:addNumber]
+        for h in range(20):
+            for w in range(15):
+                if self.arena.get(h,w) == CellType.CONFLICT:
+                    score = self.innerMap[h][w]
+                    if score < 0:
+                        self.arena.set(h,w,CellType.OBSTACLE)
+                    elif score > 0:
+                        self.arena.set(h,w,CellType.EMPTY)
+                    else:
+                        continue
+
+        # if count == 30:
+        #     for row in self.arena.get_2d_arr():
+        #         for cell in row:
+        #             if cell != CellType.OBSTACLE:
+        #                 cell = CellType.EMPTY
+        #
+        # elif count > 30: # more obstacles than expected
+        #     obstacles = []
+        #     for h in range(20):
+        #         for w in range(15):
+        #             if self.arena.get(h,w) == CellType.OBSTACLE:
+        #                 score = self.innerMap[h][w]
+        #                 obstacles.append([h,w,score])
+        #     sortedObstacles = sorted(obstacles,key=itemgetter(2))
+        #     throwNumber = 30-count
+        #     throwCells = sortedObstacles[throwNumber:]
+        #     for cell in throwCells:
+        #         self.arena.set(cell[0],cell[1],CellType.EMPTY)
+        #     # put all other as empty
+        #     for row in self.arena.get_2d_arr():
+        #         for cell in row:
+        #             if cell != CellType.OBSTACLE:
+        #                 cell = CellType.EMPTY
+        #
+        # else: # less than expected
+        #     candidateCells = []
+        #     unexploredCells = []
+        #     for h in range(20):
+        #         for w in range(15):
+        #             if self.arena.get(h,w) != CellType.OBSTACLE:
+        #                 score = self.innerMap[h][w]
+        #                 if score < 0:
+        #                     candidateCells.append([h,w,score])
+        #                 elif score == 0:
+        #                     unexploredCells.append([h,w,score])
+        #     sortedCandidates = sorted(candidateCells,key=itemgetter(2))
+        #     addNumber = 30 - count
+        #     addCells = sortedCandidates[:addNumber]
 # =============================================================================           
 #             if the number is still less than 30, check unexplored cells
 #                if count + len(addCells) < 30: 
@@ -260,14 +271,14 @@ class Explorer():
 #                         addCells.append(cell)
 # =============================================================================
             # it might be still less than 30, but it's fine.
-            for cell in addCells:
-                self.arena.set(cell[0],cell[1],CellType.OBSTACLE)
-                
-        # clean up all other non-obstacles to EMPTY
-        for h in range(20):
-            for w in range(15):
-                if self.arena.get(h,w) != CellType.OBSTACLE and self.arena.get(h,w) != CellType.UNKNOWN:
-                       self.arena.set(h,w,CellType.EMPTY)
+        #     for cell in addCells:
+        #         self.arena.set(cell[0],cell[1],CellType.OBSTACLE)
+        #
+        # # clean up all other non-obstacles to EMPTY
+        # for h in range(20):
+        #     for w in range(15):
+        #         if self.arena.get(h,w) != CellType.OBSTACLE and self.arena.get(h,w) != CellType.UNKNOWN:
+        #                self.arena.set(h,w,CellType.EMPTY)
             
 
     def is_valid_point(self, point):
