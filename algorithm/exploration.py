@@ -77,20 +77,26 @@ class Explorer():
                                3:[[-2,-2],[-3,-2],[-4,-2]]
                 }
         # positions in wallCells are for calibration
-        self.wallCells = {0:[[],[]],
-                    1:[[],[]],
-                    2:[[],[]],
-                    3:[[],[]]
+        self.wallCells = {0:[[],[],[]],
+                    1:[[],[],[]],
+                    2:[[],[],[]],
+                    3:[[],[],[]]
                 }
         for i in range(1,19):
             self.wallCells[0][0].append([i,13])
             self.wallCells[2][0].append([i,1])
             if 2 <= i <= 17:
                 self.wallCells[0][1].append([i,12])
-                self.wallCells[2][1].append([i,2]) 
+                self.wallCells[2][1].append([i,2])
+                if 3 <= i <= 16:
+                    self.wallCells[0][2].append([i, 11])
+                    self.wallCells[2][2].append([i, 3])
                 if 2 <= i <= 12:
                     self.wallCells[1][1].append([2,i])
                     self.wallCells[3][1].append([17,i])
+                    if 3 <= i <= 11:
+                        self.wallCells[1][2].append([3, i])
+                        self.wallCells[3][2].append([16, i])
             if 1 <= i <= 13:
                 self.wallCells[1][0].append([1,i])
                 self.wallCells[3][0].append([18,i])
@@ -519,10 +525,11 @@ class Explorer():
             if self.alignCntR > self.alignLimit:
                 if [h,w] in self.wallCells[head][i] \
                 or self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE:
-                    self.alignSensor = ''.join(["CS",str(i)])
-                    self.alignNow = True
-                    self.alignCntR = 0
-                    self.alignCnt = 0
+                    if [h,w] not in self.wallCells[head1][1] and [h,w] not in self.wallCells[head1][2]:
+                        self.alignSensor = ''.join(["CS",str(i)])
+                        self.alignNow = True
+                        self.alignCntR = 0
+                        self.alignCnt = 0
                     
             if len(self.alignSensor) == 0:
                 if self.alignCntL > 2 and self.alignCnt > 2:
