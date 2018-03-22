@@ -133,6 +133,16 @@ function drawCanvasValues(display, arena_values) {
     }
 }
 
+function clearCanvasValues(display) {
+    if (display != null) {
+        for (var x = 0; x < display.rows.length - 1; x++) {
+            for (var y = 1; y < display.rows[x].cells.length; y++) {
+                display.rows[x].cells[y].innerHTML = "";
+            }
+        }
+    }
+}
+
 function setFopVisible(visible) {
     var fop = document.getElementById("robot-fop");
     if (visible)
@@ -365,6 +375,7 @@ function switchEditMode() {
     showEditControls();
     hideSimControls();
     hideActualControls();
+    clearCanvasValues(table);
 
     clearInterval(exploreStatusAni);
     clearInterval(connectionStatus);
@@ -385,6 +396,7 @@ function switchSimMode() {
     hideEditControls();
     showSimControls();
     hideActualControls();
+    clearCanvasValues(table);
     setFopVisible(true);
 
     clearInterval(connectionStatus);
@@ -405,6 +417,7 @@ function switchActualMode() {
     hideEditControls();
     hideSimControls();
     showActualControls();
+    clearCanvasValues(table);
     setFopVisible(true);
 
     clearInterval(connectionStatus);
