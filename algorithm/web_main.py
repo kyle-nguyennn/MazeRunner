@@ -16,8 +16,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 global explore_algo
+global fp_instructions
 explore_algo = Explorer(None, [0, 0, 0])
-
+fp_instructions = None
 
 class Mode(Enum):
     NONE = 0
