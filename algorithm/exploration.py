@@ -310,7 +310,7 @@ class Explorer():
         if self.logging_enabled:
             log_file = open(self.log_filename, "a+")
             log_file.write("Robot: " + str(self.robot.getPosition()) + "\n")
-            log_file.write("Map: \n" + self.arena.display_str())
+            log_file.write("Map: \n" + self.arena.display_str(self.robot.getPosition()))
             log_file.write("Sent: " + command + "\n")
             log_file.close()
         self.tcp_conn.send_command(command)

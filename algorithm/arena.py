@@ -81,7 +81,7 @@ class Arena():
     def print(self):
         print(self.display_str())
 
-    def display_str(self):
+    def display_str(self, robot=None):
         map_str = ""
         for x in range(len(self.arena_map)):
             for y in range(len(self.arena_map[x])):
@@ -91,6 +91,9 @@ class Arena():
                     cell_str = str(cell_value) + " "
                 else:
                     cell_str = " " + str(cell_value) + " "
+                if robot != None:
+                    if robot[0] == len(self.arena_map)-1-x and robot[1] == y:
+                        cell_str = " X "
                 map_str += cell_str + " "
             map_str += "\n"
         return map_str
