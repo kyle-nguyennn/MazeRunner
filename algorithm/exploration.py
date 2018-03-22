@@ -210,8 +210,7 @@ class Explorer():
             log_file.close()
 
         #before exploration end, check innerMap
-        count = self.countObstacles()
-        self.wellGuess(count)
+        self.wellGuess()
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
         
@@ -221,7 +220,7 @@ class Explorer():
         self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
         self.update_all("EE", "End exploration")
 
-    def wellGuess(self,count):
+    def wellGuess(self):
         for h in range(20):
             for w in range(15):
                 if self.arena.get(h,w) == CellType.CONFLICT:
@@ -232,6 +231,7 @@ class Explorer():
                         self.arena.set(h,w,CellType.EMPTY)
                     else:
                         continue
+        #count = self.countObstacles()
 
         # if count == 30:
         #     for row in self.arena.get_2d_arr():
