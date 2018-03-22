@@ -538,27 +538,28 @@ class Explorer():
 
             # check right condition
 
-            if [h, w] in self.wallCells[head][i] \
-                    or self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
-                alignSensor = ''.join(["CS", str(i)])
+            if self.alignCntR > 2 and ([h, w] in self.wallCells[head][i] \
+                    or self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE):
+                self.alignSensor = ''.join(["CS", str(i)])
+                print("enter1")
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
-                return alignSensor
+                break
 
             elif self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
-                alignSensor = "RCF110L"
-                return alignSensor
+                self.alignSensor = "RCF110L"
+                break
 
             elif self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
-                alignSensor = "RCF011L"
-                return alignSensor
+                self.alignSensor = "RCF011L"
+                break
                     
             if len(self.alignSensor) == 0:
                 if self.alignCntL > 2 and self.alignCnt > 2:
@@ -673,7 +674,8 @@ class Explorer():
         for cell in bodyCells:
             # if robot was on this cell, it confirms to be empty
             self.innerMap[cell[0]][cell[1]] += 2
-
+        print("alignCNt,",self.alignCnt)
+        print("alignRCnt",self.alignCntR)
         if self.isPrevTurn == True:
             self.alignCntR = 9 
         self.isPrevTurn = False
@@ -686,6 +688,7 @@ class Explorer():
         print("staricase climb counter",self.climbCnt)
 
         print("prevRight:",self.isPrevRight)
+
 
         if (self.isPrevRight == False and (self.climbCnt == 0 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
             # decide turn-right condition
