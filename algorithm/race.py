@@ -210,29 +210,29 @@ def checkAlign(r,position,mymap):
             
         # check front condition
         if [h,w] in wallCells[head1][i] \
-        or mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE :
+        or ( is_valid_point((h+frontCells[0][i][0],w+frontCells[0][i][1])) and mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE) :
            return "CF111"
 
-        elif mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == CellType.OBSTACLE :
+        elif ( is_valid_point((h+frontCells[0][i][0],w+frontCells[0][i][1])) and mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == CellType.OBSTACLE) :
            return "CF101"
 
-        elif mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE :
+        elif ( is_valid_point((h+frontCells[0][i][0],w+frontCells[0][i][1])) and mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE) :
            return "CF110"
 
-        elif mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE :
+        elif ( is_valid_point((h+frontCells[0][i][0],w+frontCells[0][i][1])) and mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE) :
            return "CF011"
 
         # check right condition
         if [h,w] in wallCells[head][i] \
-        or mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == CellType.OBSTACLE:
+        or( is_valid_point((h+rightCells[0][i][0],w+rightCells[0][i][1])) and mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == CellType.OBSTACLE):
             alignSensor = ''.join(["CS",str(i)])
             return alignSensor
 
-        elif mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == CellType.OBSTACLE:
+        elif ( is_valid_point((h+rightCells[0][i][0],w+rightCells[0][i][1])) and mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == CellType.OBSTACLE):
             alignSensor = "RCF110L"
             return alignSensor
 
-        elif mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == CellType.OBSTACLE:
+        elif ( is_valid_point((h+rightCells[0][i][0],w+rightCells[0][i][1])) and mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == CellType.OBSTACLE):
             alignSensor = "RCF011L"
             return alignSensor
                 
