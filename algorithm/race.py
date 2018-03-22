@@ -205,19 +205,32 @@ def checkAlign(r,position,mymap):
         # check curner cell conditoin, if corner cell, just do two 
         if [h,w] in wallCells[head1][i] \
         and [h,w] in wallCells[head][i]:
-            alignSensor = ''.join(["CF",str(i),"CS",str(i)])
+            alignSensor = ''.join(["CF101","CS",str(i)])
             return alignSensor
             
         # check front condition
         if [h,w] in wallCells[head1][i] \
-        or mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == CellType.OBSTACLE :
-           alignSensor = ''.join(["CF",str(i)])
-           return alignSensor
-        
+        or mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == CellType.OBSTACLE :
+           return "CF101"
+
+        elif mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE :
+           return "CF110"
+
+        elif mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE :
+           return "CF011"
+
         # check right condition
         if [h,w] in wallCells[head][i] \
-        or mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == CellType.OBSTACLE:
+        or mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == CellType.OBSTACLE:
             alignSensor = ''.join(["CS",str(i)])
+            return alignSensor
+
+        elif mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == CellType.OBSTACLE:
+            alignSensor = "RCF110L"
+            return alignSensor
+
+        elif mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == CellType.OBSTACLE:
+            alignSensor = "RCF011L"
             return alignSensor
                 
         if len(alignSensor) == 0:
@@ -230,7 +243,7 @@ def checkAlign(r,position,mymap):
                         count += 1
                 index += 1
             if count >= 3: # 3 block on left for calibration
-                alignSensor = ''.join(["LCF",str(i),"R"])
+                alignSensor = ''.join(["LCF101","R"])
                 return alignSensor
         # if still no wall to calibrate
         if len(alignSensor) == 0:

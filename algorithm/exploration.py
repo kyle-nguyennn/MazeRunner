@@ -214,7 +214,7 @@ class Explorer():
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
         
-        self.tcp_conn.send_command("CF0CS0RCF0R")
+        self.tcp_conn.send_command("CF101CS0RCF101R")
         self.robot.jump((1,1,0))
         
         self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
@@ -505,31 +505,55 @@ class Explorer():
             h = self.robot.robotCenterH
             w = self.robot.robotCenterW
 
-            # check curner cell conditoin, if corner cell, just do two 
+            # check curner cell conditoin, if corner cell, just do two
             if [h,w] in self.wallCells[head1][i] \
             and [h,w] in self.wallCells[head][i]:
-                self.alignSensor = ''.join(["CF",str(i),"CS",str(i)])
+                self.alignSensor = ''.join(["CF101","CS",str(i)])
                 self.alignNow = True
                 self.alignCnt = 0
                 self.alignCntR = 0
                 break
-                
+
             # check front condition
-            if [h,w] in self.wallCells[head1][i] \
-            or self.arena.get(h+frontCells[0][i][0],w+frontCells[0][i][1]) == self.arena.get(h+frontCells[1][i][0],w+frontCells[1][i][1]) == self.arena.get(h+frontCells[2][i][0],w+frontCells[2][i][1]) == CellType.OBSTACLE :
-               self.alignSensor = ''.join(["CF",str(i)])
-               self.alignNow = True
-               self.alignCnt = 0
-            
+            if [h, w] in self.wallCells[head1][i] \
+                    or self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == CellType.OBSTACLE:
+                self.alignNow = True
+                self.alignCnt = 0
+                self.alignSensor = "CF101"
+
+            elif self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[1][i][0],w + frontCells[1][i][1]) == CellType.OBSTACLE:
+                self.alignNow = True
+                self.alignCnt = 0
+                self.alignSensor = "CF110"
+
+            elif self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == CellType.OBSTACLE:
+                self.alignNow = True
+                self.alignCnt = 0
+                self.alignSensor = "CF011"
+
             # check right condition
-            if self.alignCntR > self.alignLimit:
-                if [h,w] in self.wallCells[head][i] \
-                or self.arena.get(h+rightCells[0][i][0],w+rightCells[0][i][1]) == self.arena.get(h+rightCells[1][i][0],w+rightCells[1][i][1]) == self.arena.get(h+rightCells[2][i][0],w+rightCells[2][i][1]) == CellType.OBSTACLE:
-                    if [h,w] not in self.wallCells[head1][1] and [h,w] not in self.wallCells[head1][2]:
-                        self.alignSensor = ''.join(["CS",str(i)])
-                        self.alignNow = True
-                        self.alignCntR = 0
-                        self.alignCnt = 0
+
+            if [h, w] in self.wallCells[head][i] \
+                    or self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
+                alignSensor = ''.join(["CS", str(i)])
+                self.alignNow = True
+                self.alignCntR = 0
+                self.alignCnt = 0
+                return alignSensor
+
+            elif self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
+                self.alignNow = True
+                self.alignCntR = 0
+                self.alignCnt = 0
+                alignSensor = "RCF110L"
+                return alignSensor
+
+            elif self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
+                self.alignNow = True
+                self.alignCntR = 0
+                self.alignCnt = 0
+                alignSensor = "RCF011L"
+                return alignSensor
                     
             if len(self.alignSensor) == 0:
                 if self.alignCntL > 2 and self.alignCnt > 2:
@@ -543,7 +567,7 @@ class Explorer():
                         index += 1
                     print("count",count)
                     if count >= 3: # 3 block on left for calibration
-                        self.alignSensor = ''.join(["LCF",str(i),"R"])
+                        self.alignSensor = ''.join(["LCF101","R"])
                         self.alignNow = True 
                         self.alignCntL = 0
                         self.alignCnt = 0
