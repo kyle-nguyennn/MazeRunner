@@ -508,7 +508,7 @@ class Explorer():
             # check curner cell conditoin, if corner cell, just do two
             if [h,w] in self.wallCells[head1][i] \
             and [h,w] in self.wallCells[head][i]:
-                self.alignSensor = ''.join(["CF101","CS",str(i)])
+                self.alignSensor = ''.join(["CF111","CS",str(i)])
                 self.alignNow = True
                 self.alignCnt = 0
                 self.alignCntR = 0
@@ -516,7 +516,12 @@ class Explorer():
 
             # check front condition
             if [h, w] in self.wallCells[head1][i] \
-                    or self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == CellType.OBSTACLE:
+                    or self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1])  == self.arena.get(h + frontCells[1][i][0],w + frontCells[1][i][1]) == CellType.OBSTACLE:
+                self.alignNow = True
+                self.alignCnt = 0
+                self.alignSensor = "CF111"
+
+            elif self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCnt = 0
                 self.alignSensor = "CF101"
@@ -567,7 +572,7 @@ class Explorer():
                         index += 1
                     print("count",count)
                     if count >= 3: # 3 block on left for calibration
-                        self.alignSensor = ''.join(["LCF101","R"])
+                        self.alignSensor = ''.join(["LCF111","R"])
                         self.alignNow = True 
                         self.alignCntL = 0
                         self.alignCnt = 0

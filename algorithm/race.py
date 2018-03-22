@@ -210,7 +210,10 @@ def checkAlign(r,position,mymap):
             
         # check front condition
         if [h,w] in wallCells[head1][i] \
-        or mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == CellType.OBSTACLE :
+        or mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE :
+           return "CF111"
+
+        elif mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == CellType.OBSTACLE :
            return "CF101"
 
         elif mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE :
@@ -243,7 +246,7 @@ def checkAlign(r,position,mymap):
                         count += 1
                 index += 1
             if count >= 3: # 3 block on left for calibration
-                alignSensor = ''.join(["LCF101","R"])
+                alignSensor = ''.join(["LCF111","R"])
                 return alignSensor
         # if still no wall to calibrate
         if len(alignSensor) == 0:
