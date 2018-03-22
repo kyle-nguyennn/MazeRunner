@@ -54,7 +54,7 @@ btnFastestpathStart.style.visibility = 'hidden';
 
 switchEditMode();
 lockMode();
-moveRobot("");
+moveRobotSim("");
 loadFromList();
 
 mdfPart1.oninput = function () { mdfToArray(); };
@@ -158,7 +158,77 @@ function updateWaypoint() {
     setWaypointPosition(x, y);
 }
 
-function moveRobot(actions) {
+function moveRobotActual(actions) {
+    clearInterval(cellMovt);
+    clearInterval(cellAni);
+
+    var currentH = arenaHeight - cellSize - robotSize;
+    var currentW = cellSize;
+    var currentD = 0;
+    var step = 0;
+
+    setActualRobotPosition(currentH, currentW, currentD);
+
+    cellMovt = setInterval(displayRobot, 1000);
+
+    function displayRobot() {
+        if (step == actions.length) {
+            clearInterval(cellMovt);
+        }
+        else {
+            currentD = normalizeDirection(currentD);
+
+            var action = actions.charAt(step);
+            if (action == 'C') {
+                if (actions.charAt(step + 1) == 'F')
+                    step += 4;
+                if (actions.charAt(step + 1) == 'S')
+                    step += 2;
+            }
+            else if (action == 'F') {
+                fcount = 1;
+                while (actions.charAt(step + fcount) == 'F') {
+                    fcount++;
+                }
+                if (currentD == 0)
+                    currentH = currentH - cellSize * fcount;
+                else if (currentD == 90)
+                    currentW = currentW + cellSize * fcount;
+                else if (currentD == 180)
+                    currentH = currentH + cellSize * fcount;
+                else if (currentD == 270)
+                    currentW = currentW - cellSize * fcount;
+                step = step + fcount - 1;
+            }
+            else if (action == 'B') {
+                bcount = 1;
+                while (actions.charAt(step + bcount) == 'B') {
+                    bcount++;
+                }
+                if (currentD == 0)
+                    currentH = currentH + cellSize * bcount;
+                else if (currentD == 90)
+                    currentW = currentW - cellSize * bcount;
+                else if (currentD == 180)
+                    currentH = currentH - cellSize * bcount;
+                else if (currentD == 270)
+                    currentW = currentW + cellSize * bcount;
+                step = step + bcount - 1;
+            }
+            else if (action == 'R')
+                currentD = currentD + 90;
+
+            else if (action == 'L')
+                currentD = currentD - 90;
+
+            setActualRobotPosition(currentH, currentW, currentD);
+
+            step++;
+        }
+    }
+}
+
+function moveRobotSim(actions) {
     clearInterval(cellMovt);
     clearInterval(cellAni);
 
@@ -184,7 +254,10 @@ function moveRobot(actions) {
 
             var action = actions.charAt(step);
             if (action == 'C') {
-                step += 2;
+                if (actions.charAt(step + 1) == 'F')
+                    step += 4;
+                if (actions.charAt(step + 1) == 'S')
+                    step += 2;
             }
             else if (action == 'F') {
                 if (currentD == 0)
@@ -442,6 +515,13 @@ function switchActualMode() {
                 updateExploreStatus();
             }
         });
+
+        $.get("/get_fastest_path_status", function (data, status) {
+            if (data != "N") {
+                var obj = jQuery.parseJSON(data);
+                moveRobotActual(obj.instructions);
+            }
+        });
     }
 }
 
@@ -562,7 +642,7 @@ $(document).ready(function () {
                 var obj = jQuery.parseJSON(data);
                 switchSimMode();
                 updateWaypoint();
-                moveRobot(obj.instructions);
+                moveRobotSim(obj.instructions);
             }
         });
     });
