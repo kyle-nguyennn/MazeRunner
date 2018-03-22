@@ -500,7 +500,7 @@ function switchActualMode() {
         $.get("/get_fastest_path_status", function (data, status) {
             if (data != "N") {
                 var obj = jQuery.parseJSON(data);
-                moveRobotSim(obj.instructions);
+                moveRobotActual(obj.instructions);
             }
         });
     }
