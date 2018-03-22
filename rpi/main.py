@@ -53,6 +53,8 @@ def run_serial_client(arduino_conn, pc_queue, running):
             connected = arduino_conn.connect()
         while running:
             data = arduino_conn.recv()
+            if len(data) == 0:
+                continue
             if data is None:
                 break
             data_arr = data.splitlines()
