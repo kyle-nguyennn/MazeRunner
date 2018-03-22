@@ -102,6 +102,8 @@ class SimulatorServer():
                 skip_count = 0
                 for char in command:
                     if skip_count > 0:
+                        if char == "F":
+                            skip_count += 2
                         skip_count -= 1
                     elif char == "C":
                         skip_count = 2
