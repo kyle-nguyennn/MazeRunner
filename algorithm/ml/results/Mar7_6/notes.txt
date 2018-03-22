@@ -1,0 +1,7 @@
+net architecture: CNN (conv + max pooling + conv + max pooling + fully connected layer)
+generations: 100
+pool_size: 100
+change fitness function: instruction_count component follow a normal distribution of (130, 43)
+change evolve: pick top q3 for direct entry, range q1-q3 for cross over, bottom 0-q1 for mutate
+normalize x,y or the robot according to the sensor data
+feed the whole knowlwdge map into a CNN

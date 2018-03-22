@@ -64,8 +64,15 @@ class Robot():
         for sensor in self.sensors:
             sensor.set_robot(self.robotCenterH, self.robotCenterW, self.robotHead*90)
 
-    def getNoseCell(self):
-        
+    def getNoseCell(self): # this method depends on the way self.returnBodyCells iterate through its body cells
+        bodyCells = self.returnBodyCells()
+        return {
+            0: bodyCells[7],
+            1: bodyCells[5],
+            2: bodyCells[1],
+            3: bodyCells[3]
+        }[self.robotHead]
+
 
     # move front, update center cell coordinates
     def forward(self):

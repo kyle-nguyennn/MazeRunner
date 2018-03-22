@@ -2,7 +2,10 @@ import sys, random, time
 sys.path.append("..")
 from web_main import db, MdfStrings
 from arena import Arena, CellType
+import keras
 from keras.models import Sequential
+from keras.layers import Dense, Flatten
+from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Dense, Activation
 from keras.optimizers import SGD
 import numpy as np
@@ -10,13 +13,14 @@ from Robot import Robot
 from race import detectCollision
 import matplotlib.pylab as plt
 
-run_timeout = 0.1 # in seconds ~ 150 instructions in my pc
+map_shape= (20,15,1)
+run_timeout = 3 # 0.12 in seconds ~ 150 instructions in my pc
 generations = 100
 pool_size = 100
 ideal_mean_instructions = 130
 current_pool = []
 new_model = True
-model_path = __file__ + "/../model_pool"
+model_path = __file__ + "/../model_pool2"
 
 def load_or_init_pool(path=None):
     for i in range(pool_size):
@@ -31,34 +35,52 @@ def save_pool():
         current_pool[i].save_weights(model_path + "/model_new" + str(i) + ".keras")
     print("Saved current pool!")
 
-def init_model():
-    model = Sequential()
-    # construct model structure
-    model.add(Dense(input_dim=9, units=16))
-    model.add(Activation("sigmoid"))
-    model.add(Dense(units=4))
-    # output of the last layer has 4 values coresponding to 4 actions (F, B, L, R) 
-    model.add(Activation("softmax"))
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(loss="mse", optimizer=sgd, metrics=["accuracy"])
+def init_model(type="cnn"):
+    model = None
+    if type=="mlp":
+        model = Sequential()
+        # construct model structure
+        model.add(Dense(input_dim=9, units=16))
+        model.add(Activation("sigmoid"))
+        model.add(Dense(units=4))
+        # output of the last layer has 4 values coresponding to 4 actions (F, B, L, R) 
+        model.add(Activation("softmax"))
+        sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+        model.compile(loss="mse", optimizer=sgd, metrics=["accuracy"])
+    elif type=="cnn":
+        model = Sequential()
+        model.add(Conv2D(32, kernel_size=(3, 3), strides=(1, 1), activation='relu', input_shape=map_shape))
+        model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+        model.add(Conv2D(64, (3, 3), activation='relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Flatten())
+        model.add(Dense(25, activation='relu'))
+        model.add(Dense(2, activation='softmax'))
+
+        model.compile(loss=keras.losses.categorical_crossentropy,
+                    optimizer=keras.optimizers.Adam(),
+                    metrics=['accuracy'])
     return model
 
 def model_crossover(model1, model2):
+    # input 2 models
     # return new weights for the 2 models
     global current_pool
     weights1 = model1.get_weights()
     weights2 = model2.get_weights()
-    weightsnew1 = weights1
-    weightsnew2 = weights2
-    weightsnew1[0] = weights2[0]
-    weightsnew2[0] = weights1[0]
-    return np.asarray([weightsnew1, weightsnew2])
+    candidate = random.randrange(0, len(weights1))
+    weightsnew1 = weights1[candidate]
+    weightsnew2 = weights2[candidate]
+    weights1[candidate] = weightsnew2
+    weights2[candidate] = weightsnew1
+    return np.asarray([weights1, weights2])
 
 def model_mutate(weights):
+    # weights of the model
     # return the mutated weights
     for xi in range(len(weights)):
         for yi in range(len(weights[xi])):
-            if random.uniform(0, 1) > 0.85:
+            if random.uniform(0, 1) > 0.850:
                 change = random.uniform(-0.5,0.5)
                 weights[xi][yi] += change
     return weights
@@ -72,11 +94,18 @@ def predict_action(model, input):
     
     output_prob = model.predict(input)
     # output_prob corresponding to 4 actions (F, B, L, R)
+    '''
     action = {
         0: "F",
         1: "B",
         2: "L",
         3: "R"
+    }[np.argmax(output_prob)]
+    '''
+    # for 2 actions models
+    action = {
+        0: "F",
+        1: "R"
     }[np.argmax(output_prob)]
     return action
 
@@ -140,7 +169,7 @@ def computeFitness(discovered, instruction_count, runtime):
     def gaussian(x, m=ideal_mean_instructions, s=43):
         gauss = 1/(sqrt(2*pi)*s)*e**(-0.5*(float(x-m)/s)**2)
         return gauss
-    return discovered+gaussian(instruction_count)*10000
+    return discovered#+gaussian(instruction_count)*10000
 
 def evolve(fitness):
     global current_pool
@@ -175,7 +204,7 @@ def evolve(fitness):
     for select in range(len(new_weights)):
         current_pool[select].set_weights(new_weights[select])
 
-def evolve1(fitness):
+def evolve_old(fitness):
     global current_pool
     new_weights = []
     total_fitness = 0
@@ -198,7 +227,7 @@ def evolve1(fitness):
             if fitness[idxx] >= parent2:
                 idx2 = idxx
                 break
-        new_weights1 = model_crossover(idx1, idx2)
+        new_weights1 = model_crossover(current_pool[idx1], current_pool[idx2])
         updated_weights1 = model_mutate(new_weights1[0])
         updated_weights2 = model_mutate(new_weights1[1])
         new_weights.append(updated_weights1)
@@ -213,13 +242,23 @@ def normalizwWithSensorData(robot_pos):
     return [x/ratio, y/ratio, d]
 
 def blendMap(knowledge_map, robot):
+    map_color = {
+        CellType.EMPTY: 0,
+        CellType.UNKNOWN: 63,
+        CellType.OBSTACLE: 127
+    }
     bodycells = robot.returnBodyCells()
-    m = knowledge_map.get_2d_arr()
-    for i range(len(m)):
+    m = [[-1 for i in range(15)] for j in range(20)]
+    for i in range(len(m)):
         for j in range(len(m[0])):
-            m[i][j] = m[i][j].value
+            m[i][j] = map_color[knowledge_map.get(i,j)]
     for x,y in bodycells:
-        m[x][y] = 2
+        m[x][y] = 191
+        if list((x,y)) == robot.getNoseCell():
+            m[x][y] = 255
+    # convert to np array
+    m = np.array(m)
+    return m
 
 
 if __name__ == "__main__":
@@ -245,7 +284,8 @@ if __name__ == "__main__":
         for modelIndex in range(pool_size):
             model = current_pool[modelIndex]
             mapIndex = random.randrange(0, 5)
-            map = maps[mapIndex]
+            #only train on 1 map first
+            map = maps[0]
             arena = Arena()
             arena.from_mdf_strings(map.part1, map.part2)
             #arena = arena.get_2d_arr()
@@ -254,7 +294,7 @@ if __name__ == "__main__":
             gameover = False
             discovered = 0
             # head=random.randrange(0,4)
-            robot = Robot(head=random.randrange(0,4), h=1, w=1)
+            robot = Robot(head=random.randrange(0,2), h=1, w=1)
             start_time = time.time()
             runtime = 0
             instruction_count = 0
@@ -266,6 +306,7 @@ if __name__ == "__main__":
                 robot_pos = normalizwWithSensorData(robot.getPositionMod4())
                 # input_nn = np.atleast_2d(np.array(sensor_data + robot_pos))
                 input_nn = blendMap(knowledge_map, robot)
+                input_nn = input_nn.reshape(1, map_shape[0], map_shape[1], map_shape[2])
                 action = predict_action(model, input_nn)
                 instruction_count += 1
                 # print("robot pos ", robot_pos)
@@ -296,7 +337,7 @@ if __name__ == "__main__":
             # update fitness
             fitness[modelIndex] = computeFitness(discovered, instruction_count, runtime)
         # evolving now
-        evolve(fitness)
+        evolve_old(fitness)
         discovered_max.append(max_discovered)
         instruction_min.append(min_instructions)
         discovered_avg.append(total_discovered/pool_size)
