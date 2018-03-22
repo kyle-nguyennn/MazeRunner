@@ -544,7 +544,7 @@ class Explorer():
 
             if self.alignCntR > 2 and ([h, w] in self.wallCells[head][i] \
                  or (self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-                    self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE)):
+                    self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE)):
                 self.alignSensor = ''.join(["CS", str(i)])
                 print("enter1")
                 self.alignNow = True
@@ -553,7 +553,7 @@ class Explorer():
                 break
 
             elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-                    self.alignCntR > 2 and self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
+                    self.alignCntR > 2 and self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
