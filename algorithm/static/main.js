@@ -170,7 +170,10 @@ function moveRobotActual(actions) {
 
             var action = actions.charAt(step);
             if (action == 'C') {
-                step += 2;
+                if (actions.charAt(step + 1) == 'F')
+                    step += 4;
+                if (actions.charAt(step + 1) == 'S')
+                    step += 2;
             }
             else if (action == 'F') {
                 fcount = 1;
@@ -241,7 +244,10 @@ function moveRobotSim(actions) {
 
             var action = actions.charAt(step);
             if (action == 'C') {
-                step += 2;
+                if (actions.charAt(step + 1) == 'F')
+                    step += 4;
+                if (actions.charAt(step + 1) == 'S')
+                    step += 2;
             }
             else if (action == 'F') {
                 if (currentD == 0)
