@@ -14,6 +14,8 @@ def run_tcp_server(pc_conn, android_queue, arduino_queue, running):
             data = pc_conn.recv()
             if data is None:
                 break
+            if len(data) == 0:
+                continue
             data_arr = data.splitlines()
             for data_s in data_arr:
                 if len(data_s) == 0:
@@ -34,6 +36,8 @@ def run_bt_server(android_conn, pc_queue, arduino_queue, running):
             data = android_conn.recv()
             if data is None:
                 break
+            if len(data) == 0:
+                continue
             data_arr = data.splitlines()
             for data_s in data_arr:
                 if len(data_s) == 0:
