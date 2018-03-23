@@ -17,8 +17,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 global explore_algo
 global fp_instructions
+global sim_server
 explore_algo = Explorer(None, [0, 0, 0])
+sim_server = SimulatorServer(
+    "127.0.0.1", 77, None, [0, 0, 0], 0, 0)
 fp_instructions = None
+
 
 class Mode(Enum):
     NONE = 0
