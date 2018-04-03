@@ -223,7 +223,7 @@ class Explorer():
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
         
-        self.tcp_conn.send_command("CF101CS0RCF101R")
+        self.tcp_conn.send_command("CF000CS000RCF000R")
         self.robot.jump((1,1,0))
         
         self.tcp_conn.send_event("endExplore")

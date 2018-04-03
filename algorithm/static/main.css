@@ -13,6 +13,9 @@ body {
 }
 
 td.unknown {
+    vertical-align: middle;
+    text-align: center;
+    font-size: 11px;
     border: 1px solid #FFFFFF;
     height: 32px;
     width: 32px;
@@ -20,6 +23,9 @@ td.unknown {
 }
 
 td.obstacle {
+    vertical-align: middle;
+    text-align: center;
+    font-size: 11px;
     border: 1px solid #FFFFFF;
     height: 32px;
     width: 32px;
@@ -27,6 +33,9 @@ td.obstacle {
 }
 
 td.empty {
+    vertical-align: middle;
+    text-align: center;
+    font-size: 11px;
     border: 1px solid #FFFFFF;
     height: 32px;
     width: 32px;
@@ -34,6 +43,9 @@ td.empty {
 }
 
 td.conflict {
+    vertical-align: middle;
+    text-align: center;
+    font-size: 11px;
     border: 1px solid #FFFFFF;
     height: 32px;
     width: 32px;
@@ -51,6 +63,7 @@ td.marker {
 #arena, #robot-fop {
     width: 529px;
     height: 694px;
+    table-layout: fixed;
     position: absolute;
     top: 0;
     left: 0;
