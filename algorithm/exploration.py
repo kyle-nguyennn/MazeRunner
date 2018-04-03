@@ -10,7 +10,7 @@ import json
 from operator import itemgetter
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, alignLimit=2, needReExplore=False, logging_enabled=True):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, alignLimit=2, needReExplore=False, alignStairs = True, logging_enabled=True):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -43,6 +43,7 @@ class Explorer():
         self.turnList = []
         self.isPrevTurn = False
         self.isPrevRight = False
+        self.alignStairs = alignStairs
         self.climbCnt = 0
         self.delayRight = 0
         self.alignSensor = "" # CF(front), CS(right)
@@ -515,7 +516,7 @@ class Explorer():
             # check curner cell conditoin, if corner cell, just do two
             if [h,w] in self.wallCells[head1][i] \
             and [h,w] in self.wallCells[head][i]:
-                self.alignSensor = ''.join(["CF111","CS",str(i)])
+                self.alignSensor = ''.join(["CF000","CS000"])
                 self.alignNow = True
                 self.alignCnt = 0
                 self.alignCntR = 0
@@ -527,36 +528,75 @@ class Explorer():
                     self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1])  == self.arena.get(h + frontCells[1][i][0],w + frontCells[1][i][1]) == CellType.OBSTACLE):
                 self.alignNow = True
                 self.alignCnt = 0
-                self.alignSensor = "CF111"
+                self.alignSensor = "CF000"
 
             elif self.is_valid_point((h + frontCells[0][i][0],w + frontCells[0][i][1])) and \
                   self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCnt = 0
-                self.alignSensor = "CF101"
+                self.alignSensor = "CF090"
 
             elif self.is_valid_point((h + frontCells[0][i][0],w + frontCells[0][i][1])) and \
                   self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[1][i][0],w + frontCells[1][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCnt = 0
-                self.alignSensor = "CF110"
+                self.alignSensor = "CF009"
 
             elif self.is_valid_point((h + frontCells[0][i][0],w + frontCells[0][i][1])) and \
                   self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == self.arena.get(h + frontCells[1][i][0],w + frontCells[1][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCnt = 0
-                self.alignSensor = "CF011"
+                self.alignSensor = "CF900"
+                
+            # calibrate stairs
+            elif self.alignStairs == True:
+                f10 = frontCells[0][0]
+                f11 = frontCells[0][1]
+                f20 = frontCells[1][0]
+                f21 = frontCells[1][1]
+                f30 = frontCells[2][0]
+                f31 = frontCells[2][1]
+                if (self.is_valid_point((h + f10[0],w + f10[1])) and self.is_valid_point((h + f11[0],w + f11[1]))):
+                    if self.arena.get(h+f10[0],w+f10[1]) == CellType.OBSTACLE:
+                        if self.arena.get(h+f31[0],w+f31[1]) == CellType.OBSTACLE:
+                            self.alignNow = True
+                            self.alignCnt = 0
+                            self.alignSensor = "CF091"
+                        elif self.arena.get(h+f21[0],w+f21[1]) == CellType.OBSTACLE:
+                            self.alignNow = True
+                            self.alignCnt = 0
+                            self.alignSensor = "CF019"
+                    elif self.arena.get(h+f20[0],w+f20[1]) == CellType.OBSTACLE:       
+                        if self.arena.get(h+f11[0],w+f11[1]) == CellType.OBSTACLE:
+                            self.alignNow = True
+                            self.alignCnt = 0
+                            self.alignSensor = "CF109"
+                        elif self.arena.get(h+f31[0],w+f31[1]) == CellType.OBSTACLE:
+                            self.alignNow = True
+                            self.alignCnt = 0
+                            self.alignSensor = "CF901"     
+                    elif self.arena.get(h+f30[0],w+f30[1]) == CellType.OBSTACLE:       
+                        if self.arena.get(h+f11[0],w+f11[1]) == CellType.OBSTACLE:
+                            self.alignNow = True
+                            self.alignCnt = 0
+                            self.alignSensor = "CF190"
+                        elif self.arena.get(h+f21[0],w+f21[1]) == CellType.OBSTACLE:
+                            self.alignNow = True
+                            self.alignCnt = 0
+                            self.alignSensor = "CF910"  
 
             # check right condition
 
             if self.alignCntR > 2 and ([h, w] in self.wallCells[head][i] \
                  or (self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
                     self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE)):
-                self.alignSensor = ''.join(["CS", str(i)])
+                if self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
+                    self.alignSensor = "CS000"
+                else:
+                    self.alignSensor = "CS090"
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
-                print("check right 111")
                 break
 
             # elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
@@ -566,13 +606,13 @@ class Explorer():
             #     self.alignCnt = 0
             #     self.alignSensor = "RCF110L"
             #     break
+            
             elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
                     self.alignCntR > 2 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
                 self.alignSensor = "RCF011L"
-                print("check right 011")
                 break
                     
             if len(self.alignSensor) == 0:
