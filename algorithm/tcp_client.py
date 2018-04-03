@@ -69,8 +69,7 @@ class TcpClient():
         return self.recv_string_queue.get()
 
     def send_command(self, command):
-        res = convertString.stringToList(command)
-        self.send_queue.put(res)
+        self.send_queue.put(convertString.stringToList(command))
 
     def send_status(self, status):
         self.send_queue.put(json.dumps({"status": status}))

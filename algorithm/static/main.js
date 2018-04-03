@@ -254,10 +254,7 @@ function moveRobotSim(actions) {
 
             var action = actions.charAt(step);
             if (action == 'C') {
-                if (actions.charAt(step + 1) == 'F')
-                    step += 4;
-                if (actions.charAt(step + 1) == 'S')
-                    step += 2;
+                step += 4;
             }
             else if (action == 'F') {
                 if (currentD == 0)
