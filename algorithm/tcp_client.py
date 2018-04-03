@@ -2,6 +2,7 @@ import socket
 import multiprocessing
 import json
 import threading
+import convertString
 
 
 class TcpClient():
@@ -68,7 +69,8 @@ class TcpClient():
         return self.recv_string_queue.get()
 
     def send_command(self, command):
-        self.send_queue.put(command)
+        res = convertString.stringToList(command)
+        self.send_queue.put(res)
 
     def send_status(self, status):
         self.send_queue.put(json.dumps({"status": status}))

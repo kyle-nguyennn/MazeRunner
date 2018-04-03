@@ -7,6 +7,7 @@ import json
 from sensor import Sensor
 from utils import parse_robot_config
 from random import randint
+import convertString
 
 
 class SimulatorServer():
@@ -80,7 +81,7 @@ class SimulatorServer():
     def get_command(self):
         while self.recv_queue.empty():
             pass
-        return self.recv_queue.get()
+        return convertString.listToString(self.recv_queue.get())
 
     def set_arena(self, arena):
         arena.print()
@@ -102,11 +103,9 @@ class SimulatorServer():
                 skip_count = 0
                 for char in command:
                     if skip_count > 0:
-                        if char == "F":
-                            skip_count += 2
                         skip_count -= 1
                     elif char == "C":
-                        skip_count = 2
+                        skip_count = 4
                     else:
                         self.move_robot(char)
                     time.sleep(self.speed)
