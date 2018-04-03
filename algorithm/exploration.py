@@ -219,6 +219,7 @@ class Explorer():
 
         #before exploration end, check innerMap
         self.wellGuess()
+        self.robot.jump((1,1,0))
         print("Exploration time:",explorationTime)
         print("Instruction count:", self.cnt)
         
@@ -227,6 +228,7 @@ class Explorer():
         
         self.tcp_conn.send_event("endExplore")
         self.update_all("EE", "End exploration")
+        
 
     def wellGuess(self):
         for h in range(20):
@@ -590,7 +592,7 @@ class Explorer():
             if self.alignCntR > 2 and ([h, w] in self.wallCells[head][i] \
                  or (self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
                     self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE)):
-                if self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
+                if [h, w] in self.wallCells[head][i] or self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
                     self.alignSensor = "CS000"
                 else:
                     self.alignSensor = "CS090"
@@ -616,7 +618,7 @@ class Explorer():
                 break
                     
             if len(self.alignSensor) == 0:
-                if self.alignCntL > 2 and self.alignCnt > 2:
+                if self.alignCntL > 3 and self.alignCnt > 3:
                     # check left wall, do possible calibration
                     index = 0
                     count = 0
@@ -649,7 +651,6 @@ class Explorer():
                 block_pos = i
                 break
         # check if between the robot top left and the first block on the left identified are all KNOWN empty spaces
-        print("nearest left obstacle:",block_pos)
         allKnown = True
         if block_pos > 0:
             for j in range(block_pos):
@@ -665,7 +666,8 @@ class Explorer():
             w = self.robot.robotCenterW
             head = int(self.robot.robotHead)
             if not [h,w] in self.wallCells[head][0]:
-                if self.arena.get(self.rightCells[head][0][0][0],self.rightCells[head][0][0][1]) != CellType.OBSTACLE:
+                if not self.is_valid_point((h+self.rightCells[head][0][0][0], w+self.rightCells[head][0][0][1])) or \
+                self.arena.get(h+self.rightCells[head][0][0][0], w+self.rightCells[head][0][0][1]) != CellType.OBSTACLE:                    
                     break
             if not self.isLeftKnown(5):
                 break
