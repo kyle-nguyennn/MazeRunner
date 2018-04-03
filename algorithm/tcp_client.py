@@ -75,6 +75,9 @@ class TcpClient():
     def send_status(self, status):
         self.send_queue.put(json.dumps({"status": status}))
 
+    def send_event(self, event):
+        self.send_queue.put(json.dumps({"event": event}))
+
     def send_robot_pos(self, pos):
         self.send_queue.put(json.dumps({"robotPos": pos}))
 

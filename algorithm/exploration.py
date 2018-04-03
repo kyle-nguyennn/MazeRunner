@@ -225,7 +225,7 @@ class Explorer():
         self.tcp_conn.send_command("CF101CS0RCF101R")
         self.robot.jump((1,1,0))
         
-        self.tcp_conn.send_command(json.dumps({"event": "endExplore"}))
+        self.tcp_conn.send_event("endExplore")
         self.update_all("EE", "End exploration")
 
     def wellGuess(self):
