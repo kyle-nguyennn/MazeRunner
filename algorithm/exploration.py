@@ -589,7 +589,7 @@ class Explorer():
 
             # check right condition
 
-            if self.alignCntR > 2 and ([h, w] in self.wallCells[head][i] \
+            if self.alignCntR > 3 and ([h, w] in self.wallCells[head][i] \
                  or (self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
                     self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE)):
                 if [h, w] in self.wallCells[head][i] or self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
@@ -610,7 +610,7 @@ class Explorer():
             #     break
             
             elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-                    self.alignCntR > 2 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
+                    self.alignCntR > 4 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
@@ -741,7 +741,7 @@ class Explorer():
         bodyCells = self.robot.returnBodyCells()
         for cell in bodyCells:
             # if robot was on this cell, it confirms to be empty
-            self.innerMap[cell[0]][cell[1]] += 2
+            self.innerMap[cell[0]][cell[1]] += 5
         print("alignCNt,",self.alignCnt)
         print("alignRCnt",self.alignCntR)
         if self.isPrevTurn == True:
