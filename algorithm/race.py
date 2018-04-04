@@ -61,6 +61,25 @@ def neighbors(mymap, cur): # cur is (x,y,d)
             2: (1, "B"),
             3: (2, "LF")
         }[i]
+        
+        # AQ added
+
+        wallCells = {0:[],
+                    1:[],
+                    2:[],
+                    3:[]
+                }
+        for j in range(1,19):
+            wallCells[0].append([j,13])
+            wallCells[2].append([j,1])
+            if 1 <= j <= 13:
+                wallCells[1].append([1,j])
+                wallCells[3].append([18,j])
+        if (cur[0],cur[1]) in wallCells[cur[2]] :
+            print("in wall cells")
+            moveCost -= 1
+            
+            
         if i == 0:# or i == 2: #only allow forward # only allow moving forward or backward
             neighbors.append((neighborPos, moveCost, move))
     return neighbors
@@ -71,7 +90,7 @@ def popMin(costs):
     curCost = costs[k]
     del costs[k]
     return (cur, curCost)
-def dijkstra(mymap, start, end, endOrientationImportant = False):
+def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = False):
     ''' 
     return: tuple of instruction string with the final orientation of the robot after executing these instructions,
     and the total cost to reach that state
@@ -109,16 +128,20 @@ def dijkstra(mymap, start, end, endOrientationImportant = False):
                 path.insert(0, p)
                 temp = p[0]
             ins = ""
+            ins_noCali = "" #AQ added
             count = 0
             for item in path:
                 sensor = checkAlign(1,item[0],mymap)
                 if count < 3:
                     sensor = ''
                 ins += ''.join([sensor,item[1]])
+                ins_noCali += item[1]
                 if len(sensor) != 0:
                     count = 0
                 else:
                     count += 1
+            if isExploring == True:
+                return (ins, cur, curCost, ins_noCali)
             # check all calibration possibilities
             return (ins, cur, curCost)
         for neighbor in neighbors(mymap, cur):
@@ -150,10 +173,7 @@ def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
     print("nothing in your eyes", instruction2, endpoint2)
     print("In getInstruction: reached goal")
     print(instruction1+instruction2)
-    if len(instruction1+instruction2) == 0:
-        return "N"
-    else:
-        return instruction1+instruction2
+    return instruction1+instruction2
 
 def checkAlign(r,position,mymap):
     

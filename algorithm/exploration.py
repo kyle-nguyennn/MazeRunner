@@ -8,9 +8,10 @@ from race import dijkstra
 from tcp_client import TcpClient
 import json
 from operator import itemgetter
+import re
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, alignLimit=2, needReExplore=False, alignStairs = True, logging_enabled=True):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, needReExplore=False, alignStairs = True, logging_enabled=True):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -35,7 +36,6 @@ class Explorer():
         self.alignCntR = 0 # counter for robot alignment
         self.alignCntL = 0
         self.alignCnt = 0
-        self.alignLimit = alignLimit
         self.alignNow = False
         self.reReadSensor = False
         self.readingConflict = False
@@ -169,7 +169,6 @@ class Explorer():
                             
                     else:   #need reExplore
                         if explorationTime > self.timeThreshold:
-                            print("time2",explorationTime)
                             # and not self.robot.isAlmostBack():
                             # and self.robot.robotMode != 'reExplore':
                             
@@ -188,7 +187,10 @@ class Explorer():
                             self.robot.robotMode = 'reExplore'
                         if self.robot.robotMode == 'reExplore':
                             # reexplore, find the fastest path to the nearest unexplored cell
-                            (instructions, endnode) = self.reExplore()
+                            (instructions, endnode, instruction_noCalibration) = self.reExplore()
+                            if len(instruction_noCalibration) == 0:
+                                instructions = "N"
+                            
                             # give instruction
                             self.cnt += len(instructions)
                             self.update_all(instructions, "Navigating to nearest unexplored cell")
@@ -665,6 +667,12 @@ class Explorer():
             h = self.robot.robotCenterH
             w = self.robot.robotCenterW
             head = int(self.robot.robotHead)
+            if [h,w] == [15,13] and head == 0: # if front is goal zone, can burst in
+                burstSteps += 3
+                for j in range(3):
+                    self.robot.forward()
+                break
+            
             if not [h,w] in self.wallCells[head][0]:
                 if not self.is_valid_point((h+self.rightCells[head][0][0][0], w+self.rightCells[head][0][0][1])) or \
                 self.arena.get(h+self.rightCells[head][0][0][0], w+self.rightCells[head][0][0][1]) != CellType.OBSTACLE:                    
@@ -883,7 +891,6 @@ class Explorer():
         # search cell which: line withint sensor range all clear, and front row of robot at observing point have 3 empty cells
         observableCells = []
         for cell in cells:
-            print("exam cells:",cell)
             appended = False
             h = cell[0]
             w = cell[1]
@@ -944,7 +951,7 @@ class Explorer():
                             observableCells.append(cell)
                             appended = True
                             break
-            logging.debug("observable cells inside:" + str(observableCells))                                
+            #logging.debug("observable cells inside:" + str(observableCells))                                
         return observableCells
             
             
@@ -961,8 +968,8 @@ class Explorer():
         
         startnode = (robot.robotCenterH, robot.robotCenterW, int(robot.robotHead)) #change to int(robothead) because somehow the robotHead is a float
      
-        for x in range(len(self.arena.arena_map)):
-            for y in range(len(self.arena.arena_map[x])):
+        for x in range(len(self.arena.arena_map)-1,-1,-1):
+            for y in range(len(self.arena.arena_map[x])-1,-1,-1):
                 if (self.arena.get(x,y) == CellType.UNKNOWN or self.arena.get(x,y) == CellType.CONFLICT):
                     reExploreCells.append([x,y])
         
@@ -977,19 +984,19 @@ class Explorer():
                 layer += 1
 
         if len(observableCells) == 0 and layer >= maxSensor: # no possible observation, go back
-            (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,2), endOrientationImportant=True) 
+            (instr, endNode,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,2), endOrientationImportant=True,isExploring = True) 
             self.robot.robotMode = "done"
-            return (instr, endNode)
-
+            return (instr, endNode, instr_noCali)
         # calculate Euclidean distance for each
         for cell in observableCells:
             euclideanDist =euclidean([robot.robotCenterH,robot.robotCenterW],cell)
             cellEuclidean.append(euclideanDist)
             observableCellsDist.append((cell,euclideanDist))
+        logging.debug("observableCells2:" + str(observableCellsDist))
         
         # sort cellEuclidean distance and remove all duplicates
-        cellEuclidean.sort()
         cellEuclidean = list(set(cellEuclidean))
+        cellEuclidean.sort()
         
         potentialPos = []
        # while len(potentialPos) == 0:  
@@ -999,6 +1006,7 @@ class Explorer():
         targetCells = []
         cellList = []
         for dist in cellEuclidean:
+            print("dist:",dist)
             for cellTup in observableCellsDist:
                 if cellTup[1] == dist:
                     if itemNo < noOfPicks:
@@ -1059,7 +1067,7 @@ class Explorer():
                         #print("cell:",cell)
                         #print("obPoint:",[[cell[0]+offset[0],cell[1]+offset[1]]])
                         potentialPos.append([[cell[0]+offset[0],cell[1]+offset[1]],cell,0,0]) #default head is 0, cost = 0            
-                if layer < 2:
+                if layer < 1:
                     layer += 1
                 else:
                     break
@@ -1078,68 +1086,80 @@ class Explorer():
             indexOff = 0
             for offset in offsets:
                 if [node[0][0]-node[1][0],node[0][1]-node[1][1]] == offset:
-                    if 0 <= indexOff < 3 or 12 <= indexOff < 15 or 24 <= indexOff < 27 or 36 <= indexOff < 39 :
-                        if indexOff in [1,13,25,37]: # front only
-                            node[2] = [0]
+                    if 0 <= indexOff < 3 or 12 <= indexOff < 15 or 24 <= indexOff < 27 or 36 <= indexOff < 39:
+                        if indexOff in [1,13,25,37]: # front only   # ,37
+                            if indexOff != 37:
+                                node[2] = [0]
                             break
                         elif indexOff in [2,14,26,38]: # front and left and right
-                            if indexOff != 38:
+                            if indexOff < 26:
                                 node[2] = [0,1,3]
-                            else:
+                            elif indexOff < 38:
                                 node[2] = [0,1]
+                            else:
+                                node[2] = [1]
                             break
                         else:
-                            if indexOff != 36:
+                            if indexOff < 24:
                                 node[2] = [0,3] # front and right
-                            else:
+                            elif indexOff < 36:
                                 node[2] = [0]
                             break
                     elif 3 <= indexOff < 6 or 15 <= indexOff < 18 or 27 <= indexOff < 30 or 39 <= indexOff < 42:
                         if indexOff in [4,16,28,40]:
-                            node[2] = [1]
+                            if indexOff != 40:
+                                node[2] = [1]
                             break
                         elif indexOff in [5,17,29,41]:
-                            if indexOff != 41:
+                            if indexOff < 29:
                                 node[2] = [1,2,0]
-                            else:
+                            elif indexOff < 41:
                                 node[2] = [1,2]
+                            else:
+                                node[2] = [2]
                             break
                         else:
-                            if indexOff != 39:
+                            if indexOff < 27:
                                 node[2] = [1,0]
-                            else:
+                            elif indexOff < 39:
                                 node[2] = [1]
                             break
                     elif 6 <= indexOff < 9 or 18 <= indexOff < 21 or 30 <= indexOff < 33 or 42 <= indexOff < 45:
                         if indexOff in [7,19,31,43]:
-                            node[2] = [2]
+                            if indexOff != 43:
+                                node[2] = [2]
                             break
                         elif indexOff in [8,20,32,44]:
-                            if indexOff != 44:
+                            if indexOff < 32:
                                 node[2] = [2,3,1]
-                            else:
+                            elif indexOff < 44:
                                 node[2] = [2,3]
+                            else:
+                                node[2] = [3]
                             break
                         else:
-                            if indexOff != 42:
+                            if indexOff < 30:
                                 node[2] = [2,1]
-                            else:
+                            elif indexOff < 42:
                                 node[2] = [2]
                             break
                     else:
                         if indexOff in [10,22,34,46]:
-                            node[2] = [3]
+                            if indexOff < 46:
+                                node[2] = [3]
                             break
                         elif indexOff in [11,23,35,47]:
-                            if indexOff != 46:
+                            if indexOff < 35:
                                 node[2] = [3,0,2]
-                            else:
+                            elif indexOff < 47:
                                 node[2] = [3,0]
+                            else:
+                                node[2] = [0]
                             break
                         else:
-                            if indexOff != 45:
+                            if indexOff < 33:
                                 node[2] = [3,2]
-                            else:
+                            elif indexOff < 45:
                                 node[2] = [3]
                             break
                 else:
@@ -1150,7 +1170,7 @@ class Explorer():
             for direction in node[2]:
                 cellsToMove.append((node[0][0],node[0][1],direction))
             for cellToMove in cellsToMove:
-                (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+                (instr, endNode,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True, isExploring = True) 
 # =============================================================================
 #                 print("dijkstra startnode:",startnode)
 #                 print("dijkstra cellToMove:",cellToMove)
@@ -1167,7 +1187,7 @@ class Explorer():
             node[2] = node[2][index]                  
             node[3] = minCost
             updatedNodes.append(node)
-        logging.debug("potentialPos: " + str(updatedNodes))
+        #logging.debug("potentialPos: " + str(updatedNodes))
         
         # find the minimum cost in potentialPos 
         # this algo can be optimized later
@@ -1186,7 +1206,7 @@ class Explorer():
 #         print("cell to move:",cellToMove)
 #         print("start cell:",startnode)
 # =============================================================================
-        (instr, endNode,cost) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True) 
+        (instr, endNode,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True, isExploring = True) 
         logging.debug("Observing point " + str(endNode)) 
        
         # check calibration condition in reExplore
@@ -1196,7 +1216,7 @@ class Explorer():
             sensor = self.alignSensor
         instr = ''.join([sensor, instr])
         logging.debug("instruction:"+instr)
-        return (instr, endNode)
+        return (instr, endNode, instr_noCali)
 
 ###### helper functions #####    
 def findArrayIndexMin(arr):
