@@ -838,8 +838,11 @@ class Explorer():
             elif self.climbCnt > 0: # if delayRight == 0 and climbCnt > 0
                 self.climbCnt -= 1
             f_str = ""
-            for i in range(forwardSteps):
-                f_str = ''.join([f_str, "F"])
+            if self.climbCnt == 0:
+                for i in range(forwardSteps):
+                    f_str = ''.join([f_str, "F"])
+            else:
+                return ''.join([sensor,'F'])
             return (''.join([sensor, f_str]))
 
         if self.climbCnt == 2: # and checkFront() == False implicitly
