@@ -11,7 +11,7 @@ from operator import itemgetter
 import re
 
 class Explorer():
-    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, needReExplore=False, alignStairs = True, logging_enabled=True):
+    def __init__(self, tcp_conn, robot_pos, buffer_size=1024, tBack=20, tThresh=330, pArea=1, needReExplore=True, alignStairs = True, logging_enabled=True):
         logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
         self.tcp_conn = tcp_conn
         self.auto_update = False
@@ -183,7 +183,7 @@ class Explorer():
                             self.robot.jump(endnode) # already update sensors inside
                             continue
                         # if less than 5 mins now, can go for exploration
-                        if self.robot.isAlmostBack() and self.exploredArea < 300*self.areaPercentage and explorationTime < 300:
+                        if self.robot.isAlmostBack(10,10) and self.exploredArea < 300*self.areaPercentage and explorationTime < 300 and self.shouldGo():
                             self.robot.robotMode = 'reExplore'
                         if self.robot.robotMode == 'reExplore':
                             # reexplore, find the fastest path to the nearest unexplored cell
@@ -343,6 +343,15 @@ class Explorer():
 
     ##### exploration logics #####
 
+    def shouldGo(self):
+        for i in range(self.robot.robotCenterH+2,20):
+            for j in range(15):
+                if self.arena.get(i,j) == CellType.UNKNOWN:
+                    return True
+        return False
+        
+    
+    
     def updateExploredArea(self):   
         count = 0
         for row in self.arena.get_2d_arr():

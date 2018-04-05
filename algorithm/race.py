@@ -167,13 +167,13 @@ def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
     mymap = map.get_2d_arr()
     waypoint = (waypoint[0], waypoint[1], 0) # padding 0 at the 3rd position to make it work with djikstra
     mymap[waypoint[0]][waypoint[1]] = CellType.EMPTY # cuz waypoint is marked as -1
-    (instruction1, endpoint1, totalCost) = dijkstra(mymap, (1, 1, dir), waypoint, endOrientationImportant = False)
+    (instruction1, endpoint1, totalCost, instr1_noCalibration) = dijkstra(mymap, (1, 1, dir), waypoint, endOrientationImportant = False, isExploring = True)  #isExploring is set to True because the fastest path now wants to take off calibration
     print("In getInstruction: reached waypoint", endpoint1)
-    (instruction2, endpoint2, totalCost) = dijkstra(mymap, endpoint1, (18,13, 0), endOrientationImportant = False)
+    (instruction2, endpoint2, totalCost, instr2_noCalibration) = dijkstra(mymap, endpoint1, (18,13, 0), endOrientationImportant = False, isExploring = True)
     print("nothing in your eyes", instruction2, endpoint2)
     print("In getInstruction: reached goal")
-    print(instruction1+instruction2)
-    return instruction1+instruction2
+    print(instr1_noCalibration+instr2_noCalibration)
+    return instr1_noCalibration+instr2_noCalibration
 
 def checkAlign(r,position,mymap):
     

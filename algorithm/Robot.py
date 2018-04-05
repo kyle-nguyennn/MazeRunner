@@ -103,8 +103,8 @@ class Robot():
         return False
 
     # isAlmostBack will only be called when robot reachGoal == True, so dun need to check here
-    def isAlmostBack(self):
-        if self.robotCenterW <= 5:
+    def isAlmostBack(self,h_limit,w_limit):
+        if self.robotCenterH <= h_limit:
             return True
         return False
 
