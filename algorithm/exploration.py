@@ -635,7 +635,7 @@ class Explorer():
             #     break
             
             elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-                    self.alignCntR > 0 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE and self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) != CellType.OBSTACLE:
+                    self.alignCntR > 1 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE and self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) != CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
@@ -788,10 +788,10 @@ class Explorer():
         print("robot head:",self.robot.robotHead)        
         print("staricase climb counter",self.climbCnt)
         print("prevRight:",self.isPrevRight)
-                                        # previously is == 0
-        if (self.isPrevRight == False and (self.climbCnt < 2 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
+                                        # previously is == 0, off staircase is < 2
+        if (self.isPrevRight == False and (self.climbCnt == 0 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
             # decide turn-right condition
-            if (self.checkRight(1) == "true" or self.checkRight(1) == "stairs"):  # previously only checkright == TRUe
+            if (self.checkRight(1) == "true"):  # previously only checkright == TRUe; if off stairs, add or self.checkRight(1) == "stairs"
                 print("check right true here")                  
                 if self.alignNow == True:
                     sensor = self.alignSensor
