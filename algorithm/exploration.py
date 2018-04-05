@@ -706,6 +706,8 @@ class Explorer():
                 break
             # else, burst plus 1
             burstSteps += 1
+        self.alignCntR += burstSteps -1
+        self.alignCnt += burstSteps - 1
         return burstSteps
 
 
