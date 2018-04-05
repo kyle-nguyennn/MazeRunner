@@ -635,7 +635,7 @@ class Explorer():
             #     break
             
             elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-                    self.alignCntR > 3 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
+                    self.alignCntR > 0 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
