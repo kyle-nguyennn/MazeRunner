@@ -788,10 +788,10 @@ class Explorer():
         print("robot head:",self.robot.robotHead)        
         print("staricase climb counter",self.climbCnt)
         print("prevRight:",self.isPrevRight)
-
-        if (self.isPrevRight == False and (self.climbCnt == 0 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
+                                        # previously is == 0
+        if (self.isPrevRight == False and (self.climbCnt < 2 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
             # decide turn-right condition
-            if (self.checkRight(1) == "true"):  
+            if (self.checkRight(1) == "true" or self.checkRight(1) == "stairs"):  # previously only checkright == TRUe
                 print("check right true here")                  
                 if self.alignNow == True:
                     sensor = self.alignSensor
