@@ -776,7 +776,7 @@ class Explorer():
         print("alignCNt,",self.alignCnt)
         print("alignRCnt",self.alignCntR)
         if self.isPrevTurn == True:
-            self.alignCntR += 3
+            self.alignCntR += 9
         self.isPrevTurn = False
         self.checkAlign(1)
         self.alignCntR += 1
@@ -795,7 +795,7 @@ class Explorer():
                     sensor = self.alignSensor
                 # for every turn, calibrate
                 else:
-                    self.alignCntR += 3
+                    self.alignCntR += 9
                     self.checkAlign(1)
                     sensor = self.alignSensor
                 self.robot.rotateRight()
@@ -811,7 +811,7 @@ class Explorer():
                     sensor = self.alignSensor
                 # for every turn, calibrate
                 else:
-                    self.alignCntR += 3
+                    self.alignCntR += 9
                     self.checkAlign(1)
                     sensor = self.alignSensor
                 self.robot.rotateRight()
