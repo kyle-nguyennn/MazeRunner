@@ -168,6 +168,18 @@ class Explorer():
                                 break
                             
                     else:   #need reExplore
+                        if self.robot.robotCenterH == self.robot.robotCenterW == 1:
+                            #check direction
+                            if self.robot.robotHead != 2:
+                                startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
+                                (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,2), endOrientationImportant=True)
+                                self.update_all(instructions, "Going back to start zone")
+                                self.robot.robotMode = "done"
+                                continue
+                            else:
+                                self.robot.robotMode = "done"
+                                break
+                            
                         if explorationTime > self.timeThreshold:
                             # and not self.robot.isAlmostBack():
                             # and self.robot.robotMode != 'reExplore':
@@ -201,6 +213,8 @@ class Explorer():
                             continue
 
                 #if havent reach any of above continue statements, just wall hugging
+                if self.robot.robotCenterH == 1 and self.robot.robotCenterW == 1 and self.reachGoal:
+                    break
                 instruction = self.wallHugging()
                 # there's no need to update robot state because it is already done in wallHugging()
                 # give instruction 
