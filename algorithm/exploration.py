@@ -1192,12 +1192,12 @@ class Explorer():
                             break
                 else:
                     indexOff += 1
-            cellsToMove = []
+            cellsToMoves = []
             costs = []
             # find the path of less cost considring both front ahd right direction for same point
             for direction in node[2]:
-                cellsToMove.append((node[0][0],node[0][1],direction))
-            for cellToMove in cellsToMove:
+                cellsToMoves.append((node[0][0],node[0][1],direction))
+            for cellToMove in cellsToMoves:
                 (instr, endNode,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True, isExploring = True) 
 # =============================================================================
 #                 print("dijkstra startnode:",startnode)
@@ -1211,7 +1211,7 @@ class Explorer():
                     if cost < minCost:
                         minCost = cost
                         index += 1
-            node[1] = cellsToMove[index] 
+            node[1] = cellsToMoves[index] 
             node[2] = node[2][index]                  
             node[3] = minCost
             updatedNodes.append(node)
@@ -1229,6 +1229,9 @@ class Explorer():
                 index += 1
             else:
                 break
+        if len(updatedNodes) == 0:
+            print("no more")
+            cellToMove = (1,1,2)
         cellToMove = (updatedNodes[index][0][0], updatedNodes[index][0][1], updatedNodes[index][2])
 # =============================================================================
 #         print("cell to move:",cellToMove)
