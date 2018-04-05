@@ -635,11 +635,11 @@ class Explorer():
             #     break
             
             elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-                    self.alignCntR > 4 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
+                    self.alignCntR > 3 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignCntR = 0
                 self.alignCnt = 0
-                self.alignSensor = "RCF011L"
+                self.alignSensor = "RCF900L"
                 break
                     
             if len(self.alignSensor) == 0:
@@ -654,7 +654,7 @@ class Explorer():
                         index += 1
                     print("count",count)
                     if count >= 3: # 3 block on left for calibration
-                        self.alignSensor = ''.join(["LCF111","R"])
+                        self.alignSensor = ''.join(["LCF000","R"])
                         self.alignNow = True 
                         self.alignCntL = 0
                         self.alignCnt = 0
