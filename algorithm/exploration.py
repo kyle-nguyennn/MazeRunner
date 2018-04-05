@@ -690,7 +690,7 @@ class Explorer():
             h = self.robot.robotCenterH
             w = self.robot.robotCenterW
             head = int(self.robot.robotHead)
-            if [h,w] == [15,13] and head == 0: # if front is goal zone, can burst in
+            if [h,w] == [15,13] and head == 0 and self.checkFront(): # if front is goal zone, can burst in
                 burstSteps += 3
                 for j in range(3):
                     self.robot.forward()
