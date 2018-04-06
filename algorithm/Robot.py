@@ -58,7 +58,7 @@ class Robot():
         for sensor in self.sensors:
             sensor.set_robot(self.robotCenterH, self.robotCenterW, self.robotHead*90)
     # move front, update center cell coordinates
-    def forward(self):
+    def forward(self, needUpdateSensor = False):
         if (self.robotHead == 0):		
             self.robotCenterH += 1
         elif (self.robotHead == 1):
@@ -69,9 +69,10 @@ class Robot():
             self.robotCenterW -= 1
         else:
             print("Error: head direction out of bound")
-        self.updateSensors()
+        if needUpdateSensor == False:
+            self.updateSensors()
 
-    def backward(self):
+    def backward(self, needUpdateSensor = False):
         if (self.robotHead == 0):		
             self.robotCenterH -= 1
         elif (self.robotHead == 1):
@@ -82,15 +83,18 @@ class Robot():
             self.robotCenterW += 1
         else:
             print("Error: head direction out of bound")
-        self.updateSensors() 
+        if needUpdateSensor == False:
+            self.updateSensors() 
 
-    def rotateRight(self):
+    def rotateRight(self, needUpdateSensor = False):
         self.robotHead = (self.robotHead + 1) %4
-        self.updateSensors()
+        if needUpdateSensor == False:
+            self.updateSensors()
     
-    def rotateLeft(self):
+    def rotateLeft(self, needUpdateSensor = False):
         self.robotHead = (self.robotHead - 1) %4
-        self.updateSensors()
+        if needUpdateSensor == False:
+            self.updateSensors()
 
     def isInGoal(self):
         if self.robotCenterH == 18 and self.robotCenterW == 13:
@@ -103,7 +107,7 @@ class Robot():
         return False
 
     # isAlmostBack will only be called when robot reachGoal == True, so dun need to check here
-    def isAlmostBack(self,h_limit,w_limit):
+    def isAlmostBack(self,h_limit):
         if self.robotCenterH <= h_limit:
             return True
         return False

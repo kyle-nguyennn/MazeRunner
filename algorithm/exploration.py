@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Apr  6 11:00:17 2018
+
+@author: daq11
+"""
+
 from arena import Arena,CellType
 from Robot import Robot
 from random import randint
@@ -20,10 +27,6 @@ class Explorer():
         self.log_filename = datetime.datetime.now().strftime("%Y%m%d%H%M%S") + ".log"
         self.arena = Arena()
         self.needReExplore = needReExplore
-        #self.robot = [1, 1, 0] # 2d position plus orientation
-        ### CONSTANT ####
-        self.MAX_SHORT_SENSOR = 3
-        self.MAX_LONG_SENSOR = 6
         ##### exploration logics related variables ####
         self.exploredArea = 0
         self.cnt = 0 # no. of instruction executed
@@ -33,9 +36,6 @@ class Explorer():
         self.areaPercentage = pArea # percentage we want the robot to explore up to
         self.reachGoal = False
         self.startTime = time.time()
-        self.alignCntR = 0 # counter for robot alignment
-        self.alignCntL = 0
-        self.alignCnt = 0
         self.alignNow = False
         self.reReadSensor = False
         self.readingConflict = False
@@ -46,6 +46,15 @@ class Explorer():
         self.alignStairs = alignStairs
         self.climbCnt = 0
         self.delayRight = 0
+        self.alignCntH = 0 # horizontal displacement counter
+        self.alignCntV = 0 # vertical displacement counter
+        self.alignDict = {'R':1,
+                          'L':1,
+                          'F':0.5}
+        self.alignCntHLimit = 3
+        self.alignCntVLimit = 3
+        self.breakPoints = []
+        self.robotPosList = []
         self.alignSensor = "" # CF(front), CS(right)
         self.robot = Robot(
             'exploring', robot_pos[2]/90, robot_pos[0], robot_pos[1])
@@ -116,6 +125,9 @@ class Explorer():
             for j in range(12,15):
                 self.innerMap[i][j] += 99
         while self.robot.robotMode != "done": 
+            if [self.robot.robotCenterH, self.robot.robotCenterW] == [1,1] and self.reachGoal:
+                self.robot.robotMode = 'done'
+                continue  # next loop should break because enter start zone
             cnt += 1 
             sensors = self.tcp_conn.get_string()
             if self.logging_enabled:
@@ -152,75 +164,24 @@ class Explorer():
                     self.robot.jump(endnode)
                     continue
             else:
-                if self.reachGoal:
-                    if self.needReExplore == False:
-                        # use wall hugging to return back to start zone
-                        if self.robot.robotCenterH == self.robot.robotCenterW == 1:
-                            #check direction
-                            if self.robot.robotHead != 2:
-                                startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
-                                (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,2), endOrientationImportant=True)
-                                self.update_all(instructions, "Going back to start zone")
-                                self.robot.robotMode = "done"
-                                continue
-                            else:
-                                self.robot.robotMode = "done"
-                                break
-                            
-                    else:   #need reExplore
-                        if self.robot.robotCenterH == self.robot.robotCenterW == 1:
-                            #check direction
-                            if self.robot.robotHead != 2:
-                                startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
-                                (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,2), endOrientationImportant=True)
-                                self.update_all(instructions, "Going back to start zone")
-                                self.robot.robotMode = "done"
-                                continue
-                            else:
-                                self.robot.robotMode = "done"
-                                break
-                            
-                        if explorationTime > self.timeThreshold:
-                            # and not self.robot.isAlmostBack():
-                            # and self.robot.robotMode != 'reExplore':
-                            
-                            # find way back to start zone using fastest path algo (djikstra)
-                            startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
-                            endnode = (1,1,2)
-                            (instructions, endOrientation,cost) = dijkstra(self.arena.get_2d_arr(), startnode, endnode, endOrientationImportant=False)
-                            # give instruction
-                            self.cnt += len(instructions)
-                            self.update_all(instructions, "Going back to start zone")
-                            # update robot states (position and orientation)
-                            self.robot.jump(endnode) # already update sensors inside
-                            continue
-                        # if less than 5 mins now, can go for exploration
-                        if self.robot.isAlmostBack(10,10) and self.exploredArea < 300*self.areaPercentage and explorationTime < 300 and self.shouldGo():
-                            self.robot.robotMode = 'reExplore'
-                        if self.robot.robotMode == 'reExplore':
-                            # reexplore, find the fastest path to the nearest unexplored cell
-                            (instructions, endnode, instruction_noCalibration) = self.reExplore()
-                            if len(instruction_noCalibration) == 0:
-                                instructions = "N"
-                            
-                            # give instruction
-                            self.cnt += len(instructions)
-                            self.update_all(instructions, "Navigating to nearest unexplored cell")
-                            # update robot states
-                            self.robot.jump(endnode) # already update sensors inside
-    
-                            print("comeplete a re-exploration")
-                            continue
-
-                #if havent reach any of above continue statements, just wall hugging
-                if self.robot.robotCenterH == 1 and self.robot.robotCenterW == 1 and self.reachGoal:
-                    break
+                if self.reachGoal and self.robot.isAlmostBack(8) and self.shouldGo():
+                    self.robot.robotMode = 'reExplore'
+                if self.robot.robotMode == 'reExplore':
+                    (instructions, endnode, instruction_noCalibration) = self.reExplore()
+                    if len(instruction_noCalibration) == 0:
+                        instructions = "N"                   
+                    # give instruction
+                    self.cnt += len(instructions)
+                    self.update_all(instructions, "Navigating to nearest unexplored cell")
+                    # update robot states
+                    self.robot.jump(endnode) # already update sensors inside
+                    print("comeplete a re-exploration")
+                    continue
+                # else, doing wall hugging
                 instruction = self.wallHugging()
-                # there's no need to update robot state because it is already done in wallHugging()
-                # give instruction 
                 self.update_all(instruction, "Performing right wall hugging exploration")
-                if self.reachGoal == False:
-                    self.reachGoal = self.robot.isInGoal()
+        
+        # berak out of while loop means finish exploring, now check ending direction            
         if self.robot.robotHead != 2 :
                 startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
                 endnode = (1,1,2) # face backwards, can calibrate CF and CS
@@ -257,64 +218,285 @@ class Explorer():
                         self.arena.set(h,w,CellType.EMPTY)
                     else:
                         continue
-        #count = self.countObstacles()
-
-        # if count == 30:
-        #     for row in self.arena.get_2d_arr():
-        #         for cell in row:
-        #             if cell != CellType.OBSTACLE:
-        #                 cell = CellType.EMPTY
-        #
-        # elif count > 30: # more obstacles than expected
-        #     obstacles = []
-        #     for h in range(20):
-        #         for w in range(15):
-        #             if self.arena.get(h,w) == CellType.OBSTACLE:
-        #                 score = self.innerMap[h][w]
-        #                 obstacles.append([h,w,score])
-        #     sortedObstacles = sorted(obstacles,key=itemgetter(2))
-        #     throwNumber = 30-count
-        #     throwCells = sortedObstacles[throwNumber:]
-        #     for cell in throwCells:
-        #         self.arena.set(cell[0],cell[1],CellType.EMPTY)
-        #     # put all other as empty
-        #     for row in self.arena.get_2d_arr():
-        #         for cell in row:
-        #             if cell != CellType.OBSTACLE:
-        #                 cell = CellType.EMPTY
-        #
-        # else: # less than expected
-        #     candidateCells = []
-        #     unexploredCells = []
-        #     for h in range(20):
-        #         for w in range(15):
-        #             if self.arena.get(h,w) != CellType.OBSTACLE:
-        #                 score = self.innerMap[h][w]
-        #                 if score < 0:
-        #                     candidateCells.append([h,w,score])
-        #                 elif score == 0:
-        #                     unexploredCells.append([h,w,score])
-        #     sortedCandidates = sorted(candidateCells,key=itemgetter(2))
-        #     addNumber = 30 - count
-        #     addCells = sortedCandidates[:addNumber]
-# =============================================================================           
-#             if the number is still less than 30, check unexplored cells
-#                if count + len(addCells) < 30: 
-#                 # if plus unexplored cells, still less: most likely unexplored cells are obstacles
-#                 if count+len(addCells)+len(unexploredCells) <= 30:
-#                     for cell in unexploredCells:
-#                         addCells.append(cell)
-# =============================================================================
-            # it might be still less than 30, but it's fine.
-        #     for cell in addCells:
-        #         self.arena.set(cell[0],cell[1],CellType.OBSTACLE)
-        #
-        # # clean up all other non-obstacles to EMPTY
-        # for h in range(20):
-        #     for w in range(15):
-        #         if self.arena.get(h,w) != CellType.OBSTACLE and self.arena.get(h,w) != CellType.UNKNOWN:
-        #                self.arena.set(h,w,CellType.EMPTY)
+                    
+    def wallHugging(self):
+        bodyCells = self.robot.returnBodyCells()
+        for cell in bodyCells:
+            # if robot was on this cell, it confirms to be empty
+            self.innerMap[cell[0]][cell[1]] += 5
+        self.isPrevTurn = False
+        print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
+        print("robot head:",self.robot.robotHead)        
+        print("staricase climb counter",self.climbCnt)
+        print("prevRight:",self.isPrevRight)
+        robotCurrentPos = self.getRobotCurrentPos()
+        print("currentPos:", robotCurrentPos)
+        (instruction,states) = self.stateSimulation()        
+        endnode = states[-1]
+        self.robot.jump(endnode)
+        
+        if len(states) < 3:
+            return instruction
+        
+        # since goal zone must pass through, whenever the simulation path include goal zone, must do a "waypoint" there
+        if (18,13,0) in states or (18,13,1) in states or (18,13,2) in states or (18,13,3) in states:
+            print("enter")
+            (instruction1, endPoint1, cost, instr1_noCali) = dijkstra(self.arena.get_2d_arr(), robotCurrentPos, (18,13,0), endOrientationImportant=False, isExploring = True, Hcounter=self.alignCntH, Vcounter=self.alignCntV)
+            (instruction2, endPoint2, cost, instr2_noCali) = dijkstra(self.arena.get_2d_arr(), endPoint1, endnode, endOrientationImportant=True, isExploring = True)
+            self.reachGoal = True
+            print("set reachGoal True")
+            if len(instr1_noCali+instr2_noCali) == 0:
+                return "N"
+            else:
+                return instruction1+instruction2
             
+        elif ((1,1,0) in states or (1,1,1) in states or (1,1,2) in states or (1,1,3) in states) and self.reachGoal:  # should complete
+            (instructions, endPoint,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), robotCurrentPos, (1,1,0), endOrientationImportant=False, isExploring = True, Hcounter=self.alignCntH, Vcounter=self.alignCntV)
+            self.robot.robotMode = 'done'
+            if len(instr_noCali) == 0:
+                return "N"
+            else:
+                return instructions
+        
+        else:
+            print("use fastest path")
+            (instructions, endPoint,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), robotCurrentPos, endnode, endOrientationImportant=True, isExploring = True, Hcounter=self.alignCntH, Vcounter=self.alignCntV)
+            print("dijkstra instructions:", instructions)
+            if len(instr_noCali) == 0:
+                return "N"
+            else:
+                return instructions    
+            
+        
+    def stateSimulation(self):
+        instructions = ''
+        states= []
+        startPosition = self.getRobotCurrentPos()
+        states.append(startPosition)
+        (next_instruction, robotNextPos) = self.nextStep()
+        states.append(robotNextPos)
+        instructions = ''.join([instructions, next_instruction])
+        print("before canSkip")
+        canSkip = self.canSkip(robotNextPos)
+        while True:
+            if canSkip == False:
+                print("states:",states)
+                return (instructions, states)
+            else:
+                (next_instruction, robotNextPos) = self.nextStep()
+                states.append(robotNextPos)
+                instructions = ''.join([instructions, next_instruction])
+                canSkip = self.canSkip(robotNextPos)
+                if ((1,1,0) in states or (1,1,1) in states or (1,1,2) in states or (1,1,3) in states) and self.reachGoal:   # if the path include start zone and self.reachGoal, should stop there
+                    return (instructions, states) 
+                if self.reachGoal and self.robot.isAlmostBack(8) and self.shouldGo():
+                    self.robot.robotMode = 'reExplore'
+                    return (instructions, states)
+            
+    def canSkip(self, robotNextPos):
+        print("hello")
+        h = robotNextPos[0]
+        w = robotNextPos[1]
+        head = robotNextPos[2]
+        print("evaluating point:",h,w,head)
+        if not self.isFrontAllKnown(h,w,head,0):  # previously is 2, but maybe can change to 0 becaseu if both left and right are explored, the robot can burst
+            print("front false")
+            return False
+        if not self.isLeftAllKnown(h,w,head,4):
+            print("left false")
+            return False
+        # decide the right allKnown range
+        if head == 1 or head == 3:
+            right_range = 0
+        else:
+            right_range = 2
+        if not self.isRightAllKnown(h,w,head,right_range): 
+            print("right false")
+            return False
+        return True
+        
+    def isFrontAllKnown(self,h,w,head,trust_range):  # trust_Range is sensor trust range
+        block_pos = [trust_range+1,trust_range+1,trust_range+1] # block_pos is a list because need to record all block pos at front cells (3)
+        # check where is the nearest block
+        for j in range(3):
+            for i in range(trust_range+1):
+                offset = self.frontCells[head][j][i]
+                cell = [h+offset[0],w+offset[1]]
+                if cell[0] == 20 or cell[0] == -1 or cell[1] == -1 or cell[1] == 15: # wall
+                    block_pos[j] = i
+                    break
+                elif not self.is_valid_point(cell):
+                    return False
+                elif self.arena.get(cell[0],cell[1]) == CellType.OBSTACLE:
+                    block_pos[j] = i
+                    break
+        # check if: inside the nearest block, all cells are known to be empty
+        for j in range(3):
+            for i in range(block_pos[j]):
+                offset = self.frontCells[head][j][i]
+                cell = [h+offset[0],w+offset[1]]
+                if block_pos[j] == 0:
+                    break
+                elif not self.is_valid_point(cell):
+                    return False
+                elif self.arena.get(cell[0],cell[1]) != CellType.EMPTY:
+                    return False
+        return True
+    
+    def isRightAllKnown(self,h,w,head,trust_range):
+        block_pos = [trust_range+1,trust_range+1] # block_pos is a list because need to record all block pos at front cells (3)
+        # check where is the nearest block
+        for j in range(2):
+            for i in range(trust_range+1):
+                offset = self.rightCells[head][j][i]
+                cell = [h+offset[0],w+offset[1]]
+                if cell[0] == 20 or cell[0] == -1 or cell[1] == -1 or cell[1] == 15: # wall
+                    block_pos[j] = i
+                    break
+                elif not self.is_valid_point(cell):
+                    return False
+                elif self.arena.get(cell[0],cell[1]) == CellType.OBSTACLE:
+                    block_pos[j] = i
+                    break
+        # check if: inside the nearest block, all cells are known to be empty
+        for j in range(2):
+            for i in range(block_pos[j]):
+                offset = self.rightCells[head][j][i]
+                cell = [h+offset[0],w+offset[1]]
+                if block_pos[j] == 0:
+                    break
+                elif not self.is_valid_point(cell):
+                    return False
+                elif self.arena.get(cell[0],cell[1]) != CellType.EMPTY:
+                    return False
+        return True
+    
+    def isLeftAllKnown(self,h,w,head,trust_range):
+        block_pos = trust_range+1 # block_pos is a list because need to record all block pos at front cells (3)
+        # check where is the nearest block
+        for i in range(trust_range+1):
+            offset = self.leftCells[head][i]
+            cell = [h+offset[0],w+offset[1]]
+            if cell[0] == 20 or cell[0] == -1 or cell[1] == -1 or cell[1] == 15: # wall
+                block_pos = i
+                break
+            elif not self.is_valid_point(cell):
+                return False
+            elif self.arena.get(cell[0],cell[1]) == CellType.OBSTACLE:
+                block_pos = i
+                break
+        # check if: inside the nearest block, all cells are known to be empty
+        for i in range(block_pos):
+            offset = self.leftCells[head][i]
+            cell = [h+offset[0],w+offset[1]]
+            if block_pos == 0:
+                break
+            elif not self.is_valid_point(cell):
+                return False
+            elif self.arena.get(cell[0],cell[1]) != CellType.EMPTY:
+                return False
+        return True            
+    
+    def getRobotCurrentPos(self):
+        return (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
+            
+            
+    def nextStep(self):
+        robotCurrentPos = self.getRobotCurrentPos()
+        self.checkAlign(1)
+        print("alignsensor:",self.alignSensor)
+        print("cntH:",self.alignCntH)
+        print("cntV:",self.alignCntV)
+        self.clearAlignCnt()
+        print("cntH:",self.alignCntH)
+        print("cntV:",self.alignCntV)
+        # previously is == 0, off staircase is < 2
+        if (self.isPrevRight == False and (self.climbCnt == 0 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
+            # decide turn-right condition
+            if (self.checkRight(1) == "true"):  # previously only checkright == TRUe; if off stairs, add or self.checkRight(1) == "stairs"
+                print("check right true here")                  
+                self.robot.rotateRight(needUpdateSensor = True)
+                robotCurrentPos = self.getRobotCurrentPos()
+                if robotCurrentPos[2] == 1 or robotCurrentPos[2] == 3:
+                    self.alignCntV += self.alignDict['R']
+                else:
+                    self.alignCntH += self.alignDict['R']
+                #self.robot.forward()
+                self.isPrevTurn = True
+                self.isPrevRight = True
+                return (''.join([self.alignSensor, 'R']), robotCurrentPos)
+            elif (self.checkRight(1) == "unknown"):
+                print("right unknown")
+                self.robot.rotateRight(needUpdateSensor = True)
+                robotCurrentPos = self.getRobotCurrentPos()
+                if robotCurrentPos[2] == 1 or robotCurrentPos[2] == 3:
+                    self.alignCntV += self.alignDict['R']
+                else:
+                    self.alignCntH += self.alignDict['R']
+                self.isPrevTurn = True
+                self.isPrevRight = True
+                return (''.join([self.alignSensor, 'R']), robotCurrentPos)            
+            elif (self.checkRight(1) == "stairs"):
+                self.climbCnt = 2
+                self.delayRight = 1
+        
+        self.isPrevRight = False # same, reset
+        # decide front condition
+        if (self.checkFront() == "true"):
+            #forwardSteps = self.canBurst()   # no bursting now
+            forwardSteps = 1
+            self.robot.forward(needUpdateSensor = True)
+            #self.robot.forward(), comment out because canBurst() already update robot position
+            if self.delayRight == 1:
+                self.delayRight = 0
+            elif self.climbCnt > 0: # if delayRight == 0 and climbCnt > 0
+                self.climbCnt -= 1
+            f_str = ""
+            robotCurrentPos = self.getRobotCurrentPos()
+            self.alignCntH += self.alignDict['F']
+            self.alignCntV += self.alignDict['F']
+            if self.climbCnt == 0:
+                for i in range(forwardSteps):
+                    f_str = ''.join([f_str, "F"])
+            else:
+                return (''.join([self.alignSensor, 'F']), robotCurrentPos)
+            return (''.join([self.alignSensor, f_str]), robotCurrentPos)
+        elif (self.checkFront() == "unknown"):
+            return (''.join([self.alignSensor, 'N']), robotCurrentPos) # need to stop and check
+        
+        if self.climbCnt == 2: # and checkFront() == False implicitly
+            self.robot.rotateRight(needUpdateSensor = True)
+            robotCurrentPos = self.getRobotCurrentPos()
+            if robotCurrentPos[2] == 1 or robotCurrentPos[2] == 3:
+                self.alignCntV += self.alignDict['R']
+            else:
+                self.alignCntH += self.alignDict['R']            
+            #self.robot.forward()
+            self.climbCnt = 0
+            self.isPrevRight = True
+            self.isPrevTurn = True
+            return (''.join([self.alignSensor,"R"]), robotCurrentPos) # if checkRight return "stairs", means at least at immediate right side of the robot is empty; otherwise it won't go into check stairs case; so can safely turn right here
+            # previously RF here
+            
+        #turn left
+        self.robot.rotateLeft(needUpdateSensor = True)
+        robotCurrentPos = self.getRobotCurrentPos()
+        if robotCurrentPos[2] == 1 or robotCurrentPos[2] == 3:
+            self.alignCntV += self.alignDict['L']
+        else:
+            self.alignCntH += self.alignDict['L'] 
+        self.climbCnt = 0
+        self.isPrevTurn = True
+        return (''.join([self.alignSensor,'L']), robotCurrentPos)
+
+        
+    def allEmpty(self,h,w):
+        for i in range(h-1,h+2):
+            for j in range(w-1,w+2):
+                if self.is_valid_point((i,j))==False or self.arena.get(i,j) != CellType.EMPTY:
+                    return False
+        return True
+                   
 
     def is_valid_point(self, point):
         x = point[0]
@@ -525,6 +707,25 @@ class Explorer():
                 return False
         return True
     
+    def needFrontCalibration(self):
+        if self.robot.robotHead == 1 or self.robot.robotHead == 3:
+            if self.alignCntH > self.alignCntHLimit:
+                return True
+        else:
+            if self.alignCntV > self.alignCntVLimit:
+                return True
+        return False
+            
+    def needSideCalibration(self):
+        if self.robot.robotHead == 0 or self.robot.robotHead == 2:
+            if self.alignCntH > self.alignCntHLimit:
+                return True
+        else:
+            if self.alignCntV > self.alignCntVLimit:
+                return True
+        return False
+        
+    
     def checkAlign(self,r):
         self.alignNow = False
         self.alignSensor = ''
@@ -533,48 +734,45 @@ class Explorer():
             head1 = head- 1
         else:
             head1 = 3
-            
-        for i in range(r):
-            frontCells = self.frontCells[self.robot.robotHead]
-            rightCells = self.rightCells[self.robot.robotHead]
-            h = self.robot.robotCenterH
-            w = self.robot.robotCenterW
+    
+        frontCells = self.frontCells[self.robot.robotHead]
+        rightCells = self.rightCells[self.robot.robotHead]
+        h = self.robot.robotCenterH
+        w = self.robot.robotCenterW
 
-            # check curner cell conditoin, if corner cell, just do two
-            if [h,w] in self.wallCells[head1][i] \
-            and [h,w] in self.wallCells[head][i]:
-                self.alignSensor = ''.join(["CF000","CS000"])
-                self.alignNow = True
-                self.alignCnt = 0
-                self.alignCntR = 0
-                break
-
+        # check curner cell conditoin, if corner cell, just do two
+        if [h,w] in self.wallCells[head1][0] \
+        and [h,w] in self.wallCells[head][0]:
+            self.alignSensor = ''.join(["CF000","CS000"])
+            self.alignNow = True
+            return
+        
+        if [h, w] in self.wallCells[head1][0]:  # if face wall, do calibration
+            self.alignNow = True
+            self.alignSensor += "CF000"            
+        
+        if self.needFrontCalibration():
             # check front condition
-            if [h, w] in self.wallCells[head1][i] \
-                    or  (self.is_valid_point((h + frontCells[0][i][0],w + frontCells[0][i][1])) and \
-                    self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1])  == self.arena.get(h + frontCells[1][i][0],w + frontCells[1][i][1]) == CellType.OBSTACLE):
+            if (self.is_valid_point((h + frontCells[0][0][0],w + frontCells[0][0][1])) and \
+                    self.arena.get(h + frontCells[0][0][0],w + frontCells[0][0][1]) == self.arena.get(h + frontCells[2][0][0],w + frontCells[2][0][1])  == self.arena.get(h + frontCells[1][0][0],w + frontCells[1][0][1]) == CellType.OBSTACLE):
                 self.alignNow = True
-                self.alignCnt = 0
-                self.alignSensor = "CF000"
-
-            elif self.is_valid_point((h + frontCells[0][i][0],w + frontCells[0][i][1])) and \
-                  self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == CellType.OBSTACLE:
+                self.alignSensor += "CF000"
+    
+            elif self.is_valid_point((h + frontCells[0][0][0],w + frontCells[0][0][1])) and \
+                  self.arena.get(h + frontCells[0][0][0],w + frontCells[0][0][1]) == self.arena.get(h + frontCells[2][0][0],w + frontCells[2][0][1]) == CellType.OBSTACLE:
                 self.alignNow = True
-                self.alignCnt = 0
-                self.alignSensor = "CF090"
-
-            elif self.is_valid_point((h + frontCells[0][i][0],w + frontCells[0][i][1])) and \
-                  self.arena.get(h + frontCells[0][i][0],w + frontCells[0][i][1]) == self.arena.get(h + frontCells[1][i][0],w + frontCells[1][i][1]) == CellType.OBSTACLE:
+                self.alignSensor += "CF090"
+    
+            elif self.is_valid_point((h + frontCells[0][0][0],w + frontCells[0][0][1])) and \
+                  self.arena.get(h + frontCells[0][0][0],w + frontCells[0][0][1]) == self.arena.get(h + frontCells[1][0][0],w + frontCells[1][0][1]) == CellType.OBSTACLE:
                 self.alignNow = True
-                self.alignCnt = 0
-                self.alignSensor = "CF009"
-
-            elif self.is_valid_point((h + frontCells[0][i][0],w + frontCells[0][i][1])) and \
-                  self.arena.get(h + frontCells[2][i][0],w + frontCells[2][i][1]) == self.arena.get(h + frontCells[1][i][0],w + frontCells[1][i][1]) == CellType.OBSTACLE:
+                self.alignSensor += "CF009"
+    
+            elif self.is_valid_point((h + frontCells[0][0][0],w + frontCells[0][0][1])) and \
+                  self.arena.get(h + frontCells[2][0][0],w + frontCells[2][0][1]) == self.arena.get(h + frontCells[1][0][0],w + frontCells[1][0][1]) == CellType.OBSTACLE:
                 self.alignNow = True
-                self.alignCnt = 0
-                self.alignSensor = "CF900"
-                
+                self.alignSensor += "CF900"
+            
             # calibrate stairs
             elif self.alignStairs == True:
                 f10 = frontCells[0][0]
@@ -587,64 +785,50 @@ class Explorer():
                     if self.arena.get(h+f10[0],w+f10[1]) == CellType.OBSTACLE:
                         if self.arena.get(h+f31[0],w+f31[1]) == CellType.OBSTACLE:
                             self.alignNow = True
-                            self.alignCnt = 0
-                            self.alignSensor = "CF091"
+                            self.alignSensor += "CF091"
                         elif self.arena.get(h+f21[0],w+f21[1]) == CellType.OBSTACLE:
                             self.alignNow = True
-                            self.alignCnt = 0
-                            self.alignSensor = "CF019"
+                            self.alignSensor += "CF019"
                     elif self.arena.get(h+f20[0],w+f20[1]) == CellType.OBSTACLE:       
                         if self.arena.get(h+f11[0],w+f11[1]) == CellType.OBSTACLE:
                             self.alignNow = True
-                            self.alignCnt = 0
-                            self.alignSensor = "CF109"
+                            self.alignSensor += "CF109"
                         elif self.arena.get(h+f31[0],w+f31[1]) == CellType.OBSTACLE:
                             self.alignNow = True
-                            self.alignCnt = 0
-                            self.alignSensor = "CF901"     
+                            self.alignSensor += "CF901"     
                     elif self.arena.get(h+f30[0],w+f30[1]) == CellType.OBSTACLE:       
                         if self.arena.get(h+f11[0],w+f11[1]) == CellType.OBSTACLE:
                             self.alignNow = True
-                            self.alignCnt = 0
-                            self.alignSensor = "CF190"
+                            self.alignSensor += "CF190"
                         elif self.arena.get(h+f21[0],w+f21[1]) == CellType.OBSTACLE:
                             self.alignNow = True
-                            self.alignCnt = 0
-                            self.alignSensor = "CF910"  
+                            self.alignSensor += "CF910"  
 
-            # check right condition
-
-            if self.alignCntR > 3 and ([h, w] in self.wallCells[head][i] \
-                 or (self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-                    self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE)):
-                if [h, w] in self.wallCells[head][i] or self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
-                    self.alignSensor = "CS000"
+        # check right condition
+        if self.needSideCalibration():
+            if ([h, w] in self.wallCells[head][0] \
+                 or (self.is_valid_point((h + rightCells[0][0][0],w + rightCells[0][0][1])) and \
+                    self.arena.get(h + rightCells[0][0][0],w + rightCells[0][0][1]) == self.arena.get(h + rightCells[1][0][0],w + rightCells[1][0][1]) == CellType.OBSTACLE)):
+                if [h, w] in self.wallCells[head][0] or self.arena.get(h + rightCells[2][0][0],w + rightCells[2][0][1]) == CellType.OBSTACLE:
+                    self.alignSensor += "CS000"
                 else:
-                    self.alignSensor = "CS090"
+                    self.alignSensor += "CS090"
                 self.alignNow = True
-                self.alignCntR = 0
-                self.alignCnt = 0
-                break
-
+                return
             # elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-            #         self.alignCntR > 2 and self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
+            #         self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
             #     self.alignNow = True
-            #     self.alignCntR = 0
-            #     self.alignCnt = 0
             #     self.alignSensor = "RCF110L"
             #     break
             
-            elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-                    self.alignCntR > 1 and self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == self.arena.get(h + rightCells[1][i][0],w + rightCells[1][i][1]) == CellType.OBSTACLE and self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) != CellType.OBSTACLE:
+            elif self.is_valid_point((h + rightCells[0][0][0],w + rightCells[0][0][1])) and \
+                    self.arena.get(h + rightCells[2][0][0],w + rightCells[2][0][1]) == self.arena.get(h + rightCells[1][0][0],w + rightCells[1][0][1]) == CellType.OBSTACLE and self.arena.get(h + rightCells[0][0][0],w + rightCells[0][0][1]) != CellType.OBSTACLE:
                 self.alignNow = True
-                self.alignCntR = 0
-                self.alignCnt = 0
-                self.alignSensor = "RCF900L"
-                break
+                self.alignSensor += "RCF900L"
+                return
+    
                     
             if len(self.alignSensor) == 0:
-                if self.alignCntL > 3 and self.alignCnt > 3:
-                    # check left wall, do possible calibration
                     index = 0
                     count = 0
                     for leftCell in self.leftAllCells[head]:
@@ -652,36 +836,27 @@ class Explorer():
                             if self.is_valid_point([leftCell[0]+h,leftCell[1]+w]) and self.arena.get(leftCell[0]+h,leftCell[1]+w) == CellType.OBSTACLE:
                                 count += 1
                         index += 1
-                    print("count",count)
                     if count >= 3: # 3 block on left for calibration
-                        self.alignSensor = ''.join(["LCF000","R"])
+                        self.alignSensor += 'LCF000R'
                         self.alignNow = True 
-                        self.alignCntL = 0
-                        self.alignCnt = 0
-            
-            # if still no wall to calibrate
-            if len(self.alignSensor) == 0:
-                continue
-            else:
-                break
 
-    def isLeftKnown(self,trust_range):
-        h = self.robot.robotCenterH
-        w = self.robot.robotCenterW
-        head = int(self.robot.robotHead)
-        block_pos = 6 # set as furthest left sensor reading first
-        # find the first block encountered at left side
-        for i in range(trust_range+1):
-            if self.is_valid_point((h+self.leftCells[head][i][0], w+self.leftCells[head][i][1])) and self.arena.get(h+self.leftCells[head][i][0], w+self.leftCells[head][i][1]) == CellType.OBSTACLE:
-                block_pos = i
-                break
-        # check if between the robot top left and the first block on the left identified are all KNOWN empty spaces
-        allKnown = True
-        if block_pos > 0:
-            for j in range(block_pos):
-                if self.is_valid_point((h+self.leftCells[head][j][0], w+self.leftCells[head][j][1])) and self.arena.get(h+self.leftCells[head][j][0], w+self.leftCells[head][j][1]) != CellType.EMPTY:
-                    allKnown = False
-        return allKnown
+    def clearAlignCnt(self):
+        converted_sensor = re.sub("RCF[0-9]{3}L","CS000",self.alignSensor) # convert both to calibration side
+        converted_sensor = re.sub("LCF[0-9]{3}R","CS000",converted_sensor)
+        print("finish converting")
+        # converted, now can process
+        if "CF" in converted_sensor: # clear front calibration
+            print("CF solved")
+            if self.robot.robotHead == 1 or self.robot.robotHead == 3:
+                self.alignCntH = 0
+            else:
+                self.alignCntV = 0
+        if "CS" in converted_sensor: # check side calibration
+            print("CS solved")
+            if self.robot.robotHead == 0 or self.robot.robotHead == 2:
+                self.alignCntH = 0
+            else:
+                self.alignCntV = 0
 
     def canBurst(self):
         burstSteps = 1  # if already entered checkFront == True condition in wall hugging, means can at least go forward by one step; i.e. burstSteps == 1
@@ -700,14 +875,12 @@ class Explorer():
                 if not self.is_valid_point((h+self.rightCells[head][0][0][0], w+self.rightCells[head][0][0][1])) or \
                 self.arena.get(h+self.rightCells[head][0][0][0], w+self.rightCells[head][0][0][1]) != CellType.OBSTACLE:                    
                     break
-            if not self.isLeftKnown(5):
+            if not self.isLeftAllKnown(h,w,head,4):
                 break
             if not self.checkFront():
                 break
             # else, burst plus 1
             burstSteps += 1
-        self.alignCntR += burstSteps -1
-        self.alignCnt += burstSteps - 1
         return burstSteps
 
 
@@ -715,12 +888,14 @@ class Explorer():
         robot = self.robot
         frontCells = robot.frontCells
         for cell in frontCells[robot.robotHead]:
-            if (robot.robotCenterW+cell[1] > 14 or robot.robotCenterH+cell[0] > 19 \
-                or robot.robotCenterW+cell[1] < 0 or robot.robotCenterH+cell[0] < 0 \
-                or self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) != CellType.EMPTY): 
-                return False
+            if not self.is_valid_point((robot.robotCenterH+cell[0],robot.robotCenterW+cell[1])):
+                return "false"
+            if self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.OBSTACLE: 
+                return "false"
+            if self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.UNKNOWN:
+                return "unknown"
         print("check front true")
-        return True                   
+        return "true"                   
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self,layer):
                 
@@ -767,153 +942,7 @@ class Explorer():
             return "false"
         return "true"
     
-    def wallHugging(self): # return instruction
-        # mark current body cells as empty
-        # actually might not need, just put here first
-        sensor = "" 
-        bodyCells = self.robot.returnBodyCells()
-        for cell in bodyCells:
-            # if robot was on this cell, it confirms to be empty
-            self.innerMap[cell[0]][cell[1]] += 5
-        print("alignCNt,",self.alignCnt)
-        print("alignRCnt",self.alignCntR)
-        if self.isPrevTurn == True:
-            self.alignCntR += 9
-        self.isPrevTurn = False
-        self.checkAlign(1)
-        self.alignCntR += 1
-        self.alignCntL += 1
-        self.alignCnt += 1
-        print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
-        print("robot head:",self.robot.robotHead)        
-        print("staricase climb counter",self.climbCnt)
-        print("prevRight:",self.isPrevRight)
-                                        # previously is == 0, off staircase is < 2
-        if (self.isPrevRight == False and (self.climbCnt == 0 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
-            # decide turn-right condition
-            if (self.checkRight(1) == "true"):  # previously only checkright == TRUe; if off stairs, add or self.checkRight(1) == "stairs"
-                print("check right true here")                  
-                if self.alignNow == True:
-                    sensor = self.alignSensor
-                # for every turn, calibrate
-                else:
-                    self.alignCntR += 9
-                    self.checkAlign(1)
-                    sensor = self.alignSensor
-                self.robot.rotateRight()
-                self.turnList.append([self.robot.robotCenterH,self.robot.robotCenterW])
-                #self.robot.forward()
-                self.isPrevTurn = True
-                self.isPrevRight = True
-                return (''.join([sensor,"R"])) #previously RF here
-            
-            elif (self.checkRight(1) == "unknown"):
-                print("right unknown")
-                if self.alignNow == True:
-                    sensor = self.alignSensor
-                # for every turn, calibrate
-                else:
-                    self.alignCntR += 9
-                    self.checkAlign(1)
-                    sensor = self.alignSensor
-                self.robot.rotateRight()
-                self.turnList.append([self.robot.robotCenterH,self.robot.robotCenterW])
-                self.isPrevTurn = True
-                self.isPrevRight = True
-                return (''.join([sensor,"R"]))
-            
-            elif (self.checkRight(1) == "stairs"):
-                self.climbCnt = 2
-                self.delayRight = 1
 
-        self.isPrevRight = False # same, reset
-        # decide front condition
-        if (self.checkFront()):
-            forwardSteps = self.canBurst()
-            #self.robot.forward()
-            if self.alignNow == True:
-                sensor = self.alignSensor
-            if self.delayRight == 1:
-                self.delayRight = 0
-            elif self.climbCnt > 0: # if delayRight == 0 and climbCnt > 0
-                self.climbCnt -= 1
-            f_str = ""
-            if self.climbCnt == 0:
-                for i in range(forwardSteps):
-                    f_str = ''.join([f_str, "F"])
-            else:
-                return ''.join([sensor,'F'])
-            return (''.join([sensor, f_str]))
-
-        if self.climbCnt == 2: # and checkFront() == False implicitly
-            if self.alignNow == True:
-                sensor = self.alignSensor
-            # for every turn, calibrate
-            else:
-                self.alignCntR += 3
-                self.checkAlign(1)
-                sensor = self.alignSensor
-            self.robot.rotateRight()
-            self.turnList.append([self.robot.robotCenterH,self.robot.robotCenterW])
-            #self.robot.forward()
-            self.climbCnt = 0
-            self.isPrevRight = True
-            self.isPrevTurn = True
-            return (''.join([sensor,"R"])) # if checkRight return "stairs", means at least at immediate right side of the robot is empty; otherwise it won't go into check stairs case; so can safely turn right here
-            # previously RF here
-
-        skipSteps = False
-        
-        # haven't debug yet, leave it first
-# =============================================================================
-#         skipSteps = True
-#         h = self.robot.robotCenterH
-#         w = self.robot.robotCenterW
-#         for cell in self.frontCells[self.robot.robotHead]:
-#             if not self.is_valid_point(cell[0]) or self.arena.get(cell[0][0]+h,cell[0][1]+w) != CellType.EMPTY:
-#                 skipSteps = False
-#                 break
-#         if skipSteps == True:
-#             for cell1 in self.leftAllCells[self.robot.robotHead]:
-#                 if self.is_valid_point([cell1[0]+h,cell1[1]+w]) and self.arena.get(cell1[0]+h,cell1[1]+w) != CellType.EMPTY:
-#                     skipSteps = False
-#                     print("false empty")
-#                     break
-#         if skipSteps == True:
-#             for cell2 in self.frontLeftCells[self.robot.robotHead]:
-#                 if self.is_valid_point([cell2[0]+h,cell2[1]+w]) and self.arena.get(cell2[0]+h,cell2[1]+w) != CellType.OBSTACLE:
-#                     skipSteps = False
-#                     print("false obstacle")
-#                     break
-# =============================================================================
-        
-        # for every turn, calibrate
-        head = self.robot.robotHead
-        if head == 0:
-            head1 = 3
-        else:
-            head1 = head - 1
-        h = self.robot.robotCenterH
-        w = self.robot.robotCenterW
-        if [h,w] not in self.wallCells[head1][0]:
-            self.alignCntR = 9
-        self.checkAlign(1)
-        sensor = self.alignSensor
-        self.robot.rotateLeft()
-        self.climbCnt = 0
-        self.isPrevTurn = True
-        if skipSteps == False:
-            return (''.join([sensor,"L"]))
-        else:
-            self.alignCntR += 3
-            return (''.join([sensor,"LCS0FFF"])) 
-        
-    def allEmpty(self,h,w):
-        for i in range(h-1,h+2):
-            for j in range(w-1,w+2):
-                if self.is_valid_point((i,j))==False or self.arena.get(i,j) != CellType.EMPTY:
-                    return False
-        return True
     
     def searchObservableCells(self,cells,sensorRange):
         # search cell which: line withint sensor range all clear, and front row of robot at observing point have 3 empty cells

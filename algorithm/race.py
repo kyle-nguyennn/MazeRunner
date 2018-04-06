@@ -90,7 +90,7 @@ def popMin(costs):
     curCost = costs[k]
     del costs[k]
     return (cur, curCost)
-def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = False):
+def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = False, Hcounter = 0, Vcounter = 0):
     ''' 
     return: tuple of instruction string with the final orientation of the robot after executing these instructions,
     and the total cost to reach that state
@@ -129,17 +129,23 @@ def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = F
                 temp = p[0]
             ins = ""
             ins_noCali = "" #AQ added
-            count = 0
+            count = Hcounter + Vcounter - 0.5
             for item in path:
                 sensor = checkAlign(1,item[0],mymap)
-                if count < 3:
+                print("dijkstra counter:",count)
+                if count <= 3:
                     sensor = ''
                 ins += ''.join([sensor,item[1]])
                 ins_noCali += item[1]
                 if len(sensor) != 0:
                     count = 0
                 else:
-                    count += 1
+                    if "R" in item[1] or "L" in item[1] or "B" in item[1]:
+                        print("count add 1")
+                        count += 1
+                    if "F" in item[1]:
+                        count += 0.5
+                        print("count add 0.5")
             if isExploring == True:
                 return (ins, cur, curCost, ins_noCali)
             # check all calibration possibilities
@@ -229,7 +235,7 @@ def checkAlign(r,position,mymap):
         # check curner cell conditoin, if corner cell, just do two 
         if [h,w] in wallCells[head1][i] \
         and [h,w] in wallCells[head][i]:
-            alignSensor = ''.join(["CF090","CS000"])
+            alignSensor = ''.join(["CF000","CS000"])
             return alignSensor
             
         # check front condition
