@@ -267,7 +267,7 @@ def checkAlign(r,position,mymap):
     # check right condition
     if [h,w] in wallCells[head] \
     or( is_valid_point((h+rightCells[0][0][0],w+rightCells[0][0][1])) and mymap[h+rightCells[0][0][0]][w+rightCells[0][0][1]] == mymap[h+rightCells[1][0][0]][w+rightCells[1][0][1]] == CellType.OBSTACLE):
-        if [h,w] in wallCells[head] or mymap[h+rightCells[2][0][0]][w+rightCells[2][1]] == CellType.OBSTACLE:
+        if [h,w] in wallCells[head] or mymap[h+rightCells[2][0][0]][w+rightCells[2][0][1]] == CellType.OBSTACLE:
             alignSensor = "CS000"
         else:
             alignSensor = "CS090"
