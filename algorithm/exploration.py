@@ -834,7 +834,7 @@ class Explorer():
             elif self.is_valid_point((h + rightCells[0][0][0],w + rightCells[0][0][1])) and \
                     self.arena.get(h + rightCells[0][0][0],w + rightCells[0][0][1]) == self.arena.get(h + rightCells[2][0][0],w + rightCells[2][0][1]) == CellType.OBSTACLE:
                 self.alignNow = True
-                self.alignSensor = "RCF110L"
+                self.alignSensor = "RCF009L"
                 return
             
             elif self.is_valid_point((h + rightCells[0][0][0],w + rightCells[0][0][1])) and \

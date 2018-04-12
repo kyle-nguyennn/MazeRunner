@@ -273,11 +273,9 @@ def checkAlign(r,position,mymap):
             alignSensor = "CS090"
         return alignSensor
 
-# =============================================================================
-#         elif ( is_valid_point((h+rightCells[0][i][0],w+rightCells[0][i][1])) and mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == CellType.OBSTACLE):
-#             alignSensor = "RCF009L"
-#             return alignSensor
-# =============================================================================
+        elif ( is_valid_point((h+rightCells[0][0][0],w+rightCells[0][0][1])) and mymap[h+rightCells[0][0][0]][w+rightCells[0][0][1]] == mymap[h+rightCells[2][0][0]][w+rightCells[2][0][1]] == CellType.OBSTACLE):
+            alignSensor = "RCF009L"
+            return alignSensor
 
     elif ( is_valid_point((h+rightCells[0][0][0],w+rightCells[0][0][1])) and mymap[h+rightCells[2][0][0]][w+rightCells[2][0][1]] == mymap[h+rightCells[1][0][0]][w+rightCells[1][0][1]] == CellType.OBSTACLE):
         alignSensor = "RCF900L"
@@ -293,7 +291,7 @@ def checkAlign(r,position,mymap):
                     count += 1
             index += 1
         if count >= 3: # 3 block on left for calibration
-            alignSensor = ''.join(["LCF111","R"])
+            alignSensor = ''.join(["LCF000","R"])
             return alignSensor
 
     return alignSensor
