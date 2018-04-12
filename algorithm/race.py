@@ -273,9 +273,9 @@ def checkAlign(r,position,mymap):
             alignSensor = "CS090"
         return alignSensor
 
-        elif ( is_valid_point((h+rightCells[0][0][0],w+rightCells[0][0][1])) and mymap[h+rightCells[0][0][0]][w+rightCells[0][0][1]] == mymap[h+rightCells[2][0][0]][w+rightCells[2][0][1]] == CellType.OBSTACLE):
-            alignSensor = "RCF009L"
-            return alignSensor
+    elif ( is_valid_point((h+rightCells[0][0][0],w+rightCells[0][0][1])) and mymap[h+rightCells[0][0][0]][w+rightCells[0][0][1]] == mymap[h+rightCells[2][0][0]][w+rightCells[2][0][1]] == CellType.OBSTACLE):
+        alignSensor = "RCF009L"
+        return alignSensor
 
     elif ( is_valid_point((h+rightCells[0][0][0],w+rightCells[0][0][1])) and mymap[h+rightCells[2][0][0]][w+rightCells[2][0][1]] == mymap[h+rightCells[1][0][0]][w+rightCells[1][0][1]] == CellType.OBSTACLE):
         alignSensor = "RCF900L"
