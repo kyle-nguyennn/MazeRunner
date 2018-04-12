@@ -147,7 +147,7 @@ def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = F
             for item in path:
                 sensor = checkAlign(1,item[0],mymap)
                 print("dijkstra counter:",count)
-                if count <= 2:
+                if count <= 1:
                     sensor = ''
                 ins += ''.join([sensor,item[1]])
                 if [item[0][0],item[0][1]] in wallCells[0] and item[0][2] == 1 and calibratedWall == False:  # at wallCells[0], do one front calibration to avoid bumper hit wall

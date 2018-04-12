@@ -51,8 +51,8 @@ class Explorer():
         self.alignDict = {'R':1,
                           'L':1,
                           'F':0.5}
-        self.alignCntHLimit = 2
-        self.alignCntVLimit = 2
+        self.alignCntHLimit = 1.5
+        self.alignCntVLimit = 1.5
         self.breakPoints = []
         self.robotPosList = []
         self.alignSensor = "" # CF(front), CS(right)
@@ -147,7 +147,7 @@ class Explorer():
             # if reach time limit
             if self.timeThreshold < explorationTime:
             #or self.exploredArea >= 300*self.areaPercentage:
-                if self.robot.isInStartZone():
+                if self.robot.isInStartZone() and self.reachGoal:
                     self.robot.robotMode = "done"
                     break
                 else:
@@ -278,7 +278,20 @@ class Explorer():
         instructions = ''.join([instructions, next_instruction])
         print("before canSkip")
         canSkip = self.canSkip(robotNextPos)
+        stepCount = 0
         while True:
+            stepCount += 1
+            if stepCount > 76: #just a lucky number
+                print("infinite loop, going back")
+                startnode = startPosition
+                if self.reachGoal:
+                    endnode = (18,13,0)
+                    (instr, endNode,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), startnode, (18,13,0), endOrientationImportant=True,isExploring = True)
+                else:
+                    endnode = (1,1,1)
+                    (instr, endNode,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), startnode, (1,1,1), endOrientationImportant=True,isExploring = True)
+                return (instr,[endnode])
+                
             if canSkip == False:
                 print("states:",states)
                 return (instructions, states)
@@ -322,7 +335,7 @@ class Explorer():
             for i in range(trust_range+1):
                 offset = self.frontCells[head][j][i]
                 cell = [h+offset[0],w+offset[1]]
-                if cell[0] == 20 or cell[0] == -1 or cell[1] == -1 or cell[1] == 15: # wall
+                if cell[0] > 19 or cell[0] < 0 or cell[1] < 0 or cell[1] > 14: # wall
                     block_pos[j] = i
                     break
                 elif not self.is_valid_point(cell):
@@ -350,7 +363,7 @@ class Explorer():
             for i in range(trust_range+1):
                 offset = self.rightCells[head][j][i]
                 cell = [h+offset[0],w+offset[1]]
-                if cell[0] == 20 or cell[0] == -1 or cell[1] == -1 or cell[1] == 15: # wall
+                if cell[0] > 19 or cell[0] < 0 or cell[1] < 0 or cell[1] > 14: # wall
                     block_pos[j] = i
                     break
                 elif not self.is_valid_point(cell):
@@ -377,7 +390,7 @@ class Explorer():
         for i in range(trust_range+1):
             offset = self.leftCells[head][i]
             cell = [h+offset[0],w+offset[1]]
-            if cell[0] == 20 or cell[0] == -1 or cell[1] == -1 or cell[1] == 15: # wall
+            if cell[0] > 19 or cell[0] < 0 or cell[1] < 0 or cell[1] > 14: # wall
                 block_pos = i
                 break
             elif not self.is_valid_point(cell):
@@ -392,8 +405,10 @@ class Explorer():
             if block_pos == 0:
                 break
             elif not self.is_valid_point(cell):
+                print("false invalid")
                 return False
             elif self.arena.get(cell[0],cell[1]) != CellType.EMPTY:
+                print("false empty")
                 return False
         return True            
     
@@ -709,19 +724,19 @@ class Explorer():
     
     def needFrontCalibration(self):
         if self.robot.robotHead == 1 or self.robot.robotHead == 3:
-            if self.alignCntH > self.alignCntHLimit:
+            if self.alignCntH >= self.alignCntHLimit:
                 return True
         else:
-            if self.alignCntV > self.alignCntVLimit:
+            if self.alignCntV >= self.alignCntVLimit:
                 return True
         return False
             
     def needSideCalibration(self):
         if self.robot.robotHead == 0 or self.robot.robotHead == 2:
-            if self.alignCntH > self.alignCntHLimit:
+            if self.alignCntH >= self.alignCntHLimit:
                 return True
         else:
-            if self.alignCntV > self.alignCntVLimit:
+            if self.alignCntV >= self.alignCntVLimit:
                 return True
         return False
         
@@ -815,18 +830,18 @@ class Explorer():
                     self.alignSensor += "CS090"
                 self.alignNow = True
                 return
-            # elif self.is_valid_point((h + rightCells[0][i][0],w + rightCells[0][i][1])) and \
-            #         self.arena.get(h + rightCells[0][i][0],w + rightCells[0][i][1]) == self.arena.get(h + rightCells[2][i][0],w + rightCells[2][i][1]) == CellType.OBSTACLE:
-            #     self.alignNow = True
-            #     self.alignSensor = "RCF110L"
-            #     break
+            
+            elif self.is_valid_point((h + rightCells[0][0][0],w + rightCells[0][0][1])) and \
+                    self.arena.get(h + rightCells[0][0][0],w + rightCells[0][0][1]) == self.arena.get(h + rightCells[2][0][0],w + rightCells[2][0][1]) == CellType.OBSTACLE:
+                self.alignNow = True
+                self.alignSensor = "RCF110L"
+                return
             
             elif self.is_valid_point((h + rightCells[0][0][0],w + rightCells[0][0][1])) and \
                     self.arena.get(h + rightCells[2][0][0],w + rightCells[2][0][1]) == self.arena.get(h + rightCells[1][0][0],w + rightCells[1][0][1]) == CellType.OBSTACLE and self.arena.get(h + rightCells[0][0][0],w + rightCells[0][0][1]) != CellType.OBSTACLE:
                 self.alignNow = True
                 self.alignSensor += "RCF900L"
-                return
-    
+                return 
                     
             if len(self.alignSensor) == 0:
                     index = 0
