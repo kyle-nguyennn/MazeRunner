@@ -307,7 +307,6 @@ class Explorer():
                     return (instructions, states)
             
     def canSkip(self, robotNextPos):
-        print("hello")
         h = robotNextPos[0]
         w = robotNextPos[1]
         head = robotNextPos[2]
@@ -419,12 +418,7 @@ class Explorer():
     def nextStep(self):
         robotCurrentPos = self.getRobotCurrentPos()
         self.checkAlign(1)
-        print("alignsensor:",self.alignSensor)
-        print("cntH:",self.alignCntH)
-        print("cntV:",self.alignCntV)
         self.clearAlignCnt()
-        print("cntH:",self.alignCntH)
-        print("cntV:",self.alignCntV)
         # previously is == 0, off staircase is < 2
         if (self.isPrevRight == False and (self.climbCnt == 0 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
             # decide turn-right condition
@@ -861,13 +855,11 @@ class Explorer():
         print("finish converting")
         # converted, now can process
         if "CF" in converted_sensor: # clear front calibration
-            print("CF solved")
             if self.robot.robotHead == 1 or self.robot.robotHead == 3:
                 self.alignCntH = 0
             else:
                 self.alignCntV = 0
         if "CS" in converted_sensor: # check side calibration
-            print("CS solved")
             if self.robot.robotHead == 0 or self.robot.robotHead == 2:
                 self.alignCntH = 0
             else:
