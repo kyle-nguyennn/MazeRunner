@@ -1,6 +1,7 @@
 from arena import Arena, CellType
 import utils
 
+        
 def detectCollision(mymap, pos, robotsize=(3,3)): #take care of robot size in here, outside of this function the robot is treated as a 1x1 object
     # pos is the middle cell (for 3x3) that the robot takes
     # treat the system as the collecitons of all the point that the robot covers
@@ -99,6 +100,19 @@ def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = F
         start: triple of the start position including x,y coordinates and the orientation
         end: end position, same data structure as start
     '''
+    calibratedWall = False
+    wallCells = {0:[],
+                1:[],
+                2:[],
+                3:[]
+            }
+    for i in range(1,19):
+        wallCells[0].append([i,13])
+        wallCells[2].append([i,1])
+        if 1 <= i <= 13:
+            wallCells[1].append([1,i])
+            wallCells[3].append([18,i])
+            
     costs = {}  # a dict storing with key is the state and value is the cost of the path that leads to it
                 # structure of each element is: (x,y,d):cost
     prev = {}   # k:v == (x,y,d): ((xx, yy, dd), move_to_go_next),
@@ -133,10 +147,14 @@ def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = F
             for item in path:
                 sensor = checkAlign(1,item[0],mymap)
                 print("dijkstra counter:",count)
-                if count <= 3:
+                if count <= 2:
                     sensor = ''
                 ins += ''.join([sensor,item[1]])
-                ins_noCali += item[1]
+                if [item[0][0],item[0][1]] in wallCells[0] and item[0][2] == 1 and calibratedWall == False:  # at wallCells[0], do one front calibration to avoid bumper hit wall
+                    ins_noCali += ''.join(['CF000',item[1]])
+                    calibratedWall = True  # a flag only, because should only do one calibration
+                else:
+                    ins_noCali += item[1]
                 if len(sensor) != 0:
                     count = 0
                 else:
@@ -200,66 +218,60 @@ def checkAlign(r,position,mymap):
                              3:[[-2,-1],[-3,-1],[-4,-1],[-2,0],[-3,0],[-4,0],[-2,1],[-3,1],[-4,1]]
                 }
         # positions in wallCells are for calibration
-    wallCells = {0:[[],[]],
-                    1:[[],[]],
-                    2:[[],[]],
-                    3:[[],[]]
-                }
+    wallCells = {0:[],
+                1:[],
+                2:[],
+                3:[]
+            }
     for i in range(1,19):
-        wallCells[0][0].append([i,13])
-        wallCells[2][0].append([i,1])
-        if 2 <= i <= 17:
-            wallCells[0][1].append([i,12])
-            wallCells[2][1].append([i,2]) 
-            if 2 <= i <= 12:
-                wallCells[1][1].append([2,i])
-                wallCells[3][1].append([17,i])
+        wallCells[0].append([i,13])
+        wallCells[2].append([i,1])
         if 1 <= i <= 13:
-            wallCells[1][0].append([1,i])
-            wallCells[3][0].append([18,i])
+            wallCells[1].append([1,i])
+            wallCells[3].append([18,i])
+
     alignSensor = ''
     head = int(position[2])
     if head > 0:
         head1 = head- 1
     else:
         head1 = 3
+    i = 0    
+    frontCells = frontCells[head]
+    rightCells = rightCells[head]
+    h = position[0]
+    w = position[1]
+    
+    if [h,w] == [18,13]:
+        return ''
+    # check curner cell conditoin, if corner cell, just do two 
+    if [h,w] in wallCells[head1] \
+    and [h,w] in wallCells[head]:
+        alignSensor = ''.join(["CF000","CS000"])
+        return alignSensor
         
-    for i in range(r):
-        frontCells = frontCells[head]
-        rightCells = rightCells[head]
-        h = position[0]
-        w = position[1]
-        
-        if [h,w] == [18,13]:
-            return ''
-        # check curner cell conditoin, if corner cell, just do two 
-        if [h,w] in wallCells[head1][i] \
-        and [h,w] in wallCells[head][i]:
-            alignSensor = ''.join(["CF000","CS000"])
-            return alignSensor
-            
-        # check front condition
-        if [h,w] in wallCells[head1][i] \
-        or ( is_valid_point((h+frontCells[0][i][0],w+frontCells[0][i][1])) and mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE) :
-           return "CF000"
+    # check front condition
+    if [h,w] in wallCells[head1] \
+    or ( is_valid_point((h+frontCells[0][0][0],w+frontCells[0][0][1])) and mymap[h+frontCells[0][0][0]][w+frontCells[0][0][1]] == mymap[h+frontCells[2][0][0]][w+frontCells[2][0][1]] == mymap[h+frontCells[1][0][0]][w+frontCells[1][0][1]] == CellType.OBSTACLE) :
+       return "CF000"
 
-        elif ( is_valid_point((h+frontCells[0][i][0],w+frontCells[0][i][1])) and mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == CellType.OBSTACLE) :
-           return "CF090"
+    elif ( is_valid_point((h+frontCells[0][0][0],w+frontCells[0][0][1])) and mymap[h+frontCells[0][0][0]][w+frontCells[0][0][1]] == mymap[h+frontCells[2][0][0]][w+frontCells[2][0][1]] == CellType.OBSTACLE) :
+       return "CF090"
 
-        elif ( is_valid_point((h+frontCells[0][i][0],w+frontCells[0][i][1])) and mymap[h+frontCells[0][i][0]][w+frontCells[0][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE) :
-           return "CF009"
+    elif ( is_valid_point((h+frontCells[0][0][0],w+frontCells[0][0][1])) and mymap[h+frontCells[0][0][0]][w+frontCells[0][0][1]] == mymap[h+frontCells[1][0][0]][w+frontCells[1][0][1]] == CellType.OBSTACLE) :
+       return "CF009"
 
-        elif ( is_valid_point((h+frontCells[0][i][0],w+frontCells[0][i][1])) and mymap[h+frontCells[2][i][0]][w+frontCells[2][i][1]] == mymap[h+frontCells[1][i][0]][w+frontCells[1][i][1]] == CellType.OBSTACLE) :
-           return "CF900"
+    elif ( is_valid_point((h+frontCells[0][0][0],w+frontCells[0][0][1])) and mymap[h+frontCells[2][0][0]][w+frontCells[2][0][1]] == mymap[h+frontCells[1][0][0]][w+frontCells[1][0][1]] == CellType.OBSTACLE) :
+       return "CF900"
 
-        # check right condition
-        if [h,w] in wallCells[head][i] \
-        or( is_valid_point((h+rightCells[0][i][0],w+rightCells[0][i][1])) and mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == CellType.OBSTACLE):
-            if [h,w] in wallCells[head][i] or mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == CellType.OBSTACLE:
-                alignSensor = "CS000"
-            else:
-                alignSensor = "CS090"
-            return alignSensor
+    # check right condition
+    if [h,w] in wallCells[head] \
+    or( is_valid_point((h+rightCells[0][0][0],w+rightCells[0][0][1])) and mymap[h+rightCells[0][0][0]][w+rightCells[0][0][1]] == mymap[h+rightCells[1][0][0]][w+rightCells[1][0][1]] == CellType.OBSTACLE):
+        if [h,w] in wallCells[head] or mymap[h+rightCells[2][0][0]][w+rightCells[2][1]] == CellType.OBSTACLE:
+            alignSensor = "CS000"
+        else:
+            alignSensor = "CS090"
+        return alignSensor
 
 # =============================================================================
 #         elif ( is_valid_point((h+rightCells[0][i][0],w+rightCells[0][i][1])) and mymap[h+rightCells[0][i][0]][w+rightCells[0][i][1]] == mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == CellType.OBSTACLE):
@@ -267,27 +279,23 @@ def checkAlign(r,position,mymap):
 #             return alignSensor
 # =============================================================================
 
-        elif ( is_valid_point((h+rightCells[0][i][0],w+rightCells[0][i][1])) and mymap[h+rightCells[2][i][0]][w+rightCells[2][i][1]] == mymap[h+rightCells[1][i][0]][w+rightCells[1][i][1]] == CellType.OBSTACLE):
-            alignSensor = "RCF900L"
+    elif ( is_valid_point((h+rightCells[0][0][0],w+rightCells[0][0][1])) and mymap[h+rightCells[2][0][0]][w+rightCells[2][0][1]] == mymap[h+rightCells[1][0][0]][w+rightCells[1][0][1]] == CellType.OBSTACLE):
+        alignSensor = "RCF900L"
+        return alignSensor
+            
+    if len(alignSensor) == 0:
+        # check left wall, do possible calibration
+        index = 0
+        count = 0
+        for leftCell in leftAllCells[head]:
+            if index == 0 or index == 3 or index ==6:
+                if is_valid_point([leftCell[0]+h,leftCell[1]+w]) and mymap[leftCell[0]+h][leftCell[1]+w] == CellType.OBSTACLE:
+                    count += 1
+            index += 1
+        if count >= 3: # 3 block on left for calibration
+            alignSensor = ''.join(["LCF111","R"])
             return alignSensor
-                
-        if len(alignSensor) == 0:
-            # check left wall, do possible calibration
-            index = 0
-            count = 0
-            for leftCell in leftAllCells[head]:
-                if index == 0 or index == 3 or index ==6:
-                    if is_valid_point([leftCell[0]+h,leftCell[1]+w]) and mymap[leftCell[0]+h][leftCell[1]+w] == CellType.OBSTACLE:
-                        count += 1
-                index += 1
-            if count >= 3: # 3 block on left for calibration
-                alignSensor = ''.join(["LCF111","R"])
-                return alignSensor
-        # if still no wall to calibrate
-        if len(alignSensor) == 0:
-            continue
-        else:
-            break
+
     return alignSensor
 
 def is_valid_point(point):
