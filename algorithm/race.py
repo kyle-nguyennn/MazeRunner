@@ -77,7 +77,7 @@ def neighbors(mymap, cur): # cur is (x,y,d)
                 wallCells[1].append([1,j])
                 wallCells[3].append([18,j])
         if (cur[0],cur[1]) in wallCells[cur[2]] :
-            print("in wall cells")
+            # print("in wall cells")
             moveCost -= 1
             
             
@@ -136,7 +136,7 @@ def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = F
             # trace back the path here
             temp = cur
             path = [(cur, "")]
-            # print("In djikstra: on end: prev", prev)
+            # # print("In djikstra: on end: prev", prev)
             while prev.get(temp) != None:
                 p = prev[temp]
                 path.insert(0, p)
@@ -146,7 +146,7 @@ def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = F
             count = Hcounter + Vcounter - 0.5
             for item in path:
                 sensor = checkAlign(1,item[0],mymap)
-                print("dijkstra counter:",count)
+                # print("dijkstra counter:",count)
                 if count <= 1:
                     sensor = ''
                 ins += ''.join([sensor,item[1]])
@@ -159,11 +159,11 @@ def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = F
                     count = 0
                 else:
                     if "R" in item[1] or "L" in item[1] or "B" in item[1]:
-                        print("count add 1")
+                        # print("count add 1")
                         count += 1
                     if "F" in item[1]:
                         count += 0.5
-                        print("count add 0.5")
+                        # print("count add 0.5")
             if isExploring == True:
                 return (ins, cur, curCost, ins_noCali)
             # check all calibration possibilities
@@ -192,11 +192,11 @@ def getInstructions(map, waypoint, robotsize=(3,3), direction='north'):
     waypoint = (waypoint[0], waypoint[1], 0) # padding 0 at the 3rd position to make it work with djikstra
     mymap[waypoint[0]][waypoint[1]] = CellType.EMPTY # cuz waypoint is marked as -1
     (instruction1, endpoint1, totalCost, instr1_noCalibration) = dijkstra(mymap, (1, 1, dir), waypoint, endOrientationImportant = False, isExploring = True)  #isExploring is set to True because the fastest path now wants to take off calibration
-    print("In getInstruction: reached waypoint", endpoint1)
+    # print("In getInstruction: reached waypoint", endpoint1)
     (instruction2, endpoint2, totalCost, instr2_noCalibration) = dijkstra(mymap, endpoint1, (18,13, 0), endOrientationImportant = False, isExploring = True)
-    print("nothing in your eyes", instruction2, endpoint2)
-    print("In getInstruction: reached goal")
-    print(instr1_noCalibration+instr2_noCalibration)
+    # print("nothing in your eyes", instruction2, endpoint2)
+    # print("In getInstruction: reached goal")
+    # print(instr1_noCalibration+instr2_noCalibration)
     return instr1_noCalibration+instr2_noCalibration
 
 def checkAlign(r,position,mymap):
@@ -306,4 +306,4 @@ if __name__ == "__main__":
     #map = readInput()
     map = utils.createMapTest() # map is a Map object
     instruction = getInstructions(map, (5,6))
-    print(instruction)
+    # print(instruction)

@@ -151,8 +151,8 @@ class Explorer():
                     self.robot.robotMode = "done"
                     break
                 else:
-                    print("time",explorationTime)
-                    print("areaExplore",self.exploredArea)
+                    # print("time",explorationTime)
+                    # print("areaExplore",self.exploredArea)
                     # find the way back to start zone using djikstra
                     startnode = (self.robot.robotCenterH, self.robot.robotCenterW, int(self.robot.robotHead))
                     endnode = (1,1,2) # face backwards, can calibrate CF and CS
@@ -175,7 +175,7 @@ class Explorer():
                     self.update_all(instructions, "Navigating to nearest unexplored cell")
                     # update robot states
                     self.robot.jump(endnode) # already update sensors inside
-                    print("comeplete a re-exploration")
+                    # print("comeplete a re-exploration")
                     continue
                 # else, doing wall hugging
                 instruction = self.wallHugging()
@@ -197,8 +197,8 @@ class Explorer():
         #before exploration end, check innerMap
         self.wellGuess()
         self.robot.jump((1,1,0))
-        print("Exploration time:",explorationTime)
-        print("Instruction count:", self.cnt)
+        # print("Exploration time:",explorationTime)
+        # print("Instruction count:", self.cnt)
         
         self.tcp_conn.send_command("CF000CS000RCF000R")
         self.robot.jump((1,1,0))
@@ -225,12 +225,12 @@ class Explorer():
             # if robot was on this cell, it confirms to be empty
             self.innerMap[cell[0]][cell[1]] += 5
         self.isPrevTurn = False
-        print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
-        print("robot head:",self.robot.robotHead)        
-        print("staricase climb counter",self.climbCnt)
-        print("prevRight:",self.isPrevRight)
+        # print("robot center:",self.robot.robotCenterH,self.robot.robotCenterW)
+        # print("robot head:",self.robot.robotHead)        
+        # print("staricase climb counter",self.climbCnt)
+        # print("prevRight:",self.isPrevRight)
         robotCurrentPos = self.getRobotCurrentPos()
-        print("currentPos:", robotCurrentPos)
+        # print("currentPos:", robotCurrentPos)
         (instruction,states) = self.stateSimulation()        
         endnode = states[-1]
         self.robot.jump(endnode)
@@ -240,11 +240,11 @@ class Explorer():
         
         # since goal zone must pass through, whenever the simulation path include goal zone, must do a "waypoint" there
         if (18,13,0) in states or (18,13,1) in states or (18,13,2) in states or (18,13,3) in states:
-            print("enter")
+            # print("enter")
             (instruction1, endPoint1, cost, instr1_noCali) = dijkstra(self.arena.get_2d_arr(), robotCurrentPos, (18,13,0), endOrientationImportant=False, isExploring = True, Hcounter=self.alignCntH, Vcounter=self.alignCntV)
             (instruction2, endPoint2, cost, instr2_noCali) = dijkstra(self.arena.get_2d_arr(), endPoint1, endnode, endOrientationImportant=True, isExploring = True)
             self.reachGoal = True
-            print("set reachGoal True")
+            # print("set reachGoal True")
             if len(instr1_noCali+instr2_noCali) == 0:
                 return "N"
             else:
@@ -259,9 +259,9 @@ class Explorer():
                 return instructions
         
         else:
-            print("use fastest path")
+            # print("use fastest path")
             (instructions, endPoint,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), robotCurrentPos, endnode, endOrientationImportant=True, isExploring = True, Hcounter=self.alignCntH, Vcounter=self.alignCntV)
-            print("dijkstra instructions:", instructions)
+            # print("dijkstra instructions:", instructions)
             if len(instr_noCali) == 0:
                 return "N"
             else:
@@ -276,13 +276,13 @@ class Explorer():
         (next_instruction, robotNextPos) = self.nextStep()
         states.append(robotNextPos)
         instructions = ''.join([instructions, next_instruction])
-        print("before canSkip")
+        # print("before canSkip")
         canSkip = self.canSkip(robotNextPos)
         stepCount = 0
         while True:
             stepCount += 1
             if stepCount > 76: #just a lucky number
-                print("infinite loop, going back")
+                # print("infinite loop, going back")
                 startnode = startPosition
                 if self.reachGoal:
                     endnode = (18,13,0)
@@ -293,7 +293,7 @@ class Explorer():
                 return (instr,[endnode])
                 
             if canSkip == False:
-                print("states:",states)
+                # print("states:",states)
                 return (instructions, states)
             else:
                 (next_instruction, robotNextPos) = self.nextStep()
@@ -310,12 +310,12 @@ class Explorer():
         h = robotNextPos[0]
         w = robotNextPos[1]
         head = robotNextPos[2]
-        print("evaluating point:",h,w,head)
+        # print("evaluating point:",h,w,head)
         if not self.isFrontAllKnown(h,w,head,0):  # previously is 2, but maybe can change to 0 becaseu if both left and right are explored, the robot can burst
-            print("front false")
+            # print("front false")
             return False
         if not self.isLeftAllKnown(h,w,head,4):
-            print("left false")
+            # print("left false")
             return False
         # decide the right allKnown range
         if head == 1 or head == 3:
@@ -323,7 +323,7 @@ class Explorer():
         else:
             right_range = 2
         if not self.isRightAllKnown(h,w,head,right_range): 
-            print("right false")
+            # print("right false")
             return False
         return True
         
@@ -404,10 +404,10 @@ class Explorer():
             if block_pos == 0:
                 break
             elif not self.is_valid_point(cell):
-                print("false invalid")
+                # print("false invalid")
                 return False
             elif self.arena.get(cell[0],cell[1]) != CellType.EMPTY:
-                print("false empty")
+                # print("false empty")
                 return False
         return True            
     
@@ -423,7 +423,7 @@ class Explorer():
         if (self.isPrevRight == False and (self.climbCnt == 0 or (self.climbCnt == 2 and self.delayRight == 0))): #if climbCnt == 1, shouldn't check right condition first, should check front first
             # decide turn-right condition
             if (self.checkRight(1) == "true"):  # previously only checkright == TRUe; if off stairs, add or self.checkRight(1) == "stairs"
-                print("check right true here")                  
+                # print("check right true here")                  
                 self.robot.rotateRight(needUpdateSensor = True)
                 robotCurrentPos = self.getRobotCurrentPos()
                 if robotCurrentPos[2] == 1 or robotCurrentPos[2] == 3:
@@ -435,7 +435,7 @@ class Explorer():
                 self.isPrevRight = True
                 return (''.join([self.alignSensor, 'R']), robotCurrentPos)
             elif (self.checkRight(1) == "unknown"):
-                print("right unknown")
+                # print("right unknown")
                 self.robot.rotateRight(needUpdateSensor = True)
                 robotCurrentPos = self.getRobotCurrentPos()
                 if robotCurrentPos[2] == 1 or robotCurrentPos[2] == 3:
@@ -852,7 +852,7 @@ class Explorer():
     def clearAlignCnt(self):
         converted_sensor = re.sub("RCF[0-9]{3}L","CS000",self.alignSensor) # convert both to calibration side
         converted_sensor = re.sub("LCF[0-9]{3}R","CS000",converted_sensor)
-        print("finish converting")
+        # print("finish converting")
         # converted, now can process
         if "CF" in converted_sensor: # clear front calibration
             if self.robot.robotHead == 1 or self.robot.robotHead == 3:
@@ -901,7 +901,7 @@ class Explorer():
                 return "false"
             if self.arena.get(robot.robotCenterH+cell[0],robot.robotCenterW+cell[1]) == CellType.UNKNOWN:
                 return "unknown"
-        print("check front true")
+        # print("check front true")
         return "true"                   
     # check whether the 3 consecutive cells on robot right are empty
     def checkRight(self,layer):
@@ -945,7 +945,7 @@ class Explorer():
         # the loop breaking algo here is bug-free,but can be improved. not finalized
         if (len(self.turnList)>= 4 and [h,w] == self.turnList[-4])\
         or self.turnList.count([h,w]) > 3:
-            print("loop false")
+            # print("loop false")
             return "false"
         return "true"
     
@@ -1070,7 +1070,7 @@ class Explorer():
         targetCells = []
         cellList = []
         for dist in cellEuclidean:
-            print("dist:",dist)
+            # print("dist:",dist)
             for cellTup in observableCellsDist:
                 if cellTup[1] == dist:
                     if itemNo < noOfPicks:
@@ -1236,9 +1236,9 @@ class Explorer():
             for cellToMove in cellsToMoves:
                 (instr, endNode,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True, isExploring = True) 
 # =============================================================================
-#                 print("dijkstra startnode:",startnode)
-#                 print("dijkstra cellToMove:",cellToMove)
-#                 print("dijkstra instr:",instr)
+#                 # print("dijkstra startnode:",startnode)
+#                 # print("dijkstra cellToMove:",cellToMove)
+#                 # print("dijkstra instr:",instr)
 # =============================================================================
                 costs.append(cost)
                 minCost = costs[0]
@@ -1266,12 +1266,12 @@ class Explorer():
             else:
                 break
         if len(updatedNodes) == 0:
-            print("no more")
+            # print("no more")
             cellToMove = (1,1,2)
         cellToMove = (updatedNodes[index][0][0], updatedNodes[index][0][1], updatedNodes[index][2])
 # =============================================================================
-#         print("cell to move:",cellToMove)
-#         print("start cell:",startnode)
+#         # print("cell to move:",cellToMove)
+#         # print("start cell:",startnode)
 # =============================================================================
         (instr, endNode,cost, instr_noCali) = dijkstra(self.arena.get_2d_arr(), startnode, cellToMove, endOrientationImportant=True, isExploring = True) 
         logging.debug("Observing point " + str(endNode)) 
