@@ -143,7 +143,7 @@ def dijkstra(mymap, start, end, endOrientationImportant = False, isExploring = F
                 temp = p[0]
             ins = ""
             ins_noCali = "" #AQ added
-            count = Hcounter + Vcounter - 0.5
+            count = Hcounter + Vcounter
             for item in path:
                 sensor = checkAlign(1,item[0],mymap)
                 print("dijkstra counter:",count)

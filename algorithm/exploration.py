@@ -51,8 +51,8 @@ class Explorer():
         self.alignDict = {'R':1,
                           'L':1,
                           'F':0.5}
-        self.alignCntHLimit = 1.5
-        self.alignCntVLimit = 1.5
+        self.alignCntHLimit = 1
+        self.alignCntVLimit = 1
         self.breakPoints = []
         self.robotPosList = []
         self.alignSensor = "" # CF(front), CS(right)
