@@ -1,0 +1,4 @@
+base model MLP (9, 16, 4)
+generations: 1000
+pool_size: 100
+fitness only based on #discovered

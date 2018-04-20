@@ -97,6 +97,13 @@ class Arena():
         else:
             return False
 
+    def isComplete(self):
+        for row in self.arena_map:
+            for cell in row:
+                if cell == CellType.UNKNOWN:
+                    return False
+        return True
+
 
 class CellType(Enum):
     UNKNOWN = -1
