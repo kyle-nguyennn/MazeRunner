@@ -1,2 +1,2 @@
 # MazeRunner
-NTU CZ3004 Multidisciplinary Project
+Multidisciplinary Project - a self-navigate robot in a bounded incomplete environment with obstacles.
